@@ -1,0 +1,11 @@
+{
+  "file": "es-sound-lab-0.1.0-debug.apk",
+  "bytes": 871261,
+  "sha256": "837b7bf7067d86d0839eac569deaccf65bc1d04b1fd18fde962eb7711f7e9ae0",
+  "package": "cn.es.soundlab",
+  "version": "0.1.0",
+  "minSdk": 26,
+  "targetSdk": 28,
+  "compileSdk": 35,
+  "signing": "local debug certificate"
+}

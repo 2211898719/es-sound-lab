@@ -1,0 +1,156 @@
+[
+  {
+    "file": "door_front_left_closed.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/door_front_left_closed.mp3",
+    "sha256": "7a4a1bd50d6ec8249a4d497c3534c08133f52065b7f0192b2586dbfa4f538ad7"
+  },
+  {
+    "file": "door_front_left_open.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/door_front_left_open.mp3",
+    "sha256": "332036bcabaedcdc2e82ccc0225589fa7e7b3692cfe85b9ce77cf936b4c7a89f"
+  },
+  {
+    "file": "door_front_right_closed.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/door_front_right_closed.mp3",
+    "sha256": "37c46f5b1bc5540c4f9bc01de6133c6135c00e74403e49916da3ff244bbd5cbc"
+  },
+  {
+    "file": "door_front_right_open.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/door_front_right_open.mp3",
+    "sha256": "22c525293bdcb209035d08c5be2a915039a8b3aa64515c419ea7dc75f3b0bcf3"
+  },
+  {
+    "file": "door_rear_left_closed.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/door_rear_left_closed.mp3",
+    "sha256": "9f8b6cfad53faef21054fd34309cde38ee3719825300b1f0e167a696b1b9c88e"
+  },
+  {
+    "file": "door_rear_left_open.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/door_rear_left_open.mp3",
+    "sha256": "e5cd6b96cbc82c16026e643c600c9a092853877df02138dd930b262ac09ff0af"
+  },
+  {
+    "file": "door_rear_right_closed.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/door_rear_right_closed.mp3",
+    "sha256": "377c4a891da4e679f9555e42acde93563a4d5e39f6f7aa0764d8ab9574188bc2"
+  },
+  {
+    "file": "door_rear_right_open.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/door_rear_right_open.mp3",
+    "sha256": "a4faff0ed3b4781b5f60e776fc673fbb3d8c61ff76520821a22c6716fe66bf19"
+  },
+  {
+    "file": "gear_d.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/gear_d.mp3",
+    "sha256": "22690f8481754da95842d83a88fc1a13b6bbd4d07e4848152ccbe4eb6e5f422c"
+  },
+  {
+    "file": "gear_m.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/gear_m.mp3",
+    "sha256": "97d1cc2c19c9dca498ec91a6272532c7cee872cb25098df046b8e22fe511bd53"
+  },
+  {
+    "file": "gear_n.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/gear_n.mp3",
+    "sha256": "210d8700e251fbfb0089ef628d41ae2fce116350d4cff5691d997a4773040360"
+  },
+  {
+    "file": "gear_p.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/gear_p.mp3",
+    "sha256": "99e1d3de0b0cbf5e101a55f26213efd4c5ec6258c019547200b08ba2d57345d8"
+  },
+  {
+    "file": "gear_r.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/gear_r.mp3",
+    "sha256": "e5d357ad137ad3019ed6024a2da093245c11c9c61f7aa5237c8eef2d0db25fed"
+  },
+  {
+    "file": "gear_s.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/gear_s.mp3",
+    "sha256": "19560ad1c65ff401e34ef1375b5f2ee4955d2a6513040e48e4d394cbc05bc784"
+  },
+  {
+    "file": "option_d_goodfortune.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/options/D档一响黄金万两.mp3",
+    "sha256": "a2003bcecffaa589d413d4da517fa92b6fb42562e5ff148d327c7cba4e9424b3",
+    "displayName": "D档一响黄金万两.mp3"
+  },
+  {
+    "file": "option_p_goodluck.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/options/P档一按好运不断.mp3",
+    "sha256": "c29a1e479dba2b37a4976982454d7183ee3ca374cf2c0bc5c43a09882acd5ff7",
+    "displayName": "P档一按好运不断.mp3"
+  },
+  {
+    "file": "option_princess.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/options/公主请上车.mp3",
+    "sha256": "9cb4f9a16dc643a5c9e0525f609fc00fb13bb03e8bfeec86fd23e9a35a96376d",
+    "displayName": "公主请上车.mp3"
+  },
+  {
+    "file": "option_right_belt.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/options/右后门已关闭，请系好安全带.mp3",
+    "sha256": "71a44585498d1fdd01dcad78729908dc99b8e21adbc88adee8645a7854974168",
+    "displayName": "右后门已关闭，请系好安全带.mp3"
+  },
+  {
+    "file": "option_young_master.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/options/少爷请上车.mp3",
+    "sha256": "393dbef2df27dbacbd09f49853cfcd2aeb8a0a29be8ea2a65fcf7995656c1220",
+    "displayName": "少爷请上车.mp3"
+  },
+  {
+    "file": "option_left_belt.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/door-alerts/options/左后门已关闭，请系好安全带.mp3",
+    "sha256": "98b38860d9e6b36e5a10ca2c25cffc3ff4f8c22878f94a583614ad7622ca6140",
+    "displayName": "左后门已关闭，请系好安全带.mp3"
+  },
+  {
+    "file": "reverse_alert.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/yuhan_vehicle/reverse_alert.mp3",
+    "sha256": "2fb0f0d8e77cf6cc11ef3cbe5e36c1cc03aae2dd2beef6ac52587e52c5cf8840"
+  },
+  {
+    "file": "tailgate_open.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/yuhan_vehicle/tailgate_open.mp3",
+    "sha256": "55641d4f3eb86af5934d1431005fbbf0eedcfe7c0dd4777c5f3fd8b9433dd562"
+  },
+  {
+    "file": "tailgate_close.mp3",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/yuhan_vehicle/tailgate_close.mp3",
+    "sha256": "cae6b4242c58559867260d387e5504b730203c020dc8a78fd63cd0dc166c5e8e"
+  },
+  {
+    "file": "pedestrian.wav",
+    "source": "yuhan-2.0.666-gear-alert-interrupt-local-test.apk:assets/yuhan_vehicle/pedestrian.wav",
+    "sha256": "9b611f83f9682688bcc2394d02b2c84b04794dee50f8dbbb4f5db02171e26c1c"
+  },
+  {
+    "file": "welcome.mp3",
+    "source": "alias:少爷请上车.mp3"
+  },
+  {
+    "file": "unlock.wav",
+    "source": "procedurally generated chime; no signal support implied"
+  },
+  {
+    "file": "lock.wav",
+    "source": "procedurally generated chime; no signal support implied"
+  },
+  {
+    "file": "charge_start.wav",
+    "source": "procedurally generated chime; no signal support implied"
+  },
+  {
+    "file": "charge_stop.wav",
+    "source": "procedurally generated chime; no signal support implied"
+  },
+  {
+    "file": "custom.wav",
+    "source": "procedurally generated chime; no signal support implied"
+  },
+  {
+    "file": "engine.wav",
+    "source": "procedurally generated harmonic loop; speed-modulated"
+  }
+]

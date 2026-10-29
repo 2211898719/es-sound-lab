@@ -1,0 +1,15 @@
+/tools/android/
+/tools/debug.keystore
+/tools/__pycache__/
+/.gradle/
+/build/
+/app/build/
+/local.properties
+/tools/ui-check/lib/
+/tools/ui-check/classes/
+/tools/google-java-format.jar
+/*-latest.log
+.DS_Store
+*.apk.idsig
+/.idea/
+*.iml
