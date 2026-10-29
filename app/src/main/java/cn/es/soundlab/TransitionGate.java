@@ -40,4 +40,8 @@ public final class TransitionGate {
   public void forget(String key) {
     entries.remove(key);
   }
+
+  public void forgetSource(String source) {
+    entries.entrySet().removeIf(entry -> entry.getValue().source.startsWith(source + "|"));
+  }
 }

@@ -61,7 +61,7 @@ public final class SoundEngine {
     if (spec != null && spec.group.equals("lock"))
       diag.line("车外播放", (preview ? "手动试听" : "自动事件") + " · " + id
           + (closed ? " · 播放器已关闭" : !preview && !store.enabled("lock") ? " · 开关关闭，跳过" : " · 请求播放"));
-    if (spec == null || closed || (!preview && !store.enabled(spec.group))) return;
+    if (!playable(spec, preview)) return;
     focusBlocked = false;
     Job j = new Job(spec, preview);
     for (Iterator<Job> it = queue.iterator(); it.hasNext(); )
@@ -74,14 +74,42 @@ public final class SoundEngine {
     if (shot == null) next();
   }
 
-  /** A new gear invalidates the entire preceding gear request, even during prepareAsync. */
+  /** Only playable gear speech preempts a short clip; driving loops always follow current state. */
   public void gearChanged(String event) {
-    queue.clear();
-    desiredLoop = null;
-    releaseShot();
-    releaseLoop();
-    focusBlocked = false;
+    invalidateGear();
     play(event, false);
+  }
+
+  public void invalidateGear() {
+    for (Iterator<Job> jobs = queue.iterator(); jobs.hasNext(); )
+      if (jobs.next().spec.group.equals("gear")) jobs.remove();
+    desiredLoop = null;
+    releaseLoop();
+  }
+
+  private boolean playable(EventSpec spec, boolean preview) {
+    if (spec == null || closed || (!preview && !store.enabled(spec.group))) return false;
+    try {
+      if (store.volume(spec.group) == 0) throw new IllegalStateException("音量为 0");
+      if (spec.group.equals("lock") && (selectedLockDevice() == null
+          || (!preview && !store.prefs.getBoolean("lock.output.confirmed", false)))) {
+        diag.lockOutputStatus = "未选择可用且满足确认要求的车外设备，已阻止解闭锁播放";
+        throw new IllegalStateException(diag.lockOutputStatus);
+      }
+      String source = store.source(spec);
+      if (source.startsWith("file:")) {
+        if (!new File(source.substring(5)).isFile())
+          throw new IllegalStateException("自选音频文件已丢失，请重新导入");
+      } else if (source.startsWith("asset:")) {
+        try (AssetFileDescriptor asset = context.getAssets().openFd(source.substring(6))) {
+          if (asset.getLength() == 0) throw new IllegalStateException("音源为空");
+        }
+      } else throw new IllegalStateException("未知音源类型");
+      return true;
+    } catch (Exception error) {
+      diag.line("播放跳过", spec.id + " · " + error.getMessage() + "；保留正在播放的短音效");
+      return false;
+    }
   }
 
   private void next() {
@@ -90,7 +118,8 @@ public final class SoundEngine {
     Job j;
     do {
       j = queue.poll();
-    } while (j != null && android.os.SystemClock.elapsedRealtime() - j.at > 8000);
+    } while (j != null && (android.os.SystemClock.elapsedRealtime() - j.at > 8000
+        || !playable(j.spec, j.preview)));
     if (j == null) {
       applyLoop();
       return;
@@ -98,6 +127,7 @@ public final class SoundEngine {
     releaseLoop();
     if (!requestFocus()) {
       diag.line("播放", "未获得音频焦点");
+      if (j.spec.group.equals("lock")) diag.line("车外播放", "未获得音频焦点，取消 · " + j.spec.id);
       queue.clear();
       return;
     }
@@ -406,8 +436,41 @@ public final class SoundEngine {
     diag.playing = "待命";
   }
 
-  public void refresh() {
-    stop();
+  public void refresh(String key) {
+    if (key.startsWith("lock.")) {
+      cancelLock();
+      return;
+    }
+    if (key.startsWith("enabled.")) {
+      String group = key.substring(8);
+      if (!store.enabled(group)) {
+        for (Iterator<Job> jobs = queue.iterator(); jobs.hasNext(); )
+          if (jobs.next().spec.group.equals(group)) jobs.remove();
+        if (loopId != null && EventSpec.find(loopId).group.equals(group)) releaseLoop();
+        if (shotSpec != null && shotSpec.group.equals(group)) next();
+      }
+    } else if (key.startsWith("volume.") && shotSpec != null
+        && shotSpec.group.equals(key.substring(7))) {
+      lockVolume = store.volume(shotSpec.group) / 100f;
+      if (!shotSpec.group.equals("lock") || lockAudible) shot.setVolume(lockVolume, lockVolume);
+    } else if (key.startsWith("speed.") && shotSpec != null
+        && shotSpec.id.equals(key.substring(6))) {
+      try {
+        rate(shot, store.speed(shotSpec.id));
+      } catch (Exception error) {
+        diag.line("播放", "语速将在下一次播放生效");
+      }
+    } else if (key.equals("output")) {
+      for (Iterator<Job> jobs = queue.iterator(); jobs.hasNext(); )
+        if (!jobs.next().spec.group.equals("lock")) jobs.remove();
+      releaseLoop();
+      if (shotSpec != null && !shotSpec.group.equals("lock")) next();
+    }
+    if (key.startsWith("volume.") && loopId != null
+        && EventSpec.find(loopId).group.equals(key.substring(7))) {
+      float volume = store.volume(EventSpec.find(loopId).group) / 100f;
+      loop.setVolume(volume, volume);
+    }
   }
 
   public void close() {

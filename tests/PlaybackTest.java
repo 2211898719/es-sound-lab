@@ -272,30 +272,163 @@ public final class PlaybackTest {
   }
 
   @Test
-  public void missingDAudioStillCancelsReverse() {
+  public void missingDAudioPreservesShortVoiceWithoutRestartingReverse() {
     store.file(EventSpec.find("gear.d"), new File("/missing-d-clip.wav"), "missing.wav");
     gear(1);
     advance(20);
     MediaPlayer r = players.get(0);
     gear(3);
+    assertTrue(r.isPlaying());
     advance(2100);
     assertEquals(ShadowMediaPlayer.State.END, shadowOf(r).getState());
-    // One R player and one failed D player; no reverse loop can restart.
-    assertEquals(2, players.size());
+    assertEquals(1, players.size());
     for (MediaPlayer p : players) assertEquals(ShadowMediaPlayer.State.END, shadowOf(p).getState());
   }
 
   @Test
-  public void invalidGearStopsPlaybackAndRecoverySetsSilentBaseline() {
+  public void invalidGearPreservesShortVoiceAndRecoverySetsSilentBaseline() {
     gear(1);
     advance(20);
     MediaPlayer r = players.get(0);
     accept(Protocol.property(true, 67108874, 0, 1, 1, System.currentTimeMillis()));
-    assertEquals(ShadowMediaPlayer.State.END, shadowOf(r).getState());
+    assertTrue(r.isPlaying());
     gear(3);
     advance(50);
     assertEquals(1, players.size());
-    assertEquals("待命", service.diagnostics.playing);
+    assertEquals("R 挡", service.diagnostics.playing);
+    advance(2100);
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(r).getState());
+    assertEquals(1, players.size());
+  }
+
+  @Test
+  public void disabledGearEventsDoNotInterruptDoorVoice() {
+    service.preview("door.front_left.close");
+    advance(20);
+    MediaPlayer door = players.get(0);
+    store.enable("gear", false);
+    gear(3);
+    advance(20);
+    assertTrue(door.isPlaying());
+    assertEquals(1, players.size());
+  }
+
+  @Test
+  public void mutedGearEventsDoNotInterruptDoorVoice() {
+    service.preview("door.front_left.close");
+    advance(20);
+    MediaPlayer door = players.get(0);
+    store.volume("gear", 0);
+    gear(3);
+    advance(20);
+    assertTrue(door.isPlaying());
+    assertEquals(1, players.size());
+    assertTrue(service.diagnostics.lines("").contains("音量为 0"));
+  }
+
+  @Test
+  public void unrelatedPreferencesAndLockBaselinesDoNotInterruptDoorVoice() {
+    service.preview("door.front_left.close");
+    advance(20);
+    MediaPlayer door = players.get(0);
+    store.prefs.edit().putInt("lowSpeed", 15).putString("audio.name.gear.d", "other")
+        .putBoolean("lock.output.confirmed", false).apply();
+    lock(0, 0);
+    lock(1, 1);
+    advance(20);
+    assertTrue(door.isPlaying());
+    assertEquals(1, players.size());
+  }
+
+  @Test
+  public void sourceResetDoesNotStopExistingShortVoice() {
+    gear(1);
+    advance(20);
+    MediaPlayer gearVoice = players.get(0);
+    ReflectionHelpers.callInstanceMethod(service, "resetSource",
+        ReflectionHelpers.ClassParameter.from(String.class, "Mega"));
+    assertTrue(gearVoice.isPlaying());
+    gear(3);
+    advance(20);
+    assertEquals(1, players.size());
+    assertTrue(gearVoice.isPlaying());
+    advance(2100);
+    assertEquals(1, players.size());
+  }
+
+  @Test
+  public void nativeSourceResetPreservesLogLockBaselineAndAutomaticTrigger() {
+    externalOutput(true);
+    store.enable("lock", true);
+    store.calibrateLock("1", "0");
+    lock(0, 0);
+    ReflectionHelpers.callInstanceMethod(service, "resetSource",
+        ReflectionHelpers.ClassParameter.from(String.class, "Mega"));
+    ReflectionHelpers.callInstanceMethod(service, "resetSource",
+        ReflectionHelpers.ClassParameter.from(String.class, "Android"));
+    lock(1, 0);
+    advance(20);
+    assertEquals(1, players.size());
+    assertEquals("车辆闭锁", service.diagnostics.playing);
+    assertTrue(service.diagnostics.lines("").contains("自动事件 · lock.lock"));
+  }
+
+  @Test
+  public void modeAndRulesChangesReuseLogReaderAndPreserveVoice() throws Exception {
+    LogReader retained = new LogReader(service, service.diagnostics, new LogReader.Listener() {
+      public void line(String line, long started) { }
+      public void reset() { }
+    }, false);
+    ReflectionHelpers.setField(service, "logs", retained);
+    service.preview("door.front_left.close");
+    advance(20);
+    MediaPlayer door = players.get(0);
+    int logGeneration = ReflectionHelpers.getField(service, "logGeneration");
+    service.discovery(true);
+    assertSame(retained, ReflectionHelpers.getField(service, "logs"));
+    service.discovery(false);
+    store.addRule(new org.json.JSONObject().put("id", "test-rule").put("source", "日志")
+        .put("topic", "unknown").put("propertyId", 1).put("area", "0x0")
+        .put("event", "gear.d").put("value", "1"));
+    advance(20);
+    assertSame(retained, ReflectionHelpers.getField(service, "logs"));
+    assertEquals(logGeneration, (int) ReflectionHelpers.getField(service, "logGeneration"));
+    assertTrue(door.isPlaying());
+    assertEquals(1, players.size());
+  }
+
+  @Test
+  public void modeAndRulesChangesPreserveAutomaticLockBaseline() throws Exception {
+    externalOutput(true);
+    store.enable("lock", true);
+    store.calibrateLock("1", "0");
+    LogReader retained = new LogReader(service, service.diagnostics, new LogReader.Listener() {
+      public void line(String line, long started) { }
+      public void reset() { }
+    }, false);
+    ReflectionHelpers.setField(service, "logs", retained);
+    lock(0, 0);
+    service.discovery(true);
+    service.discovery(false);
+    store.addRule(new org.json.JSONObject().put("id", "extra").put("source", "日志")
+        .put("topic", "unknown").put("propertyId", 1).put("area", "0x0")
+        .put("event", "gear.d").put("value", "1"));
+    lock(1, 0);
+    advance(20);
+    assertEquals(1, players.size());
+    assertEquals("车辆闭锁", service.diagnostics.playing);
+    assertSame(retained, ReflectionHelpers.getField(service, "logs"));
+  }
+
+  @Test
+  public void logSourceLossDoesNotInterruptDoorVoice() {
+    service.preview("door.front_left.close");
+    advance(20);
+    MediaPlayer door = players.get(0);
+    ReflectionHelpers.callInstanceMethod(service, "resetSource",
+        ReflectionHelpers.ClassParameter.from(String.class, "日志"));
+    assertTrue(door.isPlaying());
+    assertEquals(1, players.size());
   }
 
   @Test

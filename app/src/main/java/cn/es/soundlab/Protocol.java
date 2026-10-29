@@ -67,6 +67,22 @@ public final class Protocol {
     return line != null && line.length() <= 8192 && RELEVANT.matcher(line).find();
   }
 
+  public static boolean standardLog(String line) {
+    if (line == null || line.length() > 8192) return false;
+    Matcher header = HEADER.matcher(line);
+    if (!header.matches()) return false;
+    switch (header.group(2).trim()) {
+      case "MessageProperty":
+      case "VCU_PRNDGearAct":
+      case "CarCabinPropertyService":
+      case "VehicleStateMonitorB561":
+      case "Welcome":
+        return true;
+      default:
+        return false;
+    }
+  }
+
   public static boolean noisy(String line) {
     if (line == null) return false;
     Matcher topic = TOPIC.matcher(line);

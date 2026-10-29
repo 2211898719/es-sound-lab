@@ -45,7 +45,7 @@ public final class MonitorService extends Service
   private String legacyDoorValue;
   private final Runnable flushLegacy = this::flushLegacyDoors;
   private boolean running, destroyed, silenced;
-  private int generation;
+  private int generation, logGeneration;
   private long previousElapsed, previousUptime;
   private final BroadcastReceiver powerEvents = new BroadcastReceiver() {
     @Override
@@ -175,24 +175,32 @@ public final class MonitorService extends Service
     if (diagnostics.scanning == enabled) return;
     diagnostics.scanning = enabled;
     diagnostics.line("检测", enabled ? "开始扩展检测，属性和原始日志将保存在本次记录中" : "结束扩展检测，恢复已知事件监听");
-    restartSources();
+    if (logs != null) logs.discovery(enabled);
+    restartVehicles();
   }
 
   public void reconnect() {
-    if (running) restartSources();
+    if (running) {
+      stopLogs();
+      resetSource("日志");
+      logTimes.clear();
+      restartSources();
+    }
     else begin();
   }
 
   private void restartSources() {
-    diagnostics.line("生命周期", "重建数据源，扩展检测=" + diagnostics.scanning + "；重新建立基线");
-    stopSources();
+    restartVehicles();
+    if (running && logs == null) startLogs();
+  }
+
+  private void restartVehicles() {
+    diagnostics.line("生命周期", "重建车辆接口，扩展检测=" + diagnostics.scanning + "；保留日志连接及其基线");
+    stopVehicles();
     if (!running) return;
-    states.clear();
-    logTimes.clear();
-    gate.reset();
-    ruleGate.reset();
-    diagnostics.resetLive();
-    audio.stop();
+    resetSource("Desay");
+    resetSource("Mega");
+    resetSource("Android");
     final int token = generation;
     vehicles =
         new VehicleAccess(
@@ -216,6 +224,10 @@ public final class MonitorService extends Service
               }
             });
     vehicles.start(diagnostics.scanning);
+  }
+
+  private void startLogs() {
+    final int token = logGeneration;
     logs =
         new LogReader(
             this,
@@ -225,18 +237,19 @@ public final class MonitorService extends Service
                 Protocol.Sample s = Protocol.decode(line);
                 long at = Protocol.logTime(line);
                 if (at < start || at > System.currentTimeMillis() + 500) return;
+                if (Protocol.noisy(line) && !store.watches(s)) {
+                  diagnostics.filteredLog();
+                  return;
+                }
                 if (pendingLogs.incrementAndGet() > 128) {
                   pendingLogs.decrementAndGet();
+                  diagnostics.droppedLog();
                   return;
                 }
                 main.post(
                     () -> {
                       try {
-                        if (token != generation || destroyed) return;
-                        if (Protocol.noisy(line) && !store.watches(s)) {
-                          diagnostics.filteredLog();
-                          return;
-                        }
+                        if (token != logGeneration || destroyed || !running) return;
                         diagnostics.line("原始", line);
                         if (s != null) {
                           Long last = logTimes.get(s.identity());
@@ -255,7 +268,7 @@ public final class MonitorService extends Service
               public void reset() {
                 main.post(
                     () -> {
-                      if (token == generation) resetSource("日志");
+                      if (token == logGeneration && !destroyed) resetSource("日志");
                     });
               }
             },
@@ -264,13 +277,22 @@ public final class MonitorService extends Service
   }
 
   private void stopSources() {
-    generation++;
-    main.removeCallbacks(flushLegacy);
-    legacyDoors.clear();
+    stopLogs();
+    stopVehicles();
+  }
+
+  private void stopLogs() {
+    logGeneration++;
     if (logs != null) {
       logs.stop();
       logs = null;
     }
+  }
+
+  private void stopVehicles() {
+    generation++;
+    main.removeCallbacks(flushLegacy);
+    legacyDoors.clear();
     if (vehicles != null) {
       VehicleAccess old = vehicles;
       vehicles = null;
@@ -279,16 +301,23 @@ public final class MonitorService extends Service
   }
 
   private void resetSource(String source) {
-    main.removeCallbacks(flushLegacy);
-    legacyDoors.clear();
-    for (Iterator<Map.Entry<String, State>> it = states.entrySet().iterator(); it.hasNext(); )
-      if (it.next().getValue().source.startsWith(source + "|")) it.remove();
-    gate.reset();
-    ruleGate.reset();
-    diagnostics.resetLive();
-    for (Map.Entry<String, State> e : states.entrySet())
-      diagnostics.live(e.getKey(), e.getValue().value, e.getValue().source.split("\\|")[0]);
-    audio.stop();
+    if (source.equals("Mega")) {
+      main.removeCallbacks(flushLegacy);
+      legacyDoors.clear();
+    }
+    for (Iterator<Map.Entry<String, State>> it = states.entrySet().iterator(); it.hasNext(); ) {
+      Map.Entry<String, State> entry = it.next();
+      if (!entry.getValue().source.startsWith(source + "|")) continue;
+      diagnostics.removeLive(entry.getKey());
+      if (entry.getKey().equals("gear")) audio.invalidateGear();
+      if (entry.getKey().equals("lock")) {
+        audio.cancelLock();
+        diagnostics.lockDecision(source + "来源中断，等待新锁样本建立基线；不补播历史事件");
+      }
+      it.remove();
+    }
+    gate.forgetSource(source);
+    ruleGate.forgetSource(source);
     updateLoops();
   }
 
@@ -353,7 +382,7 @@ public final class MonitorService extends Service
     if (s.key.equals("gear")
         && previous != null
         && (change == TransitionGate.Change.INVALID || change == TransitionGate.Change.BASELINE))
-      audio.stop();
+      audio.invalidateGear();
     if (s.value == null) {
       states.remove(s.key);
       diagnostics.live(s.key, "不可用", s.source);
@@ -449,7 +478,7 @@ public final class MonitorService extends Service
     if (destroyed || key.equals("monitor") || key.startsWith("selected.")) return;
     if (key.equals("rules")) {
       ruleGate.reset();
-      if (running) restartSources();
+      if (running) restartVehicles();
       return;
     }
     if (key.equals("custom.events")) return;
@@ -463,7 +492,7 @@ public final class MonitorService extends Service
       diagnostics.lockOutputStatus = p.getBoolean("lock.output.confirmed", false)
           ? "车外设备已人工确认，等待实际播放时核验路由"
           : "车外配置已改变，须重新测试并人工确认";
-    audio.refresh();
+    audio.refresh(key);
     updateLoops();
   }
 

@@ -160,6 +160,7 @@ public final class UiTest {
         "0x0", 1, "0", 300, "日志", "lock", null));
     for (int index = 0; index < 900; index++) diagnostics.line("test", "noise");
     diagnostics.filteredLog();
+    diagnostics.droppedLog();
     diagnostics.property("Mega", 10, new int[] {0, 1}, "Integer");
     diagnostics.property("Mega", 10, new int[] {0, 1}, "Integer");
     JSONObject exported = new JSONObject(diagnostics.export(true, new Store(RuntimeEnvironment.getApplication())));
@@ -172,11 +173,13 @@ public final class UiTest {
     assertEquals("0", change.getString("raw"));
     assertEquals(1, exported.getJSONArray("signalHistory").getJSONObject(2).getInt("status"));
     assertEquals(1, exported.getInt("filteredLogs"));
+    assertEquals(1, exported.getInt("logQueueDropped"));
     assertEquals(1, exported.getJSONArray("propertyCatalog").length());
     diagnostics.clear();
     exported = new JSONObject(diagnostics.export(true, new Store(RuntimeEnvironment.getApplication())));
     assertEquals(0, exported.getJSONArray("signalHistory").length());
     assertEquals(0, exported.getInt("filteredLogs"));
+    assertEquals(0, exported.getInt("logQueueDropped"));
   }
 
   @Test

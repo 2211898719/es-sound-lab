@@ -73,7 +73,7 @@ public final class Diagnostics {
   private final ArrayDeque<SignalChange> history = new ArrayDeque<>();
   private final ArrayDeque<SignalChange> events = new ArrayDeque<>();
   private final LinkedHashMap<String, PropertyInfo> properties = new LinkedHashMap<>();
-  private long filteredLogs, historyDropped, eventsDropped, propertiesDropped;
+  private long filteredLogs, historyDropped, eventsDropped, propertiesDropped, logQueueDropped;
   private SessionJournal journal;
   public volatile String lockTriggerStatus = "尚未收到中控锁状态";
   public volatile String nativeStatus = "尚未开始车辆监听", logStatus = "尚未开始日志监听", playing = "待命";
@@ -93,7 +93,8 @@ public final class Diagnostics {
 
   public synchronized void line(String type, String message) {
     if (journal != null && (type.equals("生命周期") || type.equals("日志通道")
-        || type.equals("锁车触发") || type.equals("车外播放") || type.equals("播放失败")))
+        || type.equals("锁车触发") || type.equals("车外播放") || type.equals("播放失败")
+        || type.equals("播放跳过")))
       journal.record(type, message);
     if (message.length() > 3000) message = message.substring(0, 3000);
     lines.addLast(
@@ -178,6 +179,7 @@ public final class Diagnostics {
     history.clear();
     events.clear();
     filteredLogs = 0;
+    logQueueDropped = 0;
     historyDropped = 0;
     eventsDropped = 0;
     revision++;
@@ -197,8 +199,12 @@ public final class Diagnostics {
     filteredLogs++;
   }
 
+  public synchronized void droppedLog() {
+    logQueueDropped++;
+  }
+
   public synchronized String recordingStatus() {
-    return "已过滤 " + filteredLogs + " 条噪声 · 变化记录 " + history.size()
+    return "已过滤 " + filteredLogs + " 条噪声 · 队列丢弃 " + logQueueDropped + " 条 · 变化记录 " + history.size()
         + " 条 · 关键记录 " + events.size() + " 条 · 已淘汰 " + historyDropped + "/" + eventsDropped + " 条";
   }
 
@@ -215,7 +221,7 @@ public final class Diagnostics {
     JSONObject root = new JSONObject();
     root.put("schemaVersion", 2);
     root.put("application", "cn.es.soundlab");
-    root.put("version", "0.2.1");
+    root.put("version", "0.2.2");
     root.put("vehicleProfile", "星纪元 ES / 原 APK 星途 ES 路径");
     root.put("exportedAt", System.currentTimeMillis());
     root.put("manufacturer", Build.MANUFACTURER);
@@ -249,6 +255,7 @@ public final class Diagnostics {
     root.put("lines", new JSONArray(lines));
     root.put("rules", store.rules());
     root.put("filteredLogs", filteredLogs);
+    root.put("logQueueDropped", logQueueDropped);
     root.put("historyDropped", historyDropped);
     root.put("eventHistoryDropped", eventsDropped);
     root.put("propertyCatalogDropped", propertiesDropped);

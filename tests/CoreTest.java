@@ -120,6 +120,18 @@ public final class CoreTest {
     gate.forget("lock");
     eq(TransitionGate.Change.BASELINE, gate.accept("lock", "unlocked", "日志"), "calibration resets lock baseline");
     eq(TransitionGate.Change.CHANGED, gate.accept("door", "1", "日志"), "lock reset preserves other baselines");
+    gate.accept("lock", "locked", "日志|VehicleDoor/CentralLock|0x0");
+    gate.accept("gear", "1", "Mega|property/gear|0x0");
+    gate.forgetSource("Mega");
+    eq(TransitionGate.Change.CHANGED, gate.accept("lock", "unlocked", "日志|VehicleDoor/CentralLock|0x0"),
+        "native reset preserves log lock baseline");
+    eq(TransitionGate.Change.BASELINE, gate.accept("gear", "4", "Mega|property/gear|0x0"),
+        "reset affects only matching source");
+    eq(true, Protocol.standardLog("1760000000.125 345 789 I MessageProperty: Permission denied for another app"),
+        "payload denial text is still a normal log entry");
+    eq(false, Protocol.standardLog("1760000000.125 345 789 I AnotherTag: VehicleDoor/Unknown"),
+        "extended-only tag is not a standard entry");
+    eq(false, Protocol.standardLog("logcat: Permission denied"), "stderr is not a vehicle log entry");
     for (EventSpec e : EventSpec.ALL) {
       eq(e, EventSpec.find(e.id), "event ID lookup");
       if (e.group.equals("lock") || e.group.equals("charge"))
