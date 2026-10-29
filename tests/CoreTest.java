@@ -53,6 +53,42 @@ public final class CoreTest {
     Protocol.Sample lock = log("VehicleDoor/Lock", "0x6000055", "1", 0, "");
     eq(null, lock.key, "unverified lock signal remains candidate");
     eq("1", lock.raw, "candidate raw value preserved");
+    Protocol.Sample central = log("VehicleDoor/CentralLock", "0x67000096", "1", 0, "");
+    eq("lock", central.key, "observed central lock identity");
+    eq("1", central.value, "central lock keeps uncalibrated enum");
+    eq(null, Protocol.event("lock", central.value), "raw lock value never guesses event");
+    eq(null, Protocol.lockState("1", "", ""), "lock mapping disabled by default");
+    eq(null, Protocol.lockState("1", "1", "1"), "equal lock enums rejected");
+    eq("locked", Protocol.lockState("1", "1", "0"), "explicit locked calibration");
+    eq("unlocked", Protocol.lockState("1", "0", "1"), "reversed calibration supported");
+    eq(null, Protocol.lockState("2", "0", "1"), "unknown lock enum invalidates baseline");
+    eq("lock.lock", Protocol.event("lock", "locked"), "calibrated lock event");
+    eq("lock.unlock", Protocol.event("lock", "unlocked"), "calibrated unlock event");
+    eq(null, log("VehicleDoor/CentralLock", "0x67000096", "1", 1, "").value,
+        "invalid central lock status");
+    eq(null, log("VehicleDoor/CentralLock", "0x67000096", "-1", 0, "").value,
+        "negative central lock value");
+    eq(null, log("VehicleDoor/CentralLock", "0x67000097", "1", 0, "").key,
+        "central lock ID must match");
+    eq(false, Protocol.lockValue("2147483648"), "overflow calibration rejected");
+    eq(false, Protocol.lockValue("01"), "noncanonical calibration rejected");
+    eq(false, Protocol.lockValue("1.0"), "fractional calibration rejected");
+    String object = "{\"value\":1,\"nested\":{\"text\":\"a,}\\\"b\"},\"values\":[1,2]}";
+    eq(object, log("BodyInfo/Unknown", "0x670000aa", object, 0, ", time=1").raw,
+        "nested JSON and quoted delimiters preserved");
+    eq("[1,2,3]", log("BodyInfo/Unknown", "0x670000aa", "[1,2,3]", 0, "").raw,
+        "array raw value preserved");
+    eq(null, Protocol.decode("1760000000.125 345 789 I MessageProperty: receive BodyInfo/Unknown,"
+        + " value: CarPropertyValue{id=0x1, area=0x0, status=0, value={\"a\":1}"),
+        "incomplete nested sample rejected");
+    for (String topic : new String[] {"BodyInfo/VerticalAcceleration", "EcologyMedia/LRC",
+        "AVM/NtfMRAInfo", "DMS/MatchFaceid", "DMS/CancelMatchFaceid/Set"})
+      eq(true, Protocol.noisy("MessageProperty: receive " + topic + ", value: noise"),
+          "known noise filtered: " + topic);
+    for (String topic : new String[] {"VehicleDoor/CentralLock", "VehicleDoor/UnknownLock",
+        "DrivingInfo/Speed", "DrivingInfo/Gear", "BodyInfo/BrakePedal", "DMS/UnknownSignal"})
+      eq(false, Protocol.noisy("MessageProperty: receive " + topic + ", value: 1"),
+          "useful and unknown signals retained: " + topic);
     eq(null, Protocol.decode("garbage"), "malformed log");
     eq(null, Protocol.decode(new String(new char[9000])), "oversized input");
     eq("1", Protocol.property(false, Protocol.GEAR_SELECTION, 0, 0, 4, 1).value, "Android P gear");
@@ -80,6 +116,10 @@ public final class CoreTest {
     eq(TransitionGate.Change.BASELINE, gate.accept("door", "1", "日志"), "recovery silent");
     gate.reset();
     eq(TransitionGate.Change.BASELINE, gate.accept("door", "0", "日志"), "reconnection silent");
+    gate.accept("lock", "locked", "日志");
+    gate.forget("lock");
+    eq(TransitionGate.Change.BASELINE, gate.accept("lock", "unlocked", "日志"), "calibration resets lock baseline");
+    eq(TransitionGate.Change.CHANGED, gate.accept("door", "1", "日志"), "lock reset preserves other baselines");
     for (EventSpec e : EventSpec.ALL) {
       eq(e, EventSpec.find(e.id), "event ID lookup");
       if (e.group.equals("lock") || e.group.equals("charge"))

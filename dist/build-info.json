@@ -1,9 +1,9 @@
 {
-  "file": "es-sound-lab-0.1.0-debug.apk",
-  "bytes": 871261,
-  "sha256": "837b7bf7067d86d0839eac569deaccf65bc1d04b1fd18fde962eb7711f7e9ae0",
+  "file": "es-sound-lab-0.2.1-debug.apk",
+  "bytes": 883549,
+  "sha256": "33f80f866bd9439c15eb1a53829d606e296a8f1d661f320718a7e1a1a4e86e2b",
   "package": "cn.es.soundlab",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "minSdk": 26,
   "targetSdk": 28,
   "compileSdk": 35,

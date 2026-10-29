@@ -2,6 +2,9 @@ package cn.es.soundlab;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
+import android.os.Build;
 import java.io.File;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -128,11 +131,82 @@ public final class Store {
   }
 
   public boolean mapped(String event) {
+    if (event.startsWith("lock.") && lockCalibrated()) return true;
     EventSpec s = EventSpec.find(event);
     if (s != null && s.mapped) return true;
     JSONArray a = rules();
     for (int i = 0; i < a.length(); i++)
       if (event.equals(a.optJSONObject(i).optString("event"))) return true;
+    return false;
+  }
+
+  public boolean lockCalibrated() {
+    return Protocol.lockState(
+            prefs.getString("lock.locked", ""),
+            prefs.getString("lock.locked", ""),
+            prefs.getString("lock.unlocked", "")) != null;
+  }
+
+  public String lockReadiness() {
+    if (!lockCalibrated()) return "中控锁未校准，不会自动播放；选择音源或确认车外设备不能代替状态校准";
+    if (!enabled("lock")) return "解闭锁提示音开关已关闭";
+    if (!prefs.getBoolean("lock.output.confirmed", false)) return "车外设备未人工确认，不会自动播放";
+    try {
+      for (AudioDeviceInfo device : audioOutputs())
+        if (lockOutputMatches(device)) return "解闭锁配置就绪；首样本仅建立基线，后续有效变化才播放";
+    } catch (Exception ignored) {
+    }
+    return "所选车外设备不可用，请重新选择、试听并确认";
+  }
+
+  public String lockState(String raw) {
+    return Protocol.lockState(
+        raw, prefs.getString("lock.locked", ""), prefs.getString("lock.unlocked", ""));
+  }
+
+  public void calibrateLock(String locked, String unlocked) {
+    if (Protocol.lockState(locked, locked, unlocked) == null)
+      throw new IllegalArgumentException("请输入两个不同的非负整数，含义必须经实车确认");
+    prefs.edit().putString("lock.locked", locked).putString("lock.unlocked", unlocked).apply();
+  }
+
+  private String address(AudioDeviceInfo device) {
+    return Build.VERSION.SDK_INT >= 28 ? device.getAddress() : "";
+  }
+
+  public void lockOutput(AudioDeviceInfo device) {
+    prefs.edit()
+        .putInt("lock.output.id", device.getId())
+        .putInt("lock.output.type", device.getType())
+        .putString("lock.output.name", String.valueOf(device.getProductName()))
+        .putString("lock.output.address", address(device))
+        .putBoolean("lock.output.confirmed", false)
+        .apply();
+  }
+
+  public boolean lockOutputMatches(AudioDeviceInfo device) {
+    return device != null
+        && device.getId() == prefs.getInt("lock.output.id", -1)
+        && device.getType() == prefs.getInt("lock.output.type", -1)
+        && String.valueOf(device.getProductName()).equals(prefs.getString("lock.output.name", ""))
+        && address(device).equals(prefs.getString("lock.output.address", ""));
+  }
+
+  public AudioDeviceInfo[] audioOutputs() {
+    AudioManager manager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+    return manager == null ? new AudioDeviceInfo[0] : manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
+  }
+
+  public boolean watches(Protocol.Sample sample) {
+    if (sample == null) return false;
+    JSONArray entries = rules();
+    for (int index = 0; index < entries.length(); index++) {
+      JSONObject rule = entries.optJSONObject(index);
+      if (rule != null && rule.optString("source").equals(sample.source)
+          && rule.optString("topic").equals(sample.topic)
+          && rule.optLong("propertyId") == sample.propertyId
+          && rule.optString("area").equals(sample.area)) return true;
+    }
     return false;
   }
 }

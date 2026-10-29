@@ -72,14 +72,23 @@ public final class LogReader {
           p.destroy();
           break;
         }
-        diag.logStatus = discovery ? "扩展检测中 · 正在收集车辆相关日志" : "日志监听中 · 等待车辆事件";
+        diag.line("日志通道", "启动 logcat，扩展检测=" + discovery + "；权限已授予不代表读取已获系统批准");
+        diag.logStatus = "已启动日志请求 · 等待系统批准或车辆数据";
+        boolean received = false;
         try (BufferedReader reader =
             new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
           String line;
           while (!closed && (line = reader.readLine()) != null) {
             if (line.contains("Permission denied") || line.contains("not permitted"))
               throw new SecurityException("logcat 读取被系统拒绝");
-            if (Protocol.relevant(line)) listener.line(line, started);
+            if (Protocol.relevant(line)) {
+              if (!received) {
+                received = true;
+                diag.logStatus = discovery ? "扩展检测中 · 已收到车辆日志" : "日志监听中 · 已收到车辆日志";
+                diag.line("日志通道", "收到本次请求的首条车辆相关日志");
+              }
+              listener.line(line, started);
+            }
           }
         }
       } catch (Exception e) {
@@ -88,6 +97,7 @@ public final class LogReader {
         Process p = process;
         process = null;
         if (p != null) p.destroy();
+        diag.line("日志通道", closed ? "主动关闭日志请求" : "日志请求结束，将重试并重新建立基线");
         listener.reset();
       }
       if (!closed) {

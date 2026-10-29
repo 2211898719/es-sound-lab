@@ -299,6 +299,7 @@ public final class VehicleAccess {
         }
       }
       if (manager != null) {
+        int readable = 0;
         for (Property p : new ArrayList<>(properties))
           try {
             Object value =
@@ -307,6 +308,7 @@ public final class VehicleAccess {
                     .getMethod("getProperty", Class.class, int.class, int.class)
                     .invoke(manager, p.type, p.id, p.area);
             accept(value);
+            readable++;
             p.failures = 0;
             p.failed = false;
           } catch (Exception e) {
@@ -318,6 +320,9 @@ public final class VehicleAccess {
               listener.sample(
                   Protocol.property(mega, p.id, p.area, 1, null, System.currentTimeMillis()));
           }
+        if (!gearOnly)
+          diag.nativeStatus = name + " 已连接 · 本轮读取成功 " + readable + "/" + properties.size()
+              + " · 失败 " + (properties.size() - readable);
       }
     }
 
@@ -435,14 +440,7 @@ public final class VehicleAccess {
             int id = ((Number) call(config, "getPropertyId")).intValue();
             int[] areas = (int[]) call(config, "getAreaIds");
             Class<?> type = (Class<?>) call(config, "getPropertyType");
-            diag.line(
-                name + "属性",
-                "0x"
-                    + Integer.toHexString(id)
-                    + " · areas="
-                    + Arrays.toString(areas)
-                    + " · "
-                    + type.getSimpleName());
+            diag.property(name, id, areas, type.getSimpleName());
             if (wanted(id)) {
               if (areas.length == 0) areas = new int[] {0};
               for (int area : areas) properties.add(new Property(id, area, type));
@@ -451,7 +449,7 @@ public final class VehicleAccess {
           }
         if (properties.isEmpty()) fallback();
         subscribe();
-        diag.nativeStatus = name + " 已连接 · " + properties.size() + " 个可读属性区域";
+        if (!gearOnly) diag.nativeStatus = name + " 已连接 · " + properties.size() + " 个待读取属性区域";
         listener.reset(name);
       } catch (Exception | LinkageError e) {
         diag.nativeStatus = name + " 属性权限或接口不可用";

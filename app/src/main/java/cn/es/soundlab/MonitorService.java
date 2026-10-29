@@ -6,6 +6,9 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Binder;
@@ -43,6 +46,13 @@ public final class MonitorService extends Service
   private final Runnable flushLegacy = this::flushLegacyDoors;
   private boolean running, destroyed, silenced;
   private int generation;
+  private long previousElapsed, previousUptime;
+  private final BroadcastReceiver powerEvents = new BroadcastReceiver() {
+    @Override
+    public void onReceive(Context context, Intent intent) {
+      diagnostics.line("生命周期", "屏幕/用户事件 " + intent.getAction());
+    }
+  };
 
   private static final class State {
     final String value, source;
@@ -72,6 +82,11 @@ public final class MonitorService extends Service
   public void onCreate() {
     super.onCreate();
     store = new Store(this);
+    diagnostics.attach(this);
+    IntentFilter powerFilter = new IntentFilter(Intent.ACTION_SCREEN_ON);
+    powerFilter.addAction(Intent.ACTION_SCREEN_OFF);
+    powerFilter.addAction(Intent.ACTION_USER_PRESENT);
+    registerReceiver(powerEvents, powerFilter);
     audio = new SoundEngine(this, store, diagnostics);
     microphone = new MicrophoneBridge(diagnostics);
     store.prefs.registerOnSharedPreferenceChangeListener(this);
@@ -83,6 +98,7 @@ public final class MonitorService extends Service
 
   @Override
   public int onStartCommand(Intent i, int flags, int startId) {
+    diagnostics.line("生命周期", "服务启动 action=" + (i == null ? "系统恢复(null)" : i.getAction()));
     if (i != null && STOP.equals(i.getAction())) {
       end();
       return START_NOT_STICKY;
@@ -168,6 +184,7 @@ public final class MonitorService extends Service
   }
 
   private void restartSources() {
+    diagnostics.line("生命周期", "重建数据源，扩展检测=" + diagnostics.scanning + "；重新建立基线");
     stopSources();
     if (!running) return;
     states.clear();
@@ -216,6 +233,10 @@ public final class MonitorService extends Service
                     () -> {
                       try {
                         if (token != generation || destroyed) return;
+                        if (Protocol.noisy(line) && !store.watches(s)) {
+                          diagnostics.filteredLog();
+                          return;
+                        }
                         diagnostics.line("原始", line);
                         if (s != null) {
                           Long last = logTimes.get(s.identity());
@@ -310,10 +331,25 @@ public final class MonitorService extends Service
   }
 
   private void acceptKnown(Protocol.Sample s, boolean silent) {
+    String lockRaw = "lock".equals(s.key) ? s.raw : null;
+    if (s.key.equals("lock"))
+      s = new Protocol.Sample(s.topic, s.propertyId, s.area, s.status, s.raw, s.time,
+          s.source, s.key, store.lockState(s.value));
     String source = s.source + "|" + s.topic + "|" + s.area;
     State previous = states.get(s.key);
     if (previous != null && previous.rank > rank(s)) return;
     TransitionGate.Change change = gate.accept(s.key, s.value, source);
+    if (lockRaw != null) {
+      String reason = !store.lockCalibrated() ? "未校准，不触发"
+          : s.value == null ? "状态无效或不在校准值中，不触发"
+          : change == TransitionGate.Change.BASELINE ? "首样本/重连基线，不触发"
+          : change != TransitionGate.Change.CHANGED ? "状态未变化，不触发"
+          : silent ? "静默样本，不触发" : store.lockReadiness();
+      diagnostics.lockDecision("原始值=" + lockRaw + " · " + reason);
+    }
+    if (s.key.equals("lock")
+        && (change == TransitionGate.Change.INVALID || change == TransitionGate.Change.BASELINE))
+      audio.cancelLock();
     if (s.key.equals("gear")
         && previous != null
         && (change == TransitionGate.Change.INVALID || change == TransitionGate.Change.BASELINE))
@@ -339,6 +375,7 @@ public final class MonitorService extends Service
   }
 
   private void applyRules(Protocol.Sample s) {
+    if ("lock".equals(s.key)) return;
     JSONArray rules = store.rules();
     for (int i = 0; i < rules.length(); i++) {
       JSONObject r = rules.optJSONObject(i);
@@ -416,6 +453,16 @@ public final class MonitorService extends Service
       return;
     }
     if (key.equals("custom.events")) return;
+    if (key.equals("lock.locked") || key.equals("lock.unlocked")) {
+      diagnostics.lockDecision("校准已改变，等待新的有效锁状态建立基线");
+      states.remove("lock");
+      gate.forget("lock");
+      diagnostics.removeLive("lock");
+    }
+    if (key.startsWith("lock.output."))
+      diagnostics.lockOutputStatus = p.getBoolean("lock.output.confirmed", false)
+          ? "车外设备已人工确认，等待实际播放时核验路由"
+          : "车外配置已改变，须重新测试并人工确认";
     audio.refresh();
     updateLoops();
   }
@@ -425,6 +472,15 @@ public final class MonitorService extends Service
         @Override
         public void run() {
           if (destroyed) return;
+          long elapsed = android.os.SystemClock.elapsedRealtime();
+          long uptime = android.os.SystemClock.uptimeMillis();
+          if (previousElapsed != 0) {
+            long suspended = (elapsed - previousElapsed) - (uptime - previousUptime);
+            if (suspended > 2000)
+              diagnostics.line("生命周期", "检测到系统挂起间隔约 " + suspended + " ms（非重启证据）");
+          }
+          previousElapsed = elapsed;
+          previousUptime = uptime;
           updateLoops();
           main.postDelayed(this, 1000);
         }
@@ -432,7 +488,9 @@ public final class MonitorService extends Service
 
   @Override
   public void onDestroy() {
+    diagnostics.line("生命周期", "服务销毁；非正常进程终止可能没有此记录");
     destroyed = true;
+    unregisterReceiver(powerEvents);
     store.prefs.unregisterOnSharedPreferenceChangeListener(this);
     stopSources();
     audio.close();

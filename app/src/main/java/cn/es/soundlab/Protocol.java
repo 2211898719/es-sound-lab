@@ -8,7 +8,8 @@ import java.util.regex.Pattern;
 public final class Protocol {
   private static final Pattern PROPERTY =
       Pattern.compile(
-          "receive\\s+(\\S+),\\s*value\\s*:\\s*CarPropertyValue\\{id=(0[xX][0-9a-fA-F]+),\\s*area=(0[xX][0-9a-fA-F]+),\\s*status=(\\d+),\\s*value=([^,}]+)([^}]*)\\}");
+          "receive\\s+(\\S+),\\s*value\\s*:\\s*CarPropertyValue\\{id=(0[xX][0-9a-fA-F]+),\\s*area=(0[xX][0-9a-fA-F]+),\\s*status=(\\d+),\\s*value=");
+  private static final Pattern TOPIC = Pattern.compile("(?:receive|send)\\s+([^,\\s]+)");
   private static final Pattern HEADER =
       Pattern.compile("^\\s*(\\d+\\.\\d+)\\s+\\d+\\s+\\d+\\s+[VDIWEF]\\s+(.*?)\\s*:\\s*(.*)$");
   private static final Pattern COLOR = Pattern.compile("(?:^|,)\\s*color=([^,}\\s]+)");
@@ -27,7 +28,8 @@ public final class Protocol {
   public static final int DOOR_POS = 373295872,
       GEAR_SELECTION = 289408000,
       CURRENT_GEAR = 289408001,
-      SPEED = 291504647;
+      SPEED = 291504647,
+      CENTRAL_LOCK = 1728053398;
 
   public static final class Sample {
     public final String topic, area, raw, source;
@@ -65,6 +67,60 @@ public final class Protocol {
     return line != null && line.length() <= 8192 && RELEVANT.matcher(line).find();
   }
 
+  public static boolean noisy(String line) {
+    if (line == null) return false;
+    Matcher topic = TOPIC.matcher(line);
+    if (!topic.find()) return false;
+    switch (topic.group(1)) {
+      case "BodyInfo/VerticalAcceleration":
+      case "EcologyMedia/LRC":
+      case "AVM/NtfMRAInfo":
+      case "DMS/MatchFaceid":
+      case "DMS/MatchFaceid/Set":
+      case "DMS/CancelMatchFaceid":
+      case "DMS/CancelMatchFaceid/Set":
+      case "DMS/AutoRecognition/Set":
+      case "DMS/SyncState/Set":
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  private static int valueEnd(String line, int start) {
+    int depth = 0;
+    boolean quoted = false, escaped = false;
+    for (int index = start; index < line.length(); index++) {
+      char current = line.charAt(index);
+      if (quoted) {
+        if (escaped) escaped = false;
+        else if (current == '\\') escaped = true;
+        else if (current == '"') quoted = false;
+      } else if (current == '"') quoted = true;
+      else if (current == '{' || current == '[') depth++;
+      else if (current == '}' || current == ']') {
+        if (depth == 0) return current == '}' ? index : -1;
+        depth--;
+      } else if (current == ',' && depth == 0) return index;
+    }
+    return -1;
+  }
+
+  public static boolean lockValue(String value) {
+    if (value == null || !value.matches("0|[1-9][0-9]{0,9}")) return false;
+    try {
+      return Integer.parseInt(value) >= 0;
+    } catch (NumberFormatException e) {
+      return false;
+    }
+  }
+
+  public static String lockState(String raw, String locked, String unlocked) {
+    if (!lockValue(locked) || !lockValue(unlocked) || locked.equals(unlocked)) return null;
+    if (locked.equals(raw)) return "locked";
+    return unlocked.equals(raw) ? "unlocked" : null;
+  }
+
   public static long logTime(String line) {
     Matcher m = HEADER.matcher(line);
     if (!m.matches()) return -1;
@@ -85,9 +141,12 @@ public final class Protocol {
     Matcher m = PROPERTY.matcher(line);
     if (!m.find()) return null;
     try {
+      int end = valueEnd(line, m.end());
+      if (end < 0) return null;
       String topic = m.group(1),
           area = m.group(3).toLowerCase(Locale.ROOT),
-          raw = m.group(5).trim();
+          raw = line.substring(m.end(), end).trim(),
+          extra = line.substring(end);
       long id = Long.parseLong(m.group(2).substring(2), 16);
       int status = Integer.parseInt(m.group(4));
       String key = null, value = null;
@@ -97,7 +156,7 @@ public final class Protocol {
           if (topic.equals(TOPICS[i]) && id == DOOR_IDS[i] && (n == 0 || n == 1)) {
             key = "door." + DOORS[i];
             value = String.valueOf((int) n);
-            Matcher color = COLOR.matcher(m.group(6));
+            Matcher color = COLOR.matcher(extra);
             if (i > 0 && color.find()) {
               double c = number(color.group(1));
               value = Double.isFinite(c) ? (Math.abs(c - 2) < .01 ? "1" : "0") : null;
@@ -114,7 +173,7 @@ public final class Protocol {
           if (n == 0 || n == 1) {
             key = "tailgate";
             value = String.valueOf((int) n);
-            Matcher c = COLOR.matcher(m.group(6));
+            Matcher c = COLOR.matcher(extra);
             if (c.find()) {
               double v = number(c.group(1));
               value = Math.abs(v - 2) < .01 ? "1" : (v == 0 || v == 1 ? "0" : null);
@@ -133,6 +192,10 @@ public final class Protocol {
         if (topic.equals("DrivingInfo/Speed") && id == 67108875L) key = "speed";
         if ((topic.equals("VehicleDoor/Door/Back") && id == 100663345L)
             || (topic.equals("VehicleDoor/TrunkSts") && id == 150995050L)) key = "tailgate";
+      }
+      if (topic.equals("VehicleDoor/CentralLock") && id == CENTRAL_LOCK && area.equals("0x0")) {
+        key = "lock";
+        value = status == 0 && lockValue(raw) ? raw : null;
       }
       return new Sample(topic, id, area, status, raw, time, "日志", key, value);
     } catch (RuntimeException e) {
@@ -264,6 +327,10 @@ public final class Protocol {
 
   public static String event(String key, String value) {
     if (value == null) return null;
+    if (key.equals("lock")) {
+      if (value.equals("locked")) return "lock.lock";
+      return value.equals("unlocked") ? "lock.unlock" : null;
+    }
     if (key.startsWith("door.") || key.equals("tailgate"))
       return key + (value.equals("1") ? ".open" : ".close");
     if (key.equals("gear")) {

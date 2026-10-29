@@ -365,7 +365,7 @@ public final class MainActivity extends Activity {
       }
       margin(content, r, -2, 14);
     }
-    TextView note = text("解闭锁、充电及更多事件，可在“车辆检测”中确认信号后绑定音效。车外喊话的输出通道需要在实车上选择。", 13, MUTED);
+    TextView note = text("解闭锁需校准中控锁状态，并单独选择、确认车外通道；不使用普通音效输出。充电及更多事件可在检测页绑定。", 13, MUTED);
     note.setLineSpacing(dp(4), 1);
     add(content, note, -2);
   }
@@ -377,7 +377,7 @@ public final class MainActivity extends Activity {
       case "door":
         return "四个车门，开门与关门分别设置";
       case "lock":
-        return "检测并绑定实车解锁、闭锁事件";
+        return "中控锁变化触发，仅使用已确认的车外通道";
       case "engine":
         return "随已读取的车速变化播放声浪";
       case "reverse":
@@ -453,7 +453,10 @@ public final class MainActivity extends Activity {
     titles.addView(title);
     gap(titles, 6);
     String badge =
-        (group.equals("lock") || group.equals("charge") || group.equals("custom"))
+        group.equals("lock")
+            ? (store.lockCalibrated() ? "已校准" : "未校准，不会自动播放")
+                + (store.prefs.getBoolean("lock.output.confirmed", false) ? " · 车外设备已确认" : " · 车外设备待确认")
+            : (group.equals("charge") || group.equals("custom"))
             ? "待检测 / 可绑定规则"
             : group.equals("shout") ? "手动播放 · 输出待确认" : "已接入 · 待实车验证";
     TextView badgeView = text(badge, 10, accent(group));
@@ -470,6 +473,7 @@ public final class MainActivity extends Activity {
         (b, on) -> {
           store.enable(group, on);
           if (on && !group.equals("shout")) ensureMonitor();
+          if (on && group.equals("lock") && !store.lockCalibrated()) lockCalibration();
         });
     header.addView(enabled, new LinearLayout.LayoutParams(dp(48), dp(42)));
     add(card, header, 70);
@@ -569,10 +573,11 @@ public final class MainActivity extends Activity {
       weighted(
           actions,
           button(
-              group.equals("pedestrian") ? "车速上限" : "更多设置",
+              group.equals("pedestrian") ? "车速上限" : group.equals("lock") ? "锁车设置" : "更多设置",
               false,
               () -> {
                 if (group.equals("pedestrian")) speedThreshold();
+                else if (group.equals("lock")) lockSettings(events.get(picker.getSelectedItemPosition()));
                 else editEvent(events.get(picker.getSelectedItemPosition()));
               }),
           40,
@@ -757,7 +762,7 @@ public final class MainActivity extends Activity {
         if (d.getId() == id) selected = labels.size() - 1;
       }
     new AlertDialog.Builder(this)
-        .setTitle("音效与喊话输出通道")
+        .setTitle("普通音效与喊话输出（不含解闭锁）")
         .setSingleChoiceItems(
             labels.toArray(new String[0]),
             selected,
@@ -772,6 +777,117 @@ public final class MainActivity extends Activity {
             })
         .setNegativeButton("关闭", null)
         .show();
+  }
+
+  private void lockSettings(EventSpec event) {
+    new AlertDialog.Builder(this)
+        .setTitle(store.lockCalibrated() ? "解闭锁 · 独立车外通道" : "解闭锁 · 未校准，不会自动播放")
+        .setItems(new String[] {"校准中控锁状态", "选择车外输出设备", "测试所选车外设备",
+            "确认该设备为车外扬声器", "更多音频设置"}, (dialog, item) -> {
+          if (item == 0) lockCalibration();
+          else if (item == 1) lockOutput();
+          else if (item == 2) {
+            if (service != null) service.preview(event.id);
+          } else if (item == 3) confirmLockOutput();
+          else editEvent(event);
+        })
+        .setNegativeButton("关闭", null)
+        .show();
+  }
+
+  private void lockCalibration() {
+    LinearLayout body = col();
+    body.setPadding(dp(22), dp(10), dp(22), dp(16));
+    body.addView(text("信号：VehicleDoor/CentralLock · 0x67000096 · 区域 0\n"
+        + "必填：选好音源和车外设备后仍须校准，否则不会自动播放。\n"
+        + "不预设 0/1 的含义。请先分别标记锁车、解锁并查看变化记录，再填写两个实际值。", 13, INK));
+    if (service != null)
+      for (Diagnostics.Candidate candidate : service.diagnostics.candidates())
+        if ("lock".equals(candidate.sample.key))
+          body.addView(text("最近观测：" + candidate.sample.raw + " · "
+              + new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.CHINA)
+                  .format(new java.util.Date(candidate.sample.time))
+              + "（仅供对照，不推断闭锁/解锁）", 13, INK));
+    EditText locked = new EditText(this), unlocked = new EditText(this);
+    locked.setSingleLine(true);
+    unlocked.setSingleLine(true);
+    locked.setHint("闭锁时的原始值（不预设）");
+    unlocked.setHint("解锁时的原始值（不预设）");
+    locked.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+    unlocked.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+    locked.setText(store.prefs.getString("lock.locked", ""));
+    unlocked.setText(store.prefs.getString("lock.unlocked", ""));
+    body.addView(locked);
+    body.addView(unlocked);
+    AlertDialog dialog = new AlertDialog.Builder(this)
+        .setTitle("校准中控锁状态")
+        .setView(body)
+        .setPositiveButton("保存校准", null)
+        .setNeutralButton("清除校准", (view, which) -> {
+          store.prefs.edit().remove("lock.locked").remove("lock.unlocked").apply();
+          render();
+        })
+        .setNegativeButton("取消", null).create();
+    dialog.setOnShowListener(view -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(button -> {
+      String lockedValue = locked.getText().toString().trim(), unlockedValue = unlocked.getText().toString().trim();
+      try {
+        store.calibrateLock(lockedValue, unlockedValue);
+        dialog.dismiss();
+        render();
+        toast("校准已保存；下次有效状态仅建立基线，不播音");
+      } catch (IllegalArgumentException error) {
+        unlocked.setError(error.getMessage());
+      }
+    }));
+    dialog.show();
+  }
+
+  private void lockOutput() {
+    AudioManager manager = (AudioManager) getSystemService(AUDIO_SERVICE);
+    List<AudioDeviceInfo> devices = new ArrayList<>();
+    List<String> labels = new ArrayList<>();
+    labels.add("禁用车外输出（不回退车内）");
+    int selected = 0;
+    if (manager != null)
+      for (AudioDeviceInfo device : manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+        devices.add(device);
+        labels.add(device.getProductName() + " · 设备 " + device.getId() + " · 类型 " + device.getType());
+        if (store.lockOutputMatches(device)) selected = labels.size() - 1;
+      }
+    new AlertDialog.Builder(this)
+        .setTitle("选择车外设备 · 须在车外测试确认")
+        .setSingleChoiceItems(labels.toArray(new String[0]), selected, (dialog, item) -> {
+          if (item == 0)
+            store.prefs.edit().remove("lock.output.id").remove("lock.output.type")
+                .remove("lock.output.name").remove("lock.output.address")
+                .putBoolean("lock.output.confirmed", false).apply();
+          else store.lockOutput(devices.get(item - 1));
+          dialog.dismiss();
+          render();
+          toast("自动播放暂未授权，请测试并确认物理车外扬声器");
+        })
+        .setNegativeButton("关闭", null).show();
+  }
+
+  private void confirmLockOutput() {
+    AudioManager manager = (AudioManager) getSystemService(AUDIO_SERVICE);
+    boolean available = false;
+    if (manager != null)
+      for (AudioDeviceInfo device : manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS))
+        if (store.lockOutputMatches(device)) available = true;
+    if (!available) {
+      toast("未选择有效车外设备，请先选择并测试");
+      return;
+    }
+    new AlertDialog.Builder(this)
+        .setTitle("已在车外听到测试音？")
+        .setMessage("系统设备名称不能证明是车外扬声器。只有亲自在车外确认测试音来自目标扬声器后才能授权自动播放。"
+            + "如果车外通道未被系统枚举，需另行确认厂商音频接口，不能用车内通道代替。")
+        .setPositiveButton("已确认，授权自动播放", (dialog, item) -> {
+          store.prefs.edit().putBoolean("lock.output.confirmed", true).apply();
+          render();
+        })
+        .setNegativeButton("尚未确认", null).show();
   }
 
   private LinearLayout panel() {
@@ -853,6 +969,7 @@ public final class MainActivity extends Activity {
     candidates.addView(candidateList);
     LinearLayout logs = panel();
     logs.addView(bold("实时日志", 17, INK));
+    logs.addView(text("默认过滤高频垂向加速度、媒体歌词、人脸识别与 AVM 信息噪声。属性目录和带时间戳的变化历史单独导出；已绑定规则的信号不过滤。", 11, MUTED));
     gap(logs, 10);
     filter = new EditText(this);
     filter.setTextColor(INK);
@@ -1032,6 +1149,10 @@ public final class MainActivity extends Activity {
 
   private void bindRule(Diagnostics.Candidate candidate) {
     Protocol.Sample sample = candidate.sample;
+    if ("lock".equals(sample.key)) {
+      lockCalibration();
+      return;
+    }
     if (sample.status != 0) {
       toast("该信号当前状态无效，请等待有效值后再绑定");
       return;
@@ -1128,6 +1249,7 @@ public final class MainActivity extends Activity {
   }
 
   private String signalName(String key) {
+    if (key.equals("lock")) return "中控锁（原始值需校准）";
     if (key.equals("gear")) return "挡位";
     if (key.equals("speed")) return "车速";
     if (key.equals("tailgate")) return "后尾门";
@@ -1138,6 +1260,11 @@ public final class MainActivity extends Activity {
   }
 
   private String signalValue(String key, String value) {
+    if (key.equals("lock")) {
+      if (value.equals("locked")) return "已闭锁";
+      if (value.equals("unlocked")) return "已解锁";
+      return "未校准或无效";
+    }
     if (key.equals("gear")) {
       int n = (int) Protocol.number(value);
       return n >= 1 && n <= 5 ? new String[] {"P 挡", "R 挡", "N 挡", "D 挡", "M 挡"}[n - 1] : value;
@@ -1172,7 +1299,8 @@ public final class MainActivity extends Activity {
             + "\n"
             + d.nativeStatus
             + "\n"
-            + d.logStatus);
+            + d.logStatus + "\n" + store.lockReadiness() + "\n" + d.lockTriggerStatus
+            + "\n" + d.lockOutputStatus + "\n" + d.recordingStatus());
     captureButton.setText(d.scanning ? "结束扩展检测" : "开始扩展检测");
     StringBuilder live = new StringBuilder();
     for (Map.Entry<String, Diagnostics.Live> e : d.live().entrySet()) {

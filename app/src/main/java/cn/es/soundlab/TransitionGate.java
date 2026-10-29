@@ -36,4 +36,8 @@ public final class TransitionGate {
   public void reset() {
     entries.clear();
   }
+
+  public void forget(String key) {
+    entries.remove(key);
+  }
 }

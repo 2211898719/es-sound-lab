@@ -6,6 +6,7 @@ import android.media.AudioAttributes;
 import android.media.AudioDeviceInfo;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
+import android.media.AudioRouting;
 import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.Looper;
@@ -22,17 +23,29 @@ public final class SoundEngine {
   private final Handler main = new Handler(Looper.getMainLooper());
   private final ArrayDeque<Job> queue = new ArrayDeque<>();
   private MediaPlayer shot, loop;
+  private EventSpec shotSpec;
   private String loopId, desiredLoop;
   private float loopRate = 1;
   private AudioFocusRequest focus;
   private boolean focused, closed, focusBlocked;
+  private int lockTarget = -1;
+  private float lockVolume;
+  private long lockDeadline;
+  private boolean lockAudible, lockSeeking;
+  private final Runnable lockRouteCheck = this::checkLockRoute;
+  private final AudioRouting.OnRoutingChangedListener lockRouting =
+      routing -> {
+        if (routing == shot) checkLockRoute();
+      };
 
   private static final class Job {
     final EventSpec spec;
+    final boolean preview;
     final long at = android.os.SystemClock.elapsedRealtime();
 
-    Job(EventSpec s) {
+    Job(EventSpec s, boolean test) {
       spec = s;
+      preview = test;
     }
   }
 
@@ -45,9 +58,12 @@ public final class SoundEngine {
 
   public void play(String id, boolean preview) {
     EventSpec spec = EventSpec.find(id);
+    if (spec != null && spec.group.equals("lock"))
+      diag.line("车外播放", (preview ? "手动试听" : "自动事件") + " · " + id
+          + (closed ? " · 播放器已关闭" : !preview && !store.enabled("lock") ? " · 开关关闭，跳过" : " · 请求播放"));
     if (spec == null || closed || (!preview && !store.enabled(spec.group))) return;
     focusBlocked = false;
-    Job j = new Job(spec);
+    Job j = new Job(spec, preview);
     for (Iterator<Job> it = queue.iterator(); it.hasNext(); )
       if (it.next().spec.id.equals(id)) it.remove();
     if (preview || spec.priority >= 3) {
@@ -87,14 +103,28 @@ public final class SoundEngine {
     }
     final Job job = j;
     try {
-      final MediaPlayer p = create(job.spec);
+      final MediaPlayer p = create(job.spec, job.preview);
       shot = p;
+      shotSpec = job.spec;
       p.setOnPreparedListener(
           m -> {
             if (shot != m || closed) return;
             try {
               rate(m, store.speed(job.spec.id));
-              m.start();
+              if (job.spec.group.equals("lock")) {
+                AudioDeviceInfo device = selectedLockDevice();
+                if (device == null || (!job.preview && !store.prefs.getBoolean("lock.output.confirmed", false)))
+                  throw new IllegalStateException("车外通道已失效或未确认，取消解闭锁音效");
+                lockTarget = device.getId();
+                lockVolume = store.volume("lock") / 100f;
+                lockDeadline = android.os.SystemClock.uptimeMillis() + 1500;
+                diag.lockOutputStatus = "正在静音核验车外设备 " + lockTarget;
+                m.addOnRoutingChangedListener(lockRouting, main);
+                m.setLooping(true);
+                m.start();
+                checkLockRoute();
+                if (shot != m) return;
+              } else m.start();
               diag.playing = job.spec.title;
               diag.line("播放", job.spec.title);
             } catch (Exception e) {
@@ -121,7 +151,13 @@ public final class SoundEngine {
     }
   }
 
-  private MediaPlayer create(EventSpec s) throws Exception {
+  private MediaPlayer create(EventSpec s, boolean preview) throws Exception {
+    boolean external = s.group.equals("lock");
+    AudioDeviceInfo device = external ? selectedLockDevice() : selectedDevice();
+    if (external && (device == null || (!preview && !store.prefs.getBoolean("lock.output.confirmed", false)))) {
+      diag.lockOutputStatus = "解闭锁已阻止：未选择或未确认车外设备，不回退普通输出";
+      throw new IllegalStateException(diag.lockOutputStatus);
+    }
     MediaPlayer p = new MediaPlayer();
     try {
       p.setAudioAttributes(
@@ -139,15 +175,76 @@ public final class SoundEngine {
           p.setDataSource(a.getFileDescriptor(), a.getStartOffset(), a.getLength());
         }
       }
-      float volume = store.volume(s.group) / 100f;
+      float volume = external ? 0 : store.volume(s.group) / 100f;
       p.setVolume(volume, volume);
-      AudioDeviceInfo device = selectedDevice();
-      if (device != null && !p.setPreferredDevice(device)) diag.line("音频输出", "所选设备未接受路由，使用系统输出");
+      if (device != null && !p.setPreferredDevice(device)) {
+        if (external) {
+          diag.lockOutputStatus = "车外设备拒绝路由，已取消解闭锁音效";
+          throw new IllegalStateException(diag.lockOutputStatus);
+        }
+        diag.line("音频输出", "所选设备未接受路由，使用系统输出");
+      }
       return p;
     } catch (Exception e) {
       p.release();
       throw e;
     }
+  }
+
+  private void checkLockRoute() {
+    main.removeCallbacks(lockRouteCheck);
+    if (shot == null || lockTarget < 0) return;
+    try {
+      AudioDeviceInfo selected = selectedLockDevice(), routed = shot.getRoutedDevice();
+      if (selected == null || selected.getId() != lockTarget)
+        throw new IllegalStateException("车外设备已断开或改变，停止解闭锁音效");
+      if (!lockAudible && android.os.SystemClock.uptimeMillis() >= lockDeadline)
+        throw new IllegalStateException("车外路由或音频定位超时，取消放音");
+      if (routed != null && routed.getId() == lockTarget && store.lockOutputMatches(routed)) {
+        if (!lockAudible && !lockSeeking) {
+          lockSeeking = true;
+          shot.setOnSeekCompleteListener(this::finishLockSeek);
+          shot.seekTo(0);
+        }
+      } else if (lockAudible || lockSeeking || android.os.SystemClock.uptimeMillis() >= lockDeadline) {
+        throw new IllegalStateException("系统未保持所选车外路由，取消放音，不回退普通输出");
+      }
+      main.postDelayed(lockRouteCheck, 100);
+    } catch (Exception e) {
+      failLock(e);
+    }
+  }
+
+  private void finishLockSeek(MediaPlayer player) {
+    if (shot != player || lockTarget < 0 || closed) return;
+    try {
+      if (android.os.SystemClock.uptimeMillis() >= lockDeadline)
+        throw new IllegalStateException("车外音频定位超时，取消放音");
+      player.setOnSeekCompleteListener(null);
+      AudioDeviceInfo selected = selectedLockDevice(), routed = player.getRoutedDevice();
+      if (selected == null || selected.getId() != lockTarget || routed == null
+          || routed.getId() != lockTarget || !store.lockOutputMatches(routed))
+        throw new IllegalStateException("音频定位后车外路由已改变，取消放音");
+      player.setLooping(false);
+      player.setVolume(lockVolume, lockVolume);
+      lockAudible = true;
+      lockSeeking = false;
+      diag.lockOutputStatus = "系统已报告所选车外路由；实际扬声器需在车外确认";
+      diag.line("车外播放", "设备 " + lockTarget + " 路由匹配，开始放音 · " + shotSpec.id
+          + " · 音量 " + store.volume("lock") + "%（实际扬声器仍须车外确认）");
+    } catch (Exception error) {
+      failLock(error);
+    }
+  }
+
+  private void failLock(Exception error) {
+    try {
+      if (shot != null) shot.setVolume(0, 0);
+    } catch (Exception ignored) {
+    }
+    diag.lockOutputStatus = error.getMessage();
+    fail(error);
+    next();
   }
 
   public void loop(String id, float rate) {
@@ -182,7 +279,7 @@ public final class SoundEngine {
     releaseLoop();
     if (!requestFocus()) return;
     try {
-      final MediaPlayer p = create(s);
+      final MediaPlayer p = create(s, false);
       loop = p;
       loopId = s.id;
       p.setLooping(true);
@@ -256,17 +353,34 @@ public final class SoundEngine {
   }
 
   private void releaseShot() {
+    main.removeCallbacks(lockRouteCheck);
     if (shot != null) {
       MediaPlayer p = shot;
       shot = null;
+      if (lockTarget >= 0)
+        try {
+          p.removeOnRoutingChangedListener(lockRouting);
+        } catch (Exception ignored) {
+        }
       p.setOnPreparedListener(null);
       p.setOnCompletionListener(null);
+      p.setOnSeekCompleteListener(null);
       p.setOnErrorListener(null);
       try {
         p.release();
       } catch (Exception ignored) {
       }
     }
+    lockTarget = -1;
+    lockAudible = false;
+    lockSeeking = false;
+    shotSpec = null;
+  }
+
+  public void cancelLock() {
+    for (Iterator<Job> jobs = queue.iterator(); jobs.hasNext(); )
+      if (jobs.next().spec.group.equals("lock")) jobs.remove();
+    if (shotSpec != null && shotSpec.group.equals("lock")) next();
   }
 
   private void releaseLoop() {
@@ -307,6 +421,13 @@ public final class SoundEngine {
     int id = store.prefs.getInt("output", -1);
     for (AudioDeviceInfo d : audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS))
       if (d.getId() == id) return d;
+    return null;
+  }
+
+  private AudioDeviceInfo selectedLockDevice() {
+    if (audio == null) return null;
+    for (AudioDeviceInfo device : audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS))
+      if (store.lockOutputMatches(device)) return device;
     return null;
   }
 }

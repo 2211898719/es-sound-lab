@@ -145,4 +145,134 @@ public final class UiTest {
         "VehicleDoor/Door/FrontLeft",
         exported.getJSONArray("candidates").getJSONObject(0).getString("topic"));
   }
+
+  @Test
+  public void signalHistorySurvivesRawNoiseAndKeepsStatusChanges() throws Exception {
+    Diagnostics diagnostics = new Diagnostics();
+    Protocol.Sample locked = new Protocol.Sample("VehicleDoor/CentralLock", Protocol.CENTRAL_LOCK,
+        "0x0", 0, "1", 100, "日志", "lock", "1");
+    Protocol.Sample unlocked = new Protocol.Sample("VehicleDoor/CentralLock", Protocol.CENTRAL_LOCK,
+        "0x0", 0, "0", 200, "日志", "lock", "0");
+    diagnostics.sample(locked);
+    diagnostics.sample(locked);
+    diagnostics.sample(unlocked);
+    diagnostics.sample(new Protocol.Sample("VehicleDoor/CentralLock", Protocol.CENTRAL_LOCK,
+        "0x0", 1, "0", 300, "日志", "lock", null));
+    for (int index = 0; index < 900; index++) diagnostics.line("test", "noise");
+    diagnostics.filteredLog();
+    diagnostics.property("Mega", 10, new int[] {0, 1}, "Integer");
+    diagnostics.property("Mega", 10, new int[] {0, 1}, "Integer");
+    JSONObject exported = new JSONObject(diagnostics.export(true, new Store(RuntimeEnvironment.getApplication())));
+    assertEquals(2, exported.getInt("schemaVersion"));
+    assertEquals(3, exported.getJSONArray("signalHistory").length());
+    assertTrue(exported.getJSONArray("signalHistory").getJSONObject(0).getBoolean("baseline"));
+    JSONObject change = exported.getJSONArray("signalHistory").getJSONObject(1);
+    assertEquals(200, change.getLong("time"));
+    assertEquals("1", change.getString("previousRaw"));
+    assertEquals("0", change.getString("raw"));
+    assertEquals(1, exported.getJSONArray("signalHistory").getJSONObject(2).getInt("status"));
+    assertEquals(1, exported.getInt("filteredLogs"));
+    assertEquals(1, exported.getJSONArray("propertyCatalog").length());
+    diagnostics.clear();
+    exported = new JSONObject(diagnostics.export(true, new Store(RuntimeEnvironment.getApplication())));
+    assertEquals(0, exported.getJSONArray("signalHistory").length());
+    assertEquals(0, exported.getInt("filteredLogs"));
+  }
+
+  @Test
+  public void historyIsBoundedAndNoiseRulesRemainDiscoverable() throws Exception {
+    Diagnostics diagnostics = new Diagnostics();
+    Store store = new Store(RuntimeEnvironment.getApplication());
+    store.prefs.edit().clear().commit();
+    diagnostics.sample(new Protocol.Sample("VehicleDoor/CentralLock", Protocol.CENTRAL_LOCK,
+        "0x0", 0, "1", 0, "日志", "lock", "1"));
+    for (int index = 0; index < 1400; index++)
+      diagnostics.sample(new Protocol.Sample("unknown", 1, "0x0", 0, "" + index,
+          index, "日志", null, null));
+    JSONObject exported = new JSONObject(diagnostics.export(true, store));
+    assertEquals(1200, exported.getJSONArray("signalHistory").length());
+    assertEquals(201, exported.getInt("historyDropped"));
+    assertEquals(1, exported.getJSONArray("eventHistory").length());
+    assertEquals("VehicleDoor/CentralLock", exported.getJSONArray("eventHistory").getJSONObject(0).getString("topic"));
+    for (int index = 0; index < 450; index++)
+      diagnostics.sample(new Protocol.Sample("VehicleDoor/CentralLock", Protocol.CENTRAL_LOCK,
+          "0x0", 0, "" + (index % 2), index, "日志", "lock", "" + (index % 2)));
+    exported = new JSONObject(diagnostics.export(true, store));
+    assertEquals(400, exported.getJSONArray("eventHistory").length());
+    assertEquals(51, exported.getInt("eventHistoryDropped"));
+    Protocol.Sample noisy = new Protocol.Sample("EcologyMedia/LRC", 5, "0x0", 0, "1", 1,
+        "日志", null, null);
+    assertFalse(store.watches(noisy));
+    store.addRule(new JSONObject().put("id", "noise-rule").put("source", "日志")
+        .put("topic", noisy.topic).put("propertyId", 5).put("area", "0x0"));
+    assertTrue(store.watches(noisy));
+    assertFalse(store.watches(new Protocol.Sample(noisy.topic, 5, "0x1", 0, "1", 1,
+        "日志", null, null)));
+  }
+
+  @Test
+  public void lockCalibrationPersistsWithoutGuessingEnums() {
+    Store store = new Store(RuntimeEnvironment.getApplication());
+    store.prefs.edit().clear().commit();
+    assertFalse(store.lockCalibrated());
+    assertNull(store.lockState("1"));
+    store.calibrateLock("2", "1");
+    Store reopened = new Store(RuntimeEnvironment.getApplication());
+    assertTrue(reopened.lockCalibrated());
+    assertEquals("locked", reopened.lockState("2"));
+    assertEquals("unlocked", reopened.lockState("1"));
+    assertTrue(reopened.mapped("lock.lock"));
+    assertTrue(reopened.mapped("lock.unlock"));
+    assertFalse(reopened.prefs.getBoolean("lock.output.confirmed", false));
+  }
+
+  @Test
+  public void sessionJournalRetainsBoundedEvidenceAcrossServiceRecreation() throws Exception {
+    Context context = RuntimeEnvironment.getApplication();
+    context.getSharedPreferences("session_journal", 0).edit().clear().commit();
+    Diagnostics first = new Diagnostics();
+    first.attach(context);
+    first.lockDecision("原始值=0 · 未校准，不触发");
+    first.line("车外播放", "手动试听 · lock.lock");
+    JSONObject before = new JSONObject(first.export(true, new Store(context)));
+    Diagnostics reopened = new Diagnostics();
+    reopened.attach(context);
+    JSONObject after = new JSONObject(reopened.export(true, new Store(context)));
+    assertEquals(0, after.getJSONArray("signalHistory").length());
+    assertEquals(4, after.getJSONArray("sessionHistory").length());
+    assertTrue(after.getJSONArray("sessionHistory").toString().contains("未校准"));
+    assertEquals(before.getJSONObject("runtime").getString("processId"),
+        after.getJSONObject("runtime").getString("processId"));
+    assertNotEquals(before.getJSONObject("runtime").getString("serviceSessionId"),
+        after.getJSONObject("runtime").getString("serviceSessionId"));
+    assertTrue(after.getJSONObject("runtime").has("bootCount"));
+    assertTrue(after.getJSONObject("runtime").has("elapsedRealtimeMs"));
+    assertTrue(after.getJSONObject("runtime").has("uptimeMs"));
+    first.line("日志通道", "旧请求延迟关闭");
+    reopened.line("日志通道", "新请求已启动");
+    after = new JSONObject(reopened.export(true, new Store(context)));
+    assertEquals(6, after.getJSONArray("sessionHistory").length());
+    assertTrue(after.getJSONArray("sessionHistory").toString().contains("未校准"));
+    assertTrue(after.getJSONArray("sessionHistory").toString().contains("旧请求延迟关闭"));
+    for (int index = 0; index < 200; index++) reopened.line("生命周期", "test " + index);
+    after = new JSONObject(reopened.export(true, new Store(context)));
+    assertEquals(160, after.getJSONArray("sessionHistory").length());
+    reopened.clear();
+    after = new JSONObject(reopened.export(true, new Store(context)));
+    assertEquals(1, after.getJSONArray("sessionHistory").length());
+    assertFalse(after.getJSONArray("sessionHistory").toString().contains("未校准"));
+  }
+
+  @Test
+  public void lockReadinessExplainsMissingConfigurationAndDisabledGroup() {
+    Store store = new Store(RuntimeEnvironment.getApplication());
+    store.prefs.edit().clear().commit();
+    assertTrue(store.lockReadiness().contains("未校准"));
+    store.calibrateLock("0", "1");
+    assertTrue(store.lockReadiness().contains("开关已关闭"));
+    store.enable("lock", true);
+    assertTrue(store.lockReadiness().contains("未人工确认"));
+    store.prefs.edit().putBoolean("lock.output.confirmed", true).commit();
+    assertTrue(store.lockReadiness().contains("不可用"));
+  }
 }

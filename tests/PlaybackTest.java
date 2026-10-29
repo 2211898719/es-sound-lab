@@ -6,6 +6,8 @@ import static org.robolectric.Shadows.shadowOf;
 import android.app.Application;
 import android.content.Context;
 import android.media.AudioManager;
+import android.media.AudioDeviceInfo;
+import android.media.AudioRouting;
 import android.media.MediaPlayer;
 import android.media.PlaybackParams;
 import android.os.Looper;
@@ -28,6 +30,7 @@ import org.robolectric.annotation.Implements;
 import org.robolectric.shadows.ShadowMediaPlayer;
 import org.robolectric.shadows.util.DataSource;
 import org.robolectric.util.ReflectionHelpers;
+import org.robolectric.shadow.api.Shadow;
 
 /** Playback lifecycle tests. Audio decoding and real vehicle outputs still need device testing. */
 @RunWith(RobolectricTestRunner.class)
@@ -35,11 +38,44 @@ import org.robolectric.util.ReflectionHelpers;
     manifest = Config.NONE,
     sdk = 28,
     application = Application.class,
-    shadows = PlaybackTest.PlayerShadow.class)
+    shadows = {PlaybackTest.PlayerShadow.class, PlaybackTest.DeviceShadow.class})
 public final class PlaybackTest {
   @Implements(MediaPlayer.class)
   public static class PlayerShadow extends ShadowMediaPlayer {
     private PlaybackParams params = new PlaybackParams().setSpeed(1).setPitch(1);
+    static boolean acceptsRoute = true;
+    static AudioDeviceInfo initialRoute;
+    AudioDeviceInfo preferred, routed;
+    float volume;
+    AudioRouting.OnRoutingChangedListener routingListener;
+
+    @Implementation
+    protected boolean setPreferredDevice(AudioDeviceInfo device) {
+      preferred = device;
+      routed = initialRoute;
+      return acceptsRoute;
+    }
+
+    @Implementation
+    protected AudioDeviceInfo getRoutedDevice() {
+      return routed;
+    }
+
+    @Implementation
+    protected void setVolume(float left, float right) {
+      volume = left;
+    }
+
+    @Implementation
+    protected void addOnRoutingChangedListener(AudioRouting.OnRoutingChangedListener listener,
+        android.os.Handler handler) {
+      routingListener = listener;
+    }
+
+    @Implementation
+    protected void removeOnRoutingChangedListener(AudioRouting.OnRoutingChangedListener listener) {
+      if (routingListener == listener) routingListener = null;
+    }
 
     @Implementation
     protected PlaybackParams getPlaybackParams() {
@@ -52,6 +88,48 @@ public final class PlaybackTest {
     }
   }
 
+  @Implements(AudioDeviceInfo.class)
+  public static class DeviceShadow {
+    int id;
+
+    @Implementation
+    protected int getId() { return id; }
+
+    @Implementation
+    protected int getType() { return AudioDeviceInfo.TYPE_BUS; }
+
+    @Implementation
+    protected CharSequence getProductName() { return "test-vehicle-bus"; }
+
+    @Implementation
+    protected String getAddress() { return "test-output-" + id; }
+
+    @Implementation
+    protected boolean isSink() { return true; }
+  }
+
+  private AudioDeviceInfo device(int id) {
+    AudioDeviceInfo device = Shadow.newInstanceOf(AudioDeviceInfo.class);
+    ((DeviceShadow) Shadow.extract(device)).id = id;
+    return device;
+  }
+
+  private AudioDeviceInfo externalOutput(boolean confirmed) {
+    AudioDeviceInfo external = device(42), cabin = device(7);
+    AudioManager manager = (AudioManager) RuntimeEnvironment.getApplication().getSystemService(Context.AUDIO_SERVICE);
+    shadowOf(manager).setOutputDevices(java.util.Arrays.asList(external, cabin));
+    store.prefs.edit().putInt("output", cabin.getId()).apply();
+    store.lockOutput(external);
+    store.prefs.edit().putBoolean("lock.output.confirmed", confirmed).apply();
+    PlayerShadow.initialRoute = external;
+    return external;
+  }
+
+  private void lock(int value, int status) {
+    accept(Protocol.decode("1760000000.125 345 789 I MessageProperty: receive VehicleDoor/CentralLock,"
+        + " value: CarPropertyValue{id=0x67000096, area=0x0, status=" + status + ", value=" + value + "}"));
+  }
+
   private Store store;
   private MonitorService service;
   private ServiceController<MonitorService> controller;
@@ -62,12 +140,14 @@ public final class PlaybackTest {
     Context c = RuntimeEnvironment.getApplication();
     store = new Store(c);
     store.prefs.edit().clear().commit();
+    PlayerShadow.acceptsRoute = true;
+    PlayerShadow.initialRoute = null;
     store.enable("gear", true);
     store.enable("reverse", true);
     shadowOf((AudioManager) c.getSystemService(Context.AUDIO_SERVICE))
         .setNextFocusRequestResponse(AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
     for (String id :
-        new String[] {"gear.p", "gear.r", "gear.d", "reverse.loop", "door.front_left.close"}) {
+        new String[] {"gear.p", "gear.r", "gear.d", "reverse.loop", "door.front_left.close", "lock.lock", "lock.unlock"}) {
       File dir = new File(c.getFilesDir(), "audio");
       dir.mkdirs();
       File f = File.createTempFile("playback-", ".wav", dir);
@@ -235,5 +315,236 @@ public final class PlaybackTest {
     assertEquals(1, players.size());
     assertTrue(players.get(0).isPlaying());
     assertEquals("主驾 · 关门", service.diagnostics.playing);
+  }
+
+  @Test
+  public void centralLockNeverGuessesMeaningOrUsesGenericRules() throws Exception {
+    externalOutput(true);
+    store.enable("lock", true);
+    store.addRule(new org.json.JSONObject().put("id", "old-rule").put("source", "日志")
+        .put("topic", "VehicleDoor/CentralLock").put("propertyId", Protocol.CENTRAL_LOCK)
+        .put("area", "0x0").put("event", "gear.d").put("value", "1"));
+    lock(0, 0);
+    lock(1, 0);
+    advance(20);
+    assertEquals(0, players.size());
+  }
+
+  @Test
+  public void calibratedLockUsesIndependentExternalRouteAndIgnoresDuplicates() {
+    AudioDeviceInfo external = externalOutput(true);
+    store.enable("lock", true);
+    store.calibrateLock("1", "0");
+    lock(0, 0);
+    assertEquals(0, players.size());
+    lock(1, 0);
+    advance(20);
+    assertEquals(1, players.size());
+    PlayerShadow player = Shadow.extract(players.get(0));
+    assertEquals(external.getId(), player.preferred.getId());
+    assertEquals(.65f, player.volume, .001f);
+    assertEquals("车辆闭锁", service.diagnostics.playing);
+    lock(1, 0);
+    assertEquals(1, players.size());
+    lock(0, 0);
+    advance(20);
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(players.get(0)).getState());
+    assertEquals("车辆解锁", service.diagnostics.playing);
+  }
+
+  @Test
+  public void configuredExternalOutputDoesNotReplaceLockCalibration() throws Exception {
+    externalOutput(true);
+    store.enable("lock", true);
+    lock(0, 0);
+    lock(1, 0);
+    advance(20);
+    assertEquals(0, players.size());
+    assertTrue(service.diagnostics.lockTriggerStatus.contains("未校准"));
+    org.json.JSONObject exported = new org.json.JSONObject(service.diagnostics.export(true, store));
+    assertTrue(exported.getString("lockReadiness").contains("未校准"));
+    assertEquals("", exported.getJSONObject("lockConfiguration").getString("lockedValue"));
+    assertTrue(exported.getJSONObject("lockConfiguration").getBoolean("enabled"));
+    store.calibrateLock("0", "1");
+    lock(1, 0);
+    advance(20);
+    assertEquals(0, players.size());
+    assertTrue(service.diagnostics.lockTriggerStatus.contains("基线"));
+    lock(0, 0);
+    advance(20);
+    assertEquals(1, players.size());
+    assertTrue(service.diagnostics.lines("").contains("自动事件 · lock.lock"));
+  }
+
+  @Test
+  public void automaticLockNeedsConfirmationButExplicitExternalPreviewIsAllowed() {
+    externalOutput(false);
+    store.enable("lock", true);
+    store.calibrateLock("1", "0");
+    lock(0, 0);
+    lock(1, 0);
+    advance(20);
+    assertEquals(0, players.size());
+    service.preview("lock.lock");
+    advance(20);
+    assertEquals(1, players.size());
+    assertTrue(((PlayerShadow) Shadow.extract(players.get(0))).volume > 0);
+  }
+
+  @Test
+  public void lockWithoutExternalDeviceNeverFallsBackToOrdinaryOutput() {
+    service.preview("lock.lock");
+    advance(50);
+    assertEquals(0, players.size());
+    assertTrue(service.diagnostics.lockOutputStatus.contains("已阻止"));
+  }
+
+  @Test
+  public void rejectedExternalRouteReleasesPlayerWithoutSound() {
+    externalOutput(true);
+    PlayerShadow.acceptsRoute = false;
+    service.preview("lock.lock");
+    advance(20);
+    assertEquals(1, players.size());
+    assertEquals(0, ((PlayerShadow) Shadow.extract(players.get(0))).volume, .001f);
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(players.get(0)).getState());
+  }
+
+  @Test
+  public void mismatchedRouteStaysMutedThenAborts() {
+    externalOutput(true);
+    PlayerShadow.initialRoute = device(7);
+    service.preview("lock.lock");
+    advance(20);
+    MediaPlayer player = players.get(0);
+    assertEquals(0, ((PlayerShadow) Shadow.extract(player)).volume, .001f);
+    advance(1600);
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(player).getState());
+  }
+
+  @Test
+  public void routeLossMutesAndCancelsExternalAudio() {
+    externalOutput(true);
+    service.preview("lock.lock");
+    advance(20);
+    MediaPlayer player = players.get(0);
+    PlayerShadow state = Shadow.extract(player);
+    assertTrue(state.volume > 0);
+    state.routed = device(7);
+    state.routingListener.onRoutingChanged(player);
+    assertEquals(0, state.volume, .001f);
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(player).getState());
+  }
+
+  @Test
+  public void invalidLockStopsAudioAndRecoveryAndRecalibrationAreSilent() {
+    externalOutput(true);
+    store.enable("lock", true);
+    store.calibrateLock("1", "0");
+    lock(0, 0);
+    lock(1, 0);
+    advance(20);
+    lock(1, 1);
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(players.get(0)).getState());
+    lock(0, 0);
+    advance(20);
+    assertEquals(1, players.size());
+    store.calibrateLock("0", "1");
+    lock(1, 0);
+    advance(20);
+    assertEquals(1, players.size());
+  }
+
+  @Test
+  public void externalDeviceDisappearingWhilePreparingNeverUnmutesPlayer() {
+    externalOutput(true);
+    String path = store.source(EventSpec.find("lock.lock")).substring(5);
+    ShadowMediaPlayer.addMediaInfo(DataSource.toDataSource(path),
+        new ShadowMediaPlayer.MediaInfo(2000, 1000));
+    service.preview("lock.lock");
+    AudioManager manager = (AudioManager) RuntimeEnvironment.getApplication().getSystemService(Context.AUDIO_SERVICE);
+    shadowOf(manager).setOutputDevices(java.util.Collections.emptyList());
+    advance(1100);
+    assertEquals(1, players.size());
+    assertEquals(0, ((PlayerShadow) Shadow.extract(players.get(0))).volume, .001f);
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(players.get(0)).getState());
+  }
+
+  @Test
+  public void lockPreviewStaysMutedUntilActualRouteIsReported() {
+    AudioDeviceInfo external = externalOutput(true);
+    PlayerShadow.initialRoute = null;
+    service.preview("lock.lock");
+    advance(20);
+    MediaPlayer player = players.get(0);
+    PlayerShadow state = Shadow.extract(player);
+    assertEquals(0, state.volume, .001f);
+    state.routed = external;
+    state.routingListener.onRoutingChanged(player);
+    advance(1);
+    assertTrue(state.volume > 0);
+  }
+
+  @Test
+  public void exportedOutputsKeepExteriorSelectionSeparateFromCabin() throws Exception {
+    externalOutput(true);
+    org.json.JSONObject exported = new org.json.JSONObject(service.diagnostics.export(true, store));
+    assertEquals(2, exported.getJSONArray("audioOutputs").length());
+    assertEquals(42, exported.getJSONObject("lockConfiguration").getInt("outputId"));
+    assertTrue(exported.getJSONObject("lockConfiguration").getBoolean("outputConfirmed"));
+    assertEquals(7, store.prefs.getInt("output", -1));
+    store.lockOutput(device(43));
+    assertFalse(store.prefs.getBoolean("lock.output.confirmed", false));
+  }
+
+  @Test
+  public void shortLockClipWaitsSilentlyForRouteThenRestartsOnce() {
+    AudioDeviceInfo external = externalOutput(true);
+    String path = store.source(EventSpec.find("lock.lock")).substring(5);
+    ShadowMediaPlayer.addMediaInfo(DataSource.toDataSource(path),
+        new ShadowMediaPlayer.MediaInfo(350, 10));
+    PlayerShadow.initialRoute = null;
+    service.preview("lock.lock");
+    advance(700);
+    MediaPlayer player = players.get(0);
+    PlayerShadow state = Shadow.extract(player);
+    assertTrue(player.isPlaying());
+    assertTrue(player.isLooping());
+    assertEquals(0, state.volume, .001f);
+    state.routed = external;
+    state.routingListener.onRoutingChanged(player);
+    advance(1);
+    assertFalse(player.isLooping());
+    assertTrue(state.volume > 0);
+    advance(400);
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(player).getState());
+    assertEquals(1, players.size());
+  }
+
+  @Test
+  public void delayedSeekTimesOutWithoutUnmuting() {
+    externalOutput(true);
+    service.preview("lock.lock");
+    MediaPlayer player = players.get(0);
+    shadowOf(player).setSeekDelay(2000);
+    advance(1700);
+    assertEquals(0, ((PlayerShadow) Shadow.extract(player)).volume, .001f);
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(player).getState());
+  }
+
+  @Test
+  public void routeLossDuringSeekCannotUnmuteFromLateCompletion() {
+    externalOutput(true);
+    service.preview("lock.lock");
+    MediaPlayer player = players.get(0);
+    shadowOf(player).setSeekDelay(1000);
+    advance(20);
+    PlayerShadow state = Shadow.extract(player);
+    assertEquals(0, state.volume, .001f);
+    state.routed = device(7);
+    state.routingListener.onRoutingChanged(player);
+    advance(1100);
+    assertEquals(0, state.volume, .001f);
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(player).getState());
   }
 }

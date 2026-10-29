@@ -1,5 +1,6 @@
 package cn.es.soundlab;
 
+import android.media.AudioDeviceInfo;
 import android.os.Build;
 import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
@@ -43,15 +44,57 @@ public final class Diagnostics {
     }
   }
 
+  private static final class SignalChange {
+    final Protocol.Sample sample, previous;
+
+    SignalChange(Protocol.Sample current, Protocol.Sample old) {
+      sample = current;
+      previous = old;
+    }
+  }
+
+  private static final class PropertyInfo {
+    final String source, type;
+    final int id;
+    final int[] areas;
+
+    PropertyInfo(String name, int property, int[] zones, String kind) {
+      source = name;
+      id = property;
+      areas = zones.clone();
+      type = kind;
+    }
+  }
+
   private final ArrayDeque<String> lines = new ArrayDeque<>();
   private final LinkedHashMap<String, Candidate> candidates = new LinkedHashMap<>();
   private final LinkedHashMap<String, Live> live = new LinkedHashMap<>();
   private final ArrayList<String> markers = new ArrayList<>();
+  private final ArrayDeque<SignalChange> history = new ArrayDeque<>();
+  private final ArrayDeque<SignalChange> events = new ArrayDeque<>();
+  private final LinkedHashMap<String, PropertyInfo> properties = new LinkedHashMap<>();
+  private long filteredLogs, historyDropped, eventsDropped, propertiesDropped;
+  private SessionJournal journal;
+  public volatile String lockTriggerStatus = "尚未收到中控锁状态";
   public volatile String nativeStatus = "尚未开始车辆监听", logStatus = "尚未开始日志监听", playing = "待命";
+  public volatile String lockOutputStatus = "车外通道尚未测试";
   public volatile boolean scanning, monitoring;
   public volatile long revision;
 
+  public synchronized void attach(android.content.Context context) {
+    journal = new SessionJournal(context);
+  }
+
+  public synchronized void lockDecision(String message) {
+    if (message.equals(lockTriggerStatus)) return;
+    lockTriggerStatus = message;
+    line("锁车触发", message);
+  }
+
   public synchronized void line(String type, String message) {
+    if (journal != null && (type.equals("生命周期") || type.equals("日志通道")
+        || type.equals("锁车触发") || type.equals("车外播放") || type.equals("播放失败")))
+      journal.record(type, message);
     if (message.length() > 3000) message = message.substring(0, 3000);
     lines.addLast(
         new SimpleDateFormat("HH:mm:ss.SSS", Locale.CHINA).format(new Date())
@@ -65,6 +108,22 @@ public final class Diagnostics {
 
   public synchronized void sample(Protocol.Sample s) {
     Candidate c = candidates.get(s.identity());
+    Protocol.Sample previous = c == null ? null : c.sample;
+    if (previous == null || previous.status != s.status || !previous.raw.equals(s.raw)) {
+      SignalChange change = new SignalChange(s, previous);
+      history.addLast(change);
+      if (s.key != null && !s.key.equals("speed")) {
+        events.addLast(change);
+        if (events.size() > 400) {
+          events.removeFirst();
+          eventsDropped++;
+        }
+      }
+      if (history.size() > 1200) {
+        history.removeFirst();
+        historyDropped++;
+      }
+    }
     if (c == null) {
       if (candidates.size() >= 180) candidates.remove(candidates.keySet().iterator().next());
       c = new Candidate(s);
@@ -111,9 +170,16 @@ public final class Diagnostics {
   }
 
   public synchronized void clear() {
+    if (journal != null) journal.clear();
+    lockTriggerStatus = "记录已清空，等待中控锁状态";
     lines.clear();
     candidates.clear();
     markers.clear();
+    history.clear();
+    events.clear();
+    filteredLogs = 0;
+    historyDropped = 0;
+    eventsDropped = 0;
     revision++;
   }
 
@@ -122,11 +188,34 @@ public final class Diagnostics {
     revision++;
   }
 
+  public synchronized void removeLive(String key) {
+    live.remove(key);
+    revision++;
+  }
+
+  public synchronized void filteredLog() {
+    filteredLogs++;
+  }
+
+  public synchronized String recordingStatus() {
+    return "已过滤 " + filteredLogs + " 条噪声 · 变化记录 " + history.size()
+        + " 条 · 关键记录 " + events.size() + " 条 · 已淘汰 " + historyDropped + "/" + eventsDropped + " 条";
+  }
+
+  public synchronized void property(String source, int id, int[] areas, String type) {
+    String key = source + "|" + id;
+    if (!properties.containsKey(key) && properties.size() >= 2048) {
+      properties.remove(properties.keySet().iterator().next());
+      propertiesDropped++;
+    }
+    properties.put(key, new PropertyInfo(source, id, areas, type));
+  }
+
   public synchronized String export(boolean granted, Store store) throws Exception {
     JSONObject root = new JSONObject();
-    root.put("schemaVersion", 1);
+    root.put("schemaVersion", 2);
     root.put("application", "cn.es.soundlab");
-    root.put("version", "0.1.0");
+    root.put("version", "0.2.1");
     root.put("vehicleProfile", "星纪元 ES / 原 APK 星途 ES 路径");
     root.put("exportedAt", System.currentTimeMillis());
     root.put("manufacturer", Build.MANUFACTURER);
@@ -159,6 +248,70 @@ public final class Diagnostics {
     root.put("markers", new JSONArray(markers));
     root.put("lines", new JSONArray(lines));
     root.put("rules", store.rules());
+    root.put("filteredLogs", filteredLogs);
+    root.put("historyDropped", historyDropped);
+    root.put("eventHistoryDropped", eventsDropped);
+    root.put("propertyCatalogDropped", propertiesDropped);
+    root.put("lockOutputStatus", lockOutputStatus);
+    root.put("lockTriggerStatus", lockTriggerStatus);
+    root.put("lockReadiness", store.lockReadiness());
+    if (journal != null) {
+      root.put("runtime", journal.snapshot());
+      root.put("sessionHistory", journal.export());
+    }
+    JSONArray outputs = new JSONArray();
+    try {
+      for (AudioDeviceInfo device : store.audioOutputs())
+        outputs.put(new JSONObject().put("id", device.getId()).put("type", device.getType())
+            .put("name", String.valueOf(device.getProductName()))
+            .put("address", Build.VERSION.SDK_INT >= 28 ? device.getAddress() : ""));
+    } catch (Exception error) {
+      root.put("audioOutputError", error.toString());
+    }
+    root.put("audioOutputs", outputs);
+    root.put("lockConfiguration", new JSONObject()
+        .put("enabled", store.enabled("lock"))
+        .put("volume", store.volume("lock"))
+        .put("lockSource", store.source(EventSpec.find("lock.lock")))
+        .put("unlockSource", store.source(EventSpec.find("lock.unlock")))
+        .put("lockedValue", store.prefs.getString("lock.locked", ""))
+        .put("unlockedValue", store.prefs.getString("lock.unlocked", ""))
+        .put("outputId", store.prefs.getInt("lock.output.id", -1))
+        .put("outputType", store.prefs.getInt("lock.output.type", -1))
+        .put("outputName", store.prefs.getString("lock.output.name", ""))
+        .put("outputAddress", store.prefs.getString("lock.output.address", ""))
+        .put("outputConfirmed", store.prefs.getBoolean("lock.output.confirmed", false)));
+    root.put("signalHistory", exportHistory(history));
+    root.put("eventHistory", exportHistory(events));
+    JSONArray catalog = new JSONArray();
+    for (PropertyInfo property : properties.values()) {
+      JSONArray areas = new JSONArray();
+      for (int area : property.areas) areas.put(area);
+      catalog.put(new JSONObject().put("source", property.source).put("propertyId", property.id)
+          .put("areas", areas).put("type", property.type));
+    }
+    root.put("propertyCatalog", catalog);
     return root.toString(2);
+  }
+
+  private JSONArray exportHistory(Iterable<SignalChange> entries) throws Exception {
+    JSONArray changes = new JSONArray();
+    for (SignalChange change : entries) {
+      Protocol.Sample sample = change.sample, previous = change.previous;
+      changes.put(new JSONObject()
+          .put("time", sample.time)
+          .put("source", sample.source)
+          .put("topic", sample.topic)
+          .put("propertyId", sample.propertyId)
+          .put("area", sample.area)
+          .put("status", sample.status)
+          .put("raw", sample.raw)
+          .put("mappedKey", sample.key == null ? JSONObject.NULL : sample.key)
+          .put("value", sample.value == null ? JSONObject.NULL : sample.value)
+          .put("baseline", previous == null)
+          .put("previousRaw", previous == null ? JSONObject.NULL : previous.raw)
+          .put("previousStatus", previous == null ? JSONObject.NULL : previous.status));
+    }
+    return changes;
   }
 }
