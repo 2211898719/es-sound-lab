@@ -23,6 +23,15 @@
 - 日志标记`SplitProbe`，诊断复用`SessionJournal`；新增可选会话名称及`sessionOwner`字段，原监听服务构造行为保持一致，探测页不伪造监听服务创建。完整异常按400字符拆分适配现有每条500字符上限，总160条保留策略不变。
 - 本地通过121项核心检查、58项Android/Robolectric测试及资源/Java/DEX编译；验证协议extra类型/flag、进入四组合、退出两目标和category、Provider参数和权限异常、缺失Activity异常、精确配对与尺寸、页面入口、窄/宽栏与配置回调。侧载接入成功及车机实际宽度仍需实车验证。正式打包继续使用用户家中原密钥。
 
+## 10月30日新车机APK分析（未改变App运行逻辑）
+
+- [接口分析与实施顺序](vehicle-apk-research-20261030.md)覆盖11个新APK，附证书/权限清单及275条重点属性定义；完整APK和反编译材料只保留本地。
+- 用户确认ADB由工程模式开启，智行生活来自应用商店。静态核对发现智行生活仍使用车机平台证书；后装身份不等于普通自签名权限。其业务DEX加固，尚未还原官方按键到空调的完整链路。
+- 已找到原生中控锁`0x67000096`属于VEHICLE_CONTROL、AutoHold`0x50000022`属于SEQUOIA；当前Manifest、常规属性选择和Protocol.property专用映射尚未完整接线。权限保护级别与实际授权仍待服务端/车机验证。
+- Mega SDK默认CarPropertyValue时间戳使用uptimeMillis，现有车速过期判断混用elapsedRealtimeNanos，需要验证实际服务端单位后按来源修正；不能据此解释全部status=1/raw=null样本。
+- 车外声音实码使用usage2007、对应CarAudio音量组、outside_mode=0车内/2车外/1内外；普通侧载权限、HAL执行与实际功放仍待验证，本App未改用此路径。
+- 新增只读`tools/collect_vehicle_interfaces.py`，按真实安装包路径查询/可选复制APK，保存权限与SDK元数据。Car service样本是代理，真正实现包需读取ro.android.car.carservice.package；本批设置并非com.mega.carsettings。
+
 ## 目标与不可破坏的约束
 
 - 独立 Android Java 应用，包名 `cn.es.soundlab`，无服务端、无 Compose。minSdk 26、targetSdk 28、compileSdk 35。
@@ -112,7 +121,7 @@
 ## 尚未实现、不能对外承诺的部分
 
 - 免弹窗的持久日志授权及 Shizuku / ADB / root 日志后端仍未实现；0.2.2 已实现模式切换/规则修改时保留日志连接，不能跨进程或整机重启保留系统批准。方案和前提见 [Android 13 日志访问](log-access-android13.md)。
-- 未确认车机可用 ADB、无线调试、Shizuku 或 root。没有为了本应用要求解锁车机或修改系统。
+- 10月30日用户确认ADB已通过工程模式开启并用于提取APK；无线调试配对、Shizuku、root、shell车辆权限及重启后可用性仍未确认。没有为了本应用要求解锁车机或修改系统。
 - 未确认正常断电、深度休眠、后台清理时的锁事件到达、功放供电和自动播音能力。
 - 未取得可用车速/油门/电机转速，不能把现有模拟声浪宣传为已适配实车油门。
 - 未固化中控锁 0/1 含义；UI 的音源选择和车外设备确认不能替代状态校准。

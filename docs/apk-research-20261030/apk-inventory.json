@@ -1,0 +1,1139 @@
+[
+  {
+    "file": "MegaEngineeringMode_13.apk",
+    "slug": "engineering",
+    "bytes": 15650869,
+    "sha256": "ad47bcc7be6ece6c538efec46a2851501acc5d06c71c635cd8b4131e834b1847",
+    "package": "com.mega.app.engineeringmode",
+    "versionName": "13",
+    "versionCode": "33",
+    "sharedUserId": "android.uid.system",
+    "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+    "jadxReportedErrors": 26,
+    "permissions": [
+      "android.permission.INTERNET",
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.MANAGE_EXTERNAL_STORAGE",
+      "com.mega.app.engineeringmode.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+    ],
+    "exportedComponents": [
+      {
+        "kind": "activity",
+        "name": "com.mega.app.engineeringmode.MegaEngineerModeActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "service",
+        "name": "com.mega.app.engineeringmode.EngineerModeCommandService",
+        "permission": null,
+        "authority": null
+      }
+    ]
+  },
+  {
+    "file": "智行生活_1.2.0.3.apk",
+    "slug": "smartlife",
+    "bytes": 52963817,
+    "sha256": "01f12dcae53221ad40913df272b4a3630b33b3a1bf81b2776e1bff275e1b45a5",
+    "package": "com.chery.aiot",
+    "versionName": "1.2.0.3",
+    "versionCode": "2940",
+    "sharedUserId": null,
+    "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+    "jadxReportedErrors": 0,
+    "permissions": [
+      "android.permission.INTERNET",
+      "android.permission.CHANGE_WIFI_STATE",
+      "android.permission.ACCESS_WIFI_STATE",
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.BLUETOOTH",
+      "android.permission.BLUETOOTH_ADMIN",
+      "android.permission.BLUETOOTH_SCAN",
+      "android.permission.BLUETOOTH_CONNECT",
+      "android.permission.ACCESS_BACKGROUND_LOCATION",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+      "android.permission.READER_EXTERNAL_STORAGE",
+      "android.car.permission.CAR_VENDOR_EXTENSION",
+      "android.permission.ACCESS_COARSE_LOCATION",
+      "android.permission.ACCESS_FINE_LOCATION",
+      "android.permission.READ_PHONE_STATE",
+      "android.permission.FOREGROUND_SERVICE",
+      "android.permission.READ_PRIVILEGED_PHONE_STATE",
+      "android.permission.SYSTEM_ALERT_WINDOW",
+      "android.permission.SYSTEM_OVERLAY_WINDOW",
+      "android.permission.KILL_BACKGROUND_PROCESSES",
+      "android.permission.GET_TASKS",
+      "android.permission.CALL_PHONE",
+      "android.permission.VIBRATE",
+      "android.permission.WAKE_LOCK",
+      "android.permission.USE_CREDENTIALS",
+      "android.permission.GET_ACCOUNTS",
+      "android.permission.AUTHENTICATE_ACCOUNTS",
+      "android.permission.RECEIVE_BOOT_COMPLETED",
+      "android.permission.READ_FRAME_BUFFER",
+      "android.permission.ACCESS_NOTIFICATION_POLICY",
+      "android.permission.MANAGE_ACTIVITY_TASKS",
+      "android.permission.READ_PHONE_STATE",
+      "android.permission.QUERY_ALL_PACKAGES",
+      "mega.car.permission.VEHICLE_CONTROL",
+      "mega.car.permission.CLIMATE",
+      "mega.car.permission.VEHICLE_BODY",
+      "mega.mega.permission.MEGA_VOICE_LIB_PERMISSION",
+      "com.lion.scenemode.state.query",
+      "com.lion.scenemode.state.ctrl",
+      "android.car.permission.CAR_CONTROL_AUDIO_VOLUME",
+      "android.permission.SET_TIME",
+      "android.permission.INTERACT_ACROSS_PROFILES",
+      "mega.car.permission.KeyInput",
+      "mega.car.permission.VEHICLE_MOTION",
+      "mega.car.permission.CAR_DRIVING",
+      "mega.car.permission.CAR_WARNING",
+      "mega.car.permission.ELEC_POWER",
+      "mega.car.permission.ENTRY_LOCK",
+      "mega.car.permission.INFOTAINMENT",
+      "mega.car.permission.LOCAL_EVENT",
+      "mega.car.permission.DMS",
+      "mega.car.permission.CARCABIN",
+      "mega.car.permission.ECU",
+      "mega.car.permission.LIGHTING",
+      "mega.car.permission.COMFORTS_SETTINGS",
+      "mega.car.permission.CAR_WINDOWS",
+      "mega.car.permission.EXTRA",
+      "mega.car.permission.CAR_POWER",
+      "android.car.permission.CAR_POWER",
+      "mega.car.permission.SETTINGS",
+      "mega.car.permission.SEQUOIA",
+      "android.permission.MOUNT_UNMOUNT_FILESYSTEMS",
+      "com.mega.carsettings.export.permission.CooperationBusinessReceiver",
+      "com.mega.sentinel.export.permission.SliceReceiver",
+      "com.mega.sceneblock.permission.SceneModeReceiver",
+      "com.mega.carsettings.export.permission.Slice",
+      "com.mega.sentinel.export.permission.RedwoodSentinelSlice",
+      "com.mega.sentinel.export.permission.SliceReceiver",
+      "com.mega.carsettings.export.permission.SliceReceiver"
+    ],
+    "exportedComponents": [
+      {
+        "kind": "receiver",
+        "name": "com.chery.aiot.receiver.XfAsrCmdReceiver",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "receiver",
+        "name": "com.chery.aiot.receiver.CherySystemInfoReceiver",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "receiver",
+        "name": "com.chery.aiot.receiver.TestReceiver",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "receiver",
+        "name": "com.chery.aiot.receiver.OnBootUpReceiver",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "service",
+        "name": "com.chery.aiot.service.LyAutoScanDeviceService",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "service",
+        "name": "com.chery.aiot.xfasrchery.service.XfAsrResponseService",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "service",
+        "name": "com.chery.aiot.lyaccessibility.LyAccessibilityService",
+        "permission": "android.permission.BIND_ACCESSIBILITY_SERVICE",
+        "authority": null
+      },
+      {
+        "kind": "receiver",
+        "name": "com.chery.aiot.receiver.BtCallReceiver",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "service",
+        "name": "androidx.work.impl.background.systemjob.SystemJobService",
+        "permission": "android.permission.BIND_JOB_SERVICE",
+        "authority": null
+      },
+      {
+        "kind": "receiver",
+        "name": "androidx.work.impl.diagnostics.DiagnosticsReceiver",
+        "permission": "android.permission.DUMP",
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.ly.aiot.common.debugmode.DevModeActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "receiver",
+        "name": "no.nordicsemi.android.support.v18.scanner.PendingIntentReceiver",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "service",
+        "name": "com.dfl.arch.service.AiotConnectService",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "service",
+        "name": "com.dfl.aiot.service.PrivacyAgreementService",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "service",
+        "name": "com.dfl.aiot.service.AIRecommendService",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "service",
+        "name": "com.dfl.aiot.service.ChildSeatService",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.dfl.arch.base.LoginActivity",
+        "permission": null,
+        "authority": null
+      }
+    ]
+  },
+  {
+    "file": "Car service_13.apk",
+    "slug": "car-service",
+    "bytes": 291764,
+    "sha256": "daa3b358d4fe05ff074b698ca8f57e81f4131db69372f92c9365e5355441c326",
+    "package": "com.android.car",
+    "versionName": "13",
+    "versionCode": "33",
+    "sharedUserId": "android.uid.system",
+    "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+    "jadxReportedErrors": 0,
+    "permissions": [
+      "android.permission.CALL_PHONE",
+      "android.permission.DEVICE_POWER",
+      "android.permission.INTERACT_ACROSS_USERS_FULL",
+      "android.permission.MANAGE_ACTIVITY_TASKS",
+      "android.permission.MODIFY_AUDIO_ROUTING",
+      "android.permission.MODIFY_DAY_NIGHT_MODE",
+      "android.permission.MODIFY_PHONE_STATE",
+      "android.permission.READ_CALL_LOG",
+      "android.permission.READ_PHONE_STATE",
+      "android.permission.REAL_GET_TASKS",
+      "android.permission.REBOOT",
+      "android.permission.RECEIVE_BOOT_COMPLETED",
+      "android.permission.REMOVE_TASKS",
+      "android.permission.WRITE_SETTINGS",
+      "android.permission.WRITE_SECURE_SETTINGS",
+      "android.permission.BLUETOOTH",
+      "android.permission.BLUETOOTH_ADMIN",
+      "android.permission.BLUETOOTH_ADVERTISE",
+      "android.permission.BLUETOOTH_CONNECT",
+      "android.permission.BLUETOOTH_SCAN",
+      "android.permission.MANAGE_APP_OPS_MODES",
+      "android.permission.MANAGE_USERS",
+      "android.permission.LOCATION_HARDWARE",
+      "android.permission.ACCESS_FINE_LOCATION",
+      "android.permission.CONTROL_AUTOMOTIVE_GNSS",
+      "android.permission.PROVIDE_TRUST_AGENT",
+      "android.permission.READ_LOGS",
+      "android.permission.SUBSTITUTE_NOTIFICATION_APP_NAME",
+      "android.permission.SUGGEST_EXTERNAL_TIME",
+      "android.permission.CONNECTIVITY_INTERNAL",
+      "android.permission.FORCE_STOP_PACKAGES",
+      "android.permission.TETHER_PRIVILEGED"
+    ],
+    "exportedComponents": [
+      {
+        "kind": "service",
+        "name": "com.android.car.CarService",
+        "permission": null,
+        "authority": null
+      }
+    ]
+  },
+  {
+    "file": "CarControlAdapter_4.0.20260227.1350.mega_8295_ota1.aa8eff4ec2ea6c3ee3c080db5906d6ad96823adc.apk",
+    "slug": "car-adapter",
+    "bytes": 14716845,
+    "sha256": "47c4b91aba107eb283e80dc3669d5b9639d9d95d09fe2887b9aa7c2d7f172c03",
+    "package": "com.iflytek.autofly.carcontroladapter",
+    "versionName": "4.0.20260227.1350.mega_8295_ota1.aa8eff4ec2ea6c3ee3c080db5906d6ad96823adc",
+    "versionCode": "1002",
+    "sharedUserId": "android.uid.system",
+    "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+    "jadxReportedErrors": 86,
+    "permissions": [
+      "android.permission.WAKE_LOCK",
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.RECEIVE_BOOT_COMPLETED",
+      "android.permission.FOREGROUND_SERVICE"
+    ],
+    "exportedComponents": [
+      {
+        "kind": "service",
+        "name": "com.iflytek.autofly.carcontroladapter.nlp.NlpService",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "receiver",
+        "name": "com.iflytek.autofly.carcontroladapter.nlp.receiver.ConfirmCancelReceiver",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "service",
+        "name": "androidx.work.impl.background.systemjob.SystemJobService",
+        "permission": "android.permission.BIND_JOB_SERVICE",
+        "authority": null
+      },
+      {
+        "kind": "receiver",
+        "name": "androidx.work.impl.diagnostics.DiagnosticsReceiver",
+        "permission": "android.permission.DUMP",
+        "authority": null
+      }
+    ]
+  },
+  {
+    "file": "MegaAudioTestTools_13.apk",
+    "slug": "audio-tools",
+    "bytes": 6646023,
+    "sha256": "47f4aa5443d0fd09b69c41d9d64d2f35bd131bc026e6aa43e7414d4a6c63a3c7",
+    "package": "com.mega.audiotesttools",
+    "versionName": "13",
+    "versionCode": "33",
+    "sharedUserId": "android.uid.system",
+    "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+    "jadxReportedErrors": 25,
+    "permissions": [
+      "android.permission.RECORD_AUDIO",
+      "android.permission.MODIFY_AUDIO_SETTINGS",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.MANAGE_EXTERNAL_STORAGE",
+      "android.car.permission.CAR_CONTROL_AUDIO_VOLUME",
+      "android.car.permission.CAR_CONTROL_AUDIO_SETTINGS",
+      "android.Manifest.permission.MODIFY_AUDIO_ROUTING",
+      "com.mega.audiotesttools.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+    ],
+    "exportedComponents": [
+      {
+        "kind": "activity",
+        "name": "com.mega.audiotesttools.MainActivity",
+        "permission": null,
+        "authority": null
+      }
+    ]
+  },
+  {
+    "file": "车外声音_1.0.102.20260123.apk",
+    "slug": "exterior-sound",
+    "bytes": 34743239,
+    "sha256": "61e4f464f8bba8272657b75a2a6e9859576f2358f6e552f528f282cff85c6ff1",
+    "package": "com.chery.auto.carsound",
+    "versionName": "1.0.102.20260123",
+    "versionCode": "20260123",
+    "sharedUserId": "android.uid.system",
+    "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+    "jadxReportedErrors": 15,
+    "permissions": [
+      "android.permission.RECORD_AUDIO",
+      "android.car.permission.CAR_CONTROL_AUDIO_VOLUME",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+      "android.permission.MANAGE_EXTERNAL_STORAGE",
+      "android.permission.MODIFY_AUDIO_SETTINGS",
+      "android.permission.USB_PERMISSION",
+      "android.permission.SYSTEM_ALERT_WINDOW",
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.INTERACT_ACROSS_PROFILES",
+      "mega.car.permission.KeyInput",
+      "mega.car.permission.VEHICLE_MOTION",
+      "mega.car.permission.VEHICLE_BODY",
+      "android.permission.READ_PHONE_STATE",
+      "mega.car.permission.CAR_DRIVING",
+      "mega.car.permission.CAR_WARNING",
+      "mega.car.permission.ELEC_POWER",
+      "mega.car.permission.ENTRY_LOCK",
+      "mega.car.permission.INFOTAINMENT",
+      "mega.car.permission.LOCAL_EVENT",
+      "mega.car.permission.DMS",
+      "mega.car.permission.CARCABIN",
+      "mega.car.permission.CLIMATE",
+      "mega.car.permission.ECU",
+      "mega.car.permission.LIGHTING",
+      "mega.car.permission.COMFORTS_SETTINGS",
+      "mega.car.permission.CAR_WINDOWS",
+      "mega.car.permission.EXTRA",
+      "mega.car.permission.CAR_POWER",
+      "android.car.permission.CAR_POWER",
+      "mega.car.permission.SETTINGS",
+      "mega.car.permission.SEQUOIA",
+      "android.permission.INTERNET",
+      "android.permission.MOUNT_UNMOUNT_FILESYSTEMS",
+      "com.mega.carsettings.export.permission.CooperationBusinessReceiver",
+      "com.mega.sentinel.export.permission.SliceReceiver",
+      "com.mega.sceneblock.permission.SceneModeReceiver",
+      "com.mega.carsettings.export.permission.Slice",
+      "com.mega.sentinel.export.permission.RedwoodSentinelSlice",
+      "com.mega.sentinel.export.permission.SliceReceiver",
+      "com.mega.carsettings.export.permission.SliceReceiver",
+      "mega.car.permission.VEHICLE_CONTROL"
+    ],
+    "exportedComponents": [
+      {
+        "kind": "service",
+        "name": "com.chery.auto.carsound.service.VRService",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.chery.auto.carsound.SplashActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.chery.auto.carsound.MainActivity",
+        "permission": null,
+        "authority": null
+      }
+    ]
+  },
+  {
+    "file": "情景模式服务_E0X_SOP_260115_56.apk",
+    "slug": "scene",
+    "bytes": 18517145,
+    "sha256": "3850f1a4c5e48fc3e6f556ba47b49d6d443d8a8b99207e97e26051e40d35249a",
+    "package": "com.lion.scenemode",
+    "versionName": "E0X_SOP_260115_56",
+    "versionCode": "260115",
+    "sharedUserId": "android.uid.system",
+    "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+    "jadxReportedErrors": 93,
+    "permissions": [
+      "android.permission.BLUETOOTH",
+      "android.permission.INJECT_EVENTS",
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.SYSTEM_ALERT_WINDOW",
+      "android.permission.READ_PHONE_STATE",
+      "android.permission.READ_PRIVILEGED_PHONE_STATE",
+      "android.permission.QUERY_ALL_PACKAGES",
+      "android.permission.INTERACT_ACROSS_PROFILES",
+      "mega.car.permission.KeyInput",
+      "mega.car.permission.VEHICLE_MOTION",
+      "mega.car.permission.VEHICLE_BODY",
+      "mega.car.permission.CAR_DRIVING",
+      "mega.car.permission.CAR_WARNING",
+      "mega.car.permission.ELEC_POWER",
+      "mega.car.permission.ENTRY_LOCK",
+      "mega.car.permission.INFOTAINMENT",
+      "mega.car.permission.LOCAL_EVENT",
+      "mega.car.permission.DMS",
+      "mega.car.permission.CARCABIN",
+      "mega.car.permission.CLIMATE",
+      "mega.car.permission.ECU",
+      "mega.car.permission.LIGHTING",
+      "mega.car.permission.COMFORTS_SETTINGS",
+      "mega.car.permission.CAR_WINDOWS",
+      "mega.car.permission.EXTRA",
+      "mega.car.permission.CAR_POWER",
+      "android.car.permission.CAR_POWER",
+      "mega.car.permission.SETTINGS",
+      "mega.car.permission.SEQUOIA",
+      "android.permission.INTERNET",
+      "android.permission.MOUNT_UNMOUNT_FILESYSTEMS",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.car.permission.CAR_CONTROL_AUDIO_VOLUME",
+      "com.mega.carsettings.export.permission.CooperationBusinessReceiver",
+      "com.mega.sentinel.export.permission.SliceReceiver",
+      "com.mega.sceneblock.permission.SceneModeReceiver",
+      "com.mega.carsettings.export.permission.Slice",
+      "com.mega.sentinel.export.permission.RedwoodSentinelSlice",
+      "com.mega.sentinel.export.permission.SliceReceiver",
+      "com.mega.carsettings.export.permission.SliceReceiver",
+      "mega.car.permission.VEHICLE_CONTROL"
+    ],
+    "exportedComponents": [
+      {
+        "kind": "activity",
+        "name": "com.lion.scenemode.test.TestActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "service",
+        "name": "com.lion.scenemode.server.CoreService",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "service",
+        "name": "com.lion.scenemode.server.api.SceneModeApiService",
+        "permission": null,
+        "authority": null
+      }
+    ]
+  },
+  {
+    "file": "Script executor service_13.apk",
+    "slug": "script-service",
+    "bytes": 999078,
+    "sha256": "c66b5b13f3cef615168d221224a716f5c91010fdf3b9c7f905387ba4d58afad5",
+    "package": "com.android.car.scriptexecutor",
+    "versionName": "13",
+    "versionCode": "33",
+    "sharedUserId": null,
+    "certificateSha256": "fd01417d6b0460d284e434accc798f4f13cf00364ac5633dcda7781502788f76",
+    "jadxReportedErrors": 0,
+    "permissions": [],
+    "exportedComponents": [
+      {
+        "kind": "service",
+        "name": "com.android.car.scriptexecutor.ScriptExecutor",
+        "permission": null,
+        "authority": null
+      }
+    ]
+  },
+  {
+    "file": "MegaConfigService_1.20240109043211-master.apk",
+    "slug": "config-service",
+    "bytes": 504453,
+    "sha256": "986e358d048d09e0d61c474d2ae88872d84e79eae90f435b3628ec12d9ab7748",
+    "package": "com.mega.config",
+    "versionName": "1.20240109043211-master",
+    "versionCode": "1",
+    "sharedUserId": "android.uid.system",
+    "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+    "jadxReportedErrors": 2,
+    "permissions": [],
+    "exportedComponents": [
+      {
+        "kind": "provider",
+        "name": "com.mega.config.ConfigProvider",
+        "permission": null,
+        "authority": "config"
+      }
+    ]
+  },
+  {
+    "file": "设置_1.0.apk",
+    "slug": "settings",
+    "bytes": 19289619,
+    "sha256": "e65f390c94df278bfdfb5095fe36fd10121777cb151e415acbebbde563da46d3",
+    "package": "com.android.car.settings",
+    "versionName": "1.0",
+    "versionCode": "1",
+    "sharedUserId": "android.uid.system",
+    "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+    "jadxReportedErrors": 2,
+    "permissions": [
+      "android.permission.ACCESS_WIFI_STATE",
+      "com.android.certinstaller.INSTALL_AS_USER",
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.BACKUP",
+      "android.permission.BLUETOOTH",
+      "android.permission.BLUETOOTH_ADMIN",
+      "android.permission.BLUETOOTH_SCAN",
+      "android.permission.BLUETOOTH_ADVERTISE",
+      "android.permission.BLUETOOTH_CONNECT",
+      "android.permission.BLUETOOTH_PRIVILEGED",
+      "android.permission.CAR_VENDOR_EXTENSION",
+      "android.permission.CHANGE_WIFI_STATE",
+      "android.permission.CLEAR_APP_USER_DATA",
+      "android.permission.CONTROL_DISPLAY_UNITS",
+      "android.permission.DELETE_CACHE_FILES",
+      "android.permission.DUMP",
+      "android.permission.FORCE_STOP_PACKAGES",
+      "android.permission.GET_ACCOUNTS_PRIVILEGED",
+      "android.permission.GET_PACKAGE_SIZE",
+      "android.permission.HIDE_NON_SYSTEM_OVERLAY_WINDOWS",
+      "android.permission.INJECT_EVENTS",
+      "android.permission.INTERNET",
+      "android.permission.MANAGE_ACCOUNTS",
+      "android.permission.MANAGE_SENSOR_PRIVACY",
+      "android.permission.MANAGE_USERS",
+      "android.permission.MASTER_CLEAR",
+      "android.permission.MOUNT_UNMOUNT_FILESYSTEMS",
+      "android.permission.NETWORK_SETTINGS",
+      "android.permission.OBSERVE_SENSOR_PRIVACY",
+      "android.permission.OVERRIDE_WIFI_CONFIG",
+      "android.permission.READ_CONTACTS",
+      "android.permission.READ_DISPLAY_UNITS",
+      "android.permission.REBOOT",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.RECEIVE_BOOT_COMPLETED",
+      "android.permission.REQUEST_DELETE_PACKAGES",
+      "android.permission.SET_PREFERRED_APPLICATIONS",
+      "android.permission.START_FOREGROUND",
+      "android.permission.STATUS_BAR_SERVICE",
+      "android.permission.SUGGEST_MANUAL_TIME_AND_ZONE",
+      "android.permission.WRITE_SETTINGS",
+      "android.permission.WRITE_SECURE_SETTINGS",
+      "com.android.car.settings.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+      "android.permission.REORDER_TASKS"
+    ],
+    "exportedComponents": [
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.QuickSettingActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.HomepageActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.DisplaySettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.SoundSettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.RingtonePickerActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.NetworkAndInternetActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.BluetoothSettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.UnitsSettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.LocationSettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.AppsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.NotificationsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.DatetimeSettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.ProfileDetailsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.PrivacySettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.VehicleDataActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.StorageSettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.SecuritySettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.AssistantAndVoiceSettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.SystemSettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.WifiSettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.WifiTetherActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.MobileNetworkActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.MobileNetworkListActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.ApplicationsSettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.SpecialAccessSettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.LanguagesAndInputActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.AboutSettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.LegalInformationActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.ResetOptionsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.AddWifiActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.WifiPreferencesActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.ApplicationsDetailsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.ModifySystemSettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.NotificationAccessActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.PremiumSmsAccessActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.UsageAccessActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.WifiControlActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.ChooseAccountActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.LanguagePickerActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.DefaultAutofillPickerActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.KeyboardActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.TextToSpeechOutputActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.enterprise.RemoteRequestBugreportActivity",
+        "permission": "android.permission.DUMP",
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.bluetooth.BluetoothDevicePickerActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.bluetooth.BluetoothRequestPermissionActivity",
+        "permission": "android.permission.BLUETOOTH_CONNECT",
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.accounts.AddAccountActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.applications.managedomainurls.ManageDomainUrlsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.security.SettingsScreenLockActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.security.CheckLockActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.profiles.ProfileSwitcherActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.security.CredentialStorageActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.system.ThirdPartyLicensesActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.system.RegulatoryInfoDisplayActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.datausage.DataWarningAndLimitActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.wifi.WifiRequestToggleActivity",
+        "permission": "android.permission.CHANGE_WIFI_STATE",
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.wifi.networkrequest.NetworkRequestDialogActivity",
+        "permission": "android.permission.NETWORK_SETTINGS",
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.FallbackHome",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.enterprise.DeviceAdminAddActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.enterprise.EnterprisePrivacySettingsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.enterprise.ActionDisabledByAdminActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.AccessibilityActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.android.car.settings.common.CarSettingActivities.CaptionsActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "service",
+        "name": "com.android.car.settings.setupservice.InitialLockSetupService",
+        "permission": "com.android.car.settings.SET_INITIAL_LOCK",
+        "authority": null
+      },
+      {
+        "kind": "receiver",
+        "name": "com.android.car.settings.bluetooth.BluetoothPairingRequest",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "receiver",
+        "name": "com.android.car.settings.bluetooth.BluetoothA2dpRequest",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "receiver",
+        "name": "com.android.car.settings.storage.StorageUnmountReceiver",
+        "permission": "android.permission.MOUNT_UNMOUNT_FILESYSTEMS",
+        "authority": null
+      },
+      {
+        "kind": "provider",
+        "name": "com.android.car.settings.search.CarSettingsSearchIndexablesProvider",
+        "permission": "android.permission.READ_SEARCH_INDEXABLES",
+        "authority": "com.android.car.settings"
+      },
+      {
+        "kind": "provider",
+        "name": "com.android.car.settings.qc.SettingsQCProvider",
+        "permission": null,
+        "authority": "com.android.car.settings.qc"
+      },
+      {
+        "kind": "activity",
+        "name": "androidx.test.core.app.InstrumentationActivityInvoker$BootstrapActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "androidx.test.core.app.InstrumentationActivityInvoker$EmptyFloatingActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "provider",
+        "name": "com.android.car.ui.core.SearchResultsProvider",
+        "permission": null,
+        "authority": "com.android.car.settings.SearchResultsProvider"
+      }
+    ]
+  },
+  {
+    "file": "应用商店_e0x_btech_260115_V1.0.0.apk",
+    "slug": "store",
+    "bytes": 76305792,
+    "sha256": "8f6b16a7ac982fc55d7b4a83a41c5113c96a4e11054993e48db64cf1a0152bd2",
+    "package": "com.lion.appstore",
+    "versionName": "e0x_btech_260115_V1.0.0",
+    "versionCode": "260115",
+    "sharedUserId": "android.uid.system",
+    "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+    "jadxReportedErrors": 100,
+    "permissions": [
+      "android.permission.INTERNET",
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.REQUEST_DELETE_PACKAGES",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.REQUEST_INSTALL_PACKAGES",
+      "android.permission.CHANGE_CONFIGURATION",
+      "android.permission.READ_SECURE_SETTINGS",
+      "android.permission.READ_SETTINGS",
+      "android.permission.WRITE_SECURE_SETTINGS",
+      "android.permission.WRITE_SETTINGS",
+      "android.permission.ACCESS_COARSE_LOCATION",
+      "android.permission.BLUETOOTH_ADMIN",
+      "android.permission.BLUETOOTH",
+      "android.permission.CHANGE_WIFI_STATE",
+      "android.permission.KILL_BACKGROUND_PROCESSES",
+      "android.permission.READ_PHONE_STATE",
+      "android.permission.SET_WALLPAPER",
+      "android.permission.READ_FRAME_BUFFER",
+      "android.permission.PACKAGE_USAGE_STATS",
+      "android.permission.READ_PRIVILEGED_PHONE_STATE",
+      "android.permission.INTERACT_ACROSS_PROFILES",
+      "mega.car.permission.KeyInput",
+      "mega.car.permission.VEHICLE_MOTION",
+      "mega.car.permission.VEHICLE_BODY",
+      "mega.car.permission.CAR_DRIVING",
+      "mega.car.permission.CAR_WARNING",
+      "mega.car.permission.ELEC_POWER",
+      "mega.car.permission.ENTRY_LOCK",
+      "mega.car.permission.INFOTAINMENT",
+      "mega.car.permission.LOCAL_EVENT",
+      "mega.car.permission.DMS",
+      "mega.car.permission.CARCABIN",
+      "mega.car.permission.CLIMATE",
+      "mega.car.permission.ECU",
+      "mega.car.permission.LIGHTING",
+      "mega.car.permission.COMFORTS_SETTINGS",
+      "mega.car.permission.CAR_WINDOWS",
+      "mega.car.permission.EXTRA",
+      "android.permission.SYSTEM_ALERT_WINDOW",
+      "mega.car.permission.CAR_POWER",
+      "android.car.permission.CAR_POWER",
+      "mega.car.permission.SETTINGS",
+      "mega.car.permission.SEQUOIA",
+      "android.permission.MOUNT_UNMOUNT_FILESYSTEMS",
+      "android.car.permission.CAR_CONTROL_AUDIO_VOLUME",
+      "com.mega.carsettings.export.permission.CooperationBusinessReceiver",
+      "com.mega.sentinel.export.permission.SliceReceiver",
+      "com.mega.sceneblock.permission.SceneModeReceiver",
+      "com.mega.carsettings.export.permission.Slice",
+      "com.mega.sentinel.export.permission.RedwoodSentinelSlice",
+      "com.mega.sentinel.export.permission.SliceReceiver",
+      "com.mega.carsettings.export.permission.SliceReceiver",
+      "mega.car.permission.VEHICLE_CONTROL"
+    ],
+    "exportedComponents": [
+      {
+        "kind": "activity",
+        "name": "com.lion.appstore.CheckActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.lion.appstore.module.app.AppDetailActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "activity",
+        "name": "com.lion.appstore.payment.PaymentActivity",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "service",
+        "name": "com.lion.appstore.service.VersionService",
+        "permission": null,
+        "authority": null
+      },
+      {
+        "kind": "receiver",
+        "name": "com.lion.okserver.InstallResultReceiver",
+        "permission": null,
+        "authority": null
+      }
+    ]
+  }
+]

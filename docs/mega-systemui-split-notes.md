@@ -51,7 +51,7 @@ cn.es.soundlab:com.lion.appfwk.navi
 adb shell settings get global system_split_pkg
 ```
 
-ADB 不是探测页的运行前提；当前只确认用户可通过应用管家授予读取系统日志权限，未确认 ADB 可用。
+ADB 不是探测页的运行前提。10月30日用户已确认通过工程模式开启ADB并用于提取APK；其shell权限和重启后可用性仍需核对，见[新APK分析](vehicle-apk-research-20261030.md)。
 
 ## 已确认的请求形式
 
