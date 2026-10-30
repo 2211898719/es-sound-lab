@@ -126,25 +126,11 @@ public final class PlaybackTest {
   }
 
   private void lock(int value, int status) {
-    accept(
-        Protocol.decode(
-            "1760000000.125 345 789 I MessageProperty: receive VehicleDoor/CentralLock,"
-                + " value: CarPropertyValue{id=0x67000096, area=0x0, status="
-                + status
-                + ", value="
-                + value
-                + "}"));
+    accept(Protocol.property(true, Protocol.CENTRAL_LOCK, 0, status, value, System.currentTimeMillis()));
   }
 
   private void autoHold(int value, int status) {
-    accept(
-        Protocol.decode(
-            "1760000000.125 345 789 I MessageProperty: receive T1CF1/AutoHold,"
-                + " value: CarPropertyValue{id=0x50000022, area=0x0, status="
-                + status
-                + ", value="
-                + value
-                + "}"));
+    accept(Protocol.property(true, Protocol.AUTO_HOLD, 0, status, value, System.currentTimeMillis()));
   }
 
   private Store store;
@@ -190,7 +176,7 @@ public final class PlaybackTest {
     controller = Robolectric.buildService(MonitorService.class).create();
     service = controller.get();
     ReflectionHelpers.setField(service, "running", true);
-    gear(0); // P baseline: no sound at startup.
+    gear(1); // P baseline: no sound at startup.
     assertEquals(0, players.size());
   }
 
@@ -218,8 +204,8 @@ public final class PlaybackTest {
     store.addRule(
         new org.json.JSONObject()
             .put("id", "auto-test")
-            .put("source", "日志")
-            .put("topic", "T1CF1/AutoHold")
+            .put("source", "Mega")
+            .put("topic", "property/0x50000022")
             .put("propertyId", Protocol.AUTO_HOLD)
             .put("area", "0x0")
             .put("value", "1")
@@ -275,12 +261,12 @@ public final class PlaybackTest {
     advance(2010);
     assertEquals(2, players.size());
     assertEquals("AutoHold · 释放", service.diagnostics.playing);
-    gear(3);
+    gear(4);
     advance(20);
     assertEquals(ShadowMediaPlayer.State.END, shadowOf(players.get(1)).getState());
     assertEquals("D 挡", service.diagnostics.playing);
     autoHold(1, 0); // Waits behind D, then a newer P discards this obsolete request.
-    gear(0);
+    gear(1);
     advance(2200);
     assertEquals(4, players.size());
   }
@@ -317,12 +303,12 @@ public final class PlaybackTest {
     store.calibrateAutoHold("1", "2");
     autoHold(2, 0);
     ReflectionHelpers.callInstanceMethod(
-        service, "resetSource", ReflectionHelpers.ClassParameter.from(String.class, "Mega"));
+        service, "resetSource", ReflectionHelpers.ClassParameter.from(String.class, "Android"));
     autoHold(1, 0);
     advance(20);
     assertEquals(1, players.size());
     ReflectionHelpers.callInstanceMethod(
-        service, "resetSource", ReflectionHelpers.ClassParameter.from(String.class, "日志"));
+        service, "resetSource", ReflectionHelpers.ClassParameter.from(String.class, "Mega"));
     assertEquals(ShadowMediaPlayer.State.END, shadowOf(players.get(0)).getState());
     autoHold(2, 0);
     assertEquals(1, players.size());
@@ -334,12 +320,12 @@ public final class PlaybackTest {
 
   @Test
   public void playingRIsReleasedImmediatelyWhenDArises() {
-    gear(1);
+    gear(2);
     advance(20);
     MediaPlayer r = players.get(0);
     assertTrue(r.isPlaying());
     MediaPlayer.OnCompletionListener stale = shadowOf(r).getOnCompletionListener();
-    gear(3);
+    gear(4);
     assertEquals(ShadowMediaPlayer.State.END, shadowOf(r).getState());
     advance(20);
     MediaPlayer d = players.get(1);
@@ -355,11 +341,11 @@ public final class PlaybackTest {
     String path = store.source(EventSpec.find("gear.r")).substring(5);
     ShadowMediaPlayer.addMediaInfo(
         DataSource.toDataSource(path), new ShadowMediaPlayer.MediaInfo(2000, 1000));
-    gear(1);
+    gear(2);
     MediaPlayer r = players.get(0);
     MediaPlayer.OnPreparedListener stale = shadowOf(r).getOnPreparedListener();
     assertEquals(ShadowMediaPlayer.State.PREPARING, shadowOf(r).getState());
-    gear(3);
+    gear(4);
     advance(20);
     MediaPlayer d = players.get(1);
     assertTrue(d.isPlaying());
@@ -373,11 +359,11 @@ public final class PlaybackTest {
 
   @Test
   public void rapidRDPLeavesOnlyTheLatestGear() {
-    gear(1);
+    gear(2);
     MediaPlayer r = players.get(0);
-    gear(3);
+    gear(4);
     MediaPlayer d = players.get(1);
-    gear(0);
+    gear(1);
     advance(20);
     assertEquals(ShadowMediaPlayer.State.END, shadowOf(r).getState());
     assertEquals(ShadowMediaPlayer.State.END, shadowOf(d).getState());
@@ -389,12 +375,14 @@ public final class PlaybackTest {
   @Test
   public void leavingReverseStopsTheReverseLoopEvenWithoutGearVoice() {
     store.enable("gear", false);
-    gear(1);
+    for (String raw : new String[] {"0", "1"})
+      accept(new Protocol.Sample("unknown", 123, "0x0", 0, raw, 1, "日志", null, null));
+    gear(2);
     advance(20);
     MediaPlayer reverse = players.get(0);
     assertTrue(reverse.isPlaying());
     assertTrue(reverse.isLooping());
-    gear(3);
+    gear(4);
     assertEquals(ShadowMediaPlayer.State.END, shadowOf(reverse).getState());
     advance(50);
     assertEquals(1, players.size());
@@ -407,10 +395,10 @@ public final class PlaybackTest {
     String path = store.source(EventSpec.find("reverse.loop")).substring(5);
     ShadowMediaPlayer.addMediaInfo(
         DataSource.toDataSource(path), new ShadowMediaPlayer.MediaInfo(2000, 1000));
-    gear(1);
+    gear(2);
     MediaPlayer reverse = players.get(0);
     MediaPlayer.OnPreparedListener stale = shadowOf(reverse).getOnPreparedListener();
-    gear(3);
+    gear(4);
     stale.onPrepared(reverse);
     advance(1100);
     assertEquals(ShadowMediaPlayer.State.END, shadowOf(reverse).getState());
@@ -421,10 +409,10 @@ public final class PlaybackTest {
   @Test
   public void missingDAudioPreservesShortVoiceWithoutRestartingReverse() {
     store.file(EventSpec.find("gear.d"), new File("/missing-d-clip.wav"), "missing.wav");
-    gear(1);
+    gear(2);
     advance(20);
     MediaPlayer r = players.get(0);
-    gear(3);
+    gear(4);
     assertTrue(r.isPlaying());
     advance(2100);
     assertEquals(ShadowMediaPlayer.State.END, shadowOf(r).getState());
@@ -434,12 +422,12 @@ public final class PlaybackTest {
 
   @Test
   public void invalidGearPreservesShortVoiceAndRecoverySetsSilentBaseline() {
-    gear(1);
+    gear(2);
     advance(20);
     MediaPlayer r = players.get(0);
     accept(Protocol.property(true, 67108874, 0, 1, 1, System.currentTimeMillis()));
     assertTrue(r.isPlaying());
-    gear(3);
+    gear(4);
     advance(50);
     assertEquals(1, players.size());
     assertEquals("R 挡", service.diagnostics.playing);
@@ -454,7 +442,7 @@ public final class PlaybackTest {
     advance(20);
     MediaPlayer door = players.get(0);
     store.enable("gear", false);
-    gear(3);
+    gear(4);
     advance(20);
     assertTrue(door.isPlaying());
     assertEquals(1, players.size());
@@ -466,7 +454,7 @@ public final class PlaybackTest {
     advance(20);
     MediaPlayer door = players.get(0);
     store.volume("gear", 0);
-    gear(3);
+    gear(4);
     advance(20);
     assertTrue(door.isPlaying());
     assertEquals(1, players.size());
@@ -489,13 +477,13 @@ public final class PlaybackTest {
 
   @Test
   public void sourceResetDoesNotStopExistingShortVoice() {
-    gear(1);
+    gear(2);
     advance(20);
     MediaPlayer gearVoice = players.get(0);
     ReflectionHelpers.callInstanceMethod(service, "resetSource",
         ReflectionHelpers.ClassParameter.from(String.class, "Mega"));
     assertTrue(gearVoice.isPlaying());
-    gear(3);
+    gear(4);
     advance(20);
     assertEquals(1, players.size());
     assertTrue(gearVoice.isPlaying());
@@ -504,13 +492,13 @@ public final class PlaybackTest {
   }
 
   @Test
-  public void nativeSourceResetPreservesLogLockBaselineAndAutomaticTrigger() {
+  public void unrelatedSourceResetPreservesNativeLockBaselineAndAutomaticTrigger() {
     externalOutput(true);
     store.enable("lock", true);
     store.calibrateLock("1", "0");
     lock(0, 0);
     ReflectionHelpers.callInstanceMethod(service, "resetSource",
-        ReflectionHelpers.ClassParameter.from(String.class, "Mega"));
+        ReflectionHelpers.ClassParameter.from(String.class, "日志"));
     ReflectionHelpers.callInstanceMethod(service, "resetSource",
         ReflectionHelpers.ClassParameter.from(String.class, "Android"));
     lock(1, 0);
@@ -534,7 +522,7 @@ public final class PlaybackTest {
     service.discovery(true);
     assertSame(retained, ReflectionHelpers.getField(service, "logs"));
     service.discovery(false);
-    store.addRule(new org.json.JSONObject().put("id", "test-rule").put("source", "日志")
+    store.addRule(new org.json.JSONObject().put("id", "test-rule").put("source", "Mega")
         .put("topic", "unknown").put("propertyId", 1).put("area", "0x0")
         .put("event", "gear.d").put("value", "1"));
     advance(20);
@@ -557,7 +545,7 @@ public final class PlaybackTest {
     lock(0, 0);
     service.discovery(true);
     service.discovery(false);
-    store.addRule(new org.json.JSONObject().put("id", "extra").put("source", "日志")
+    store.addRule(new org.json.JSONObject().put("id", "extra").put("source", "Mega")
         .put("topic", "unknown").put("propertyId", 1).put("area", "0x0")
         .put("event", "gear.d").put("value", "1"));
     lock(1, 0);
@@ -576,6 +564,19 @@ public final class PlaybackTest {
         ReflectionHelpers.ClassParameter.from(String.class, "日志"));
     assertTrue(door.isPlaying());
     assertEquals(1, players.size());
+  }
+
+  @Test
+  public void dedicatedDoorPropertyRetainsBaselineWhenLegacyDoorSamplesArrive() {
+    store.enable("door", true);
+    accept(Protocol.property(true, 100663340, 0, 0, 1, System.currentTimeMillis()));
+    accept(Protocol.property(true, 100663305, 16, 0, 0, System.currentTimeMillis()));
+    advance(100);
+    assertEquals("1", service.diagnostics.live().get("door.front_left").value);
+    accept(Protocol.property(true, 100663340, 0, 0, 0, System.currentTimeMillis()));
+    advance(20);
+    assertEquals(1, players.size());
+    assertEquals(EventSpec.find("door.front_left.close").title, service.diagnostics.playing);
   }
 
   @Test
@@ -598,11 +599,88 @@ public final class PlaybackTest {
   }
 
   @Test
+  public void diagnosticLogsCannotOverwriteNativeGearOrTriggerBoundBuiltinSounds() throws Exception {
+    store.enable("autohold", true);
+    store.calibrateAutoHold("1", "2");
+    store.addRule(new org.json.JSONObject().put("id", "legacy-door")
+        .put("source", "日志").put("topic", "VehicleDoor/Door/FrontLeft")
+        .put("propertyId", Protocol.DOOR_IDS[0]).put("area", "0x0")
+        .put("value", "1").put("event", "gear.d"));
+    for (String value : new String[] {"0", "1"})
+      accept(Protocol.decode("1760000000.125 345 789 I MessageProperty: receive VehicleDoor/Door/FrontLeft,"
+          + " value: CarPropertyValue{id=0x600002c, area=0x0, status=0, value=" + value + "}"));
+    accept(Protocol.decode("1760000000.125 345 789 I MessageProperty: receive T1CF1/AutoHold,"
+        + " value: CarPropertyValue{id=0x50000022, area=0x0, status=0, value=1}"));
+    accept(Protocol.decode("1760000000.125 345 789 I MessageProperty: receive T1CF1/AutoHold,"
+        + " value: CarPropertyValue{id=0x50000022, area=0x0, status=0, value=2}"));
+    gear(2);
+    advance(20);
+    MediaPlayer reverse = players.get(0);
+    accept(Protocol.decode("1760000000.125 345 789 I MessageProperty: receive DrivingInfo/Gear,"
+        + " value: CarPropertyValue{id=0x400000a, area=0x0, status=0, value=4}"));
+    assertTrue(reverse.isPlaying());
+    assertEquals("2", service.diagnostics.live().get("gear").value);
+    assertEquals(1, players.size());
+    gear(4);
+    advance(20);
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(reverse).getState());
+    assertEquals(EventSpec.find("gear.d").title, service.diagnostics.playing);
+  }
+
+  @Test
+  public void nativeCallbackPipelineInterruptsPreparingRAndRejectsLateOldR() {
+    VehicleAccessTest.Manager manager = new VehicleAccessTest.Manager();
+    mega.car.MegaCar.nextManager = manager;
+    String path = store.source(EventSpec.find("gear.r")).substring(5);
+    ShadowMediaPlayer.addMediaInfo(DataSource.toDataSource(path), new ShadowMediaPlayer.MediaInfo(2000, 1000));
+    VehicleAccess access = new VehicleAccess(service, new android.os.Handler(Looper.getMainLooper()),
+        service.diagnostics, store, new VehicleAccess.Listener() {
+          public void sample(Protocol.Sample sample) { accept(sample); }
+          public void reset(String source) {
+            ReflectionHelpers.callInstanceMethod(service, "resetSource",
+                ReflectionHelpers.ClassParameter.from(String.class, source));
+          }
+        });
+    try {
+      access.start(false);
+      shadowOf(Looper.getMainLooper()).idle();
+      long t = android.os.SystemClock.uptimeMillis()+1;
+      manager.emit(67108874, 0, 0, 2, t);
+      MediaPlayer reverse = players.get(0);
+      MediaPlayer.OnPreparedListener stale = shadowOf(reverse).getOnPreparedListener();
+      manager.emit(67108874, 0, 0, 4, t+1);
+      manager.emit(67108874, 0, 0, 2, t);
+      stale.onPrepared(reverse);
+      advance(20);
+      assertEquals(ShadowMediaPlayer.State.END, shadowOf(reverse).getState());
+      assertEquals("4", service.diagnostics.live().get("gear").value);
+      assertEquals(EventSpec.find("gear.d").title, service.diagnostics.playing);
+      assertEquals(2, players.size());
+      assertTrue(players.get(1).isPlaying());
+      assertNull(ReflectionHelpers.getField(service, "logs"));
+    } finally {
+      access.stop();
+      mega.car.MegaCar.nextManager = null;
+      mega.car.MegaCar.latest = null;
+    }
+  }
+
+  @Test
+  public void nativeSourcesStartWithoutLogcatEvenInDiscovery() {
+    ReflectionHelpers.callInstanceMethod(service, "restartSources");
+    assertNull(ReflectionHelpers.getField(service, "logs"));
+    service.discovery(true);
+    assertNull(ReflectionHelpers.getField(service, "logs"));
+    assertFalse(service.diagnosticLogs());
+    assertTrue(service.diagnostics.logStatus.contains("已关闭"));
+  }
+
+  @Test
   public void centralLockNeverGuessesMeaningOrUsesGenericRules() throws Exception {
     externalOutput(true);
     store.enable("lock", true);
-    store.addRule(new org.json.JSONObject().put("id", "old-rule").put("source", "日志")
-        .put("topic", "VehicleDoor/CentralLock").put("propertyId", Protocol.CENTRAL_LOCK)
+    store.addRule(new org.json.JSONObject().put("id", "old-rule").put("source", "Mega")
+        .put("topic", "property/0x67000096").put("propertyId", Protocol.CENTRAL_LOCK)
         .put("area", "0x0").put("event", "gear.d").put("value", "1"));
     lock(0, 0);
     lock(1, 0);

@@ -990,11 +990,14 @@ public final class MainActivity extends Activity {
     return box;
   }
 
+  private Button diagnosticLogButton;
+  private TextView nativeDetails;
+
   private void detection() {
     LinearLayout top = panel();
     top.addView(bold("发现你的 ES 能提供哪些事件", 22, INK));
     gap(top, 9);
-    TextView intro = text("开始检测后，依次操作车门、挡位、尾门、解闭锁和充电。用操作标记记录时间，点击候选信号可绑定新的音效。", 13, MUTED);
+    TextView intro = text("默认通过 Mega 原生属性订阅门、挡位、中控锁和 AutoHold。先核对实时状态，再启用音效；日志只在手动开启时采集，不参与音效触发。", 13, MUTED);
     intro.setLineSpacing(dp(5), 1);
     top.addView(intro);
     gap(top, 15);
@@ -1046,6 +1049,22 @@ public final class MainActivity extends Activity {
         40,
         0);
     top.addView(extra);
+    gap(top, 10);
+    diagnosticLogButton = button("开启日志辅助采集", false, () -> {
+      if (service != null) {
+        service.diagnosticLogs(!service.diagnosticLogs());
+        update();
+      }
+    });
+    top.addView(diagnosticLogButton);
+    gap(top, 8);
+    top.addView(button("挡位编码设置", false, () -> gearEncoding()));
+    LinearLayout nativePanel = panel();
+    nativePanel.addView(bold("原生订阅检测", 17, INK));
+    nativePanel.addView(text("注册成功只代表请求已提交。请核对属性回调次数、原始值和实际车辆变化；失败的属性会单独显示原因，并以3秒轮询重试。", 12, MUTED));
+    nativeDetails = text("等待 Mega 接口…", 12, MUTED);
+    nativeDetails.setTextIsSelectable(true);
+    nativePanel.addView(nativeDetails);
     LinearLayout values = panel();
     values.addView(bold("已知车辆状态", 17, INK));
     gap(values, 12);
@@ -1061,7 +1080,7 @@ public final class MainActivity extends Activity {
     candidates.addView(candidateList);
     LinearLayout logs = panel();
     logs.addView(bold("实时日志", 17, INK));
-    logs.addView(text("默认过滤高频垂向加速度、媒体歌词、人脸识别与 AVM 信息噪声。属性目录和带时间戳的变化历史单独导出；已绑定规则的信号不过滤。", 11, MUTED));
+    logs.addView(text("显示接口、播放和可选系统日志。日志辅助采集默认关闭；原生属性目录、回调计数和变化历史会随检测记录导出。", 11, MUTED));
     gap(logs, 10);
     filter = new EditText(this);
     filter.setTextColor(INK);
@@ -1080,14 +1099,31 @@ public final class MainActivity extends Activity {
     logs.addView(rawLog);
   }
 
+  private void gearEncoding() {
+    boolean sdk = store.prefs.getBoolean("mega.gear.sdkEnums", false);
+    new AlertDialog.Builder(this)
+        .setTitle("挡位编码：按原始值与实际挡位核对")
+        .setSingleChoiceItems(new String[] {
+          "ES 已观测：1=P、2=R、3=N、4=D（默认）",
+          "SDK 定义：0=P、1=R、2=N、3=D、4=M/S"
+        }, sdk ? 1 : 0, (dialog, which) -> {
+          store.prefs.edit().putBoolean("mega.gear.sdkEnums", which == 1).apply();
+          dialog.dismiss();
+          toast("已更换编码，重新连接并建立挡位基线");
+        })
+        .setNegativeButton("关闭", null).show();
+  }
+
   private void permissions() {
     new AlertDialog.Builder(this)
-        .setTitle("给独立 App 授予日志权限")
+        .setTitle("原生接口与日志权限")
         .setMessage(
-            "请在应用管家中，为“ES 音效实验室”开启读取系统日志权限。\n\n"
-                + "新应用包名：cn.es.soundlab\n\n"
-                + "原雨涵应用已有的授权不会自动授予本应用。Android 13 的“允许一次”是另一层读取确认。\n\n"
-                + "本版切换检测或修改规则会复用日志连接。若真正断流，将暂停自动重试；请回到前台点击“重新连接”，并在系统询问时允许。不要反复点击重连。车辆属性接口若被系统限制，检测页会显示实际结果。")
+            "本版默认使用 Mega 原生属性，门/尾门需要 ENTRY_LOCK、挡位需要 CAR_DRIVING、"
+                + "中控锁需要 VEHICLE_CONTROL、AutoHold 需要 SEQUOIA。\n\n"
+                + "已声明这些权限，但是否获准由车机决定；READ_LOGS 不能代替车辆权限。"
+                + "请查看原生订阅检测中的 SDK、管理器、逐项读取/订阅结果。\n\n"
+                + "只有手动开启日志辅助采集时，才需在应用管家授予 cn.es.soundlab 读取系统日志权限。"
+                + "Android 13 可能再要求允许一次。关闭辅助采集不影响原生音效，车辆接口被拒绝也不会自动回退日志。")
         .setPositiveButton(
             "打开应用信息",
             (d, w) -> {
@@ -1179,7 +1215,7 @@ public final class MainActivity extends Activity {
                   + r.optString("area")
                   + "\n变化后等于 "
                   + r.optString("value")
-                  + " 时播放",
+                  + (r.optString("source").equals("Mega") ? " 时播放" : "（旧来源仅保留，当前不触发；请从 Mega 原生候选重新绑定）"),
               12,
               MUTED);
       detail.setLineSpacing(dp(4), 1);
@@ -1242,6 +1278,10 @@ public final class MainActivity extends Activity {
 
   private void bindRule(Diagnostics.Candidate candidate) {
     Protocol.Sample sample = candidate.sample;
+    if (!sample.source.equals("Mega")) {
+      toast("日志候选只用于分析，请选择 Mega 原生候选绑定音效");
+      return;
+    }
     if ("lock".equals(sample.key)) {
       lockCalibration();
       return;
@@ -1398,7 +1438,7 @@ public final class MainActivity extends Activity {
     }
     if (page != 1 || diagStatus == null) return;
     diagStatus.setText(
-        (service.readLogsGranted() ? "● 日志权限已授予" : "○ 日志权限未授予")
+        "原生音效模式 · 日志权限不影响原生订阅"
             + "\n"
             + d.nativeStatus
             + "\n"
@@ -1413,6 +1453,9 @@ public final class MainActivity extends Activity {
             + d.autoHoldTriggerStatus
             + "\n"
             + d.recordingStatus());
+    if (diagnosticLogButton != null)
+      diagnosticLogButton.setText(service.diagnosticLogs() ? "关闭日志辅助采集" : "开启日志辅助采集");
+    if (nativeDetails != null) nativeDetails.setText(d.nativeSummary());
     captureButton.setText(d.scanning ? "结束扩展检测" : "开始扩展检测");
     StringBuilder live = new StringBuilder();
     for (Map.Entry<String, Diagnostics.Live> e : d.live().entrySet()) {

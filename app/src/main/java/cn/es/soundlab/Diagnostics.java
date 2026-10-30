@@ -78,9 +78,98 @@ public final class Diagnostics {
   public volatile String lockTriggerStatus = "尚未收到中控锁状态";
   public volatile String autoHoldTriggerStatus = "尚未收到 AutoHold 状态";
   public volatile String nativeStatus = "尚未开始车辆监听", logStatus = "尚未开始日志监听", playing = "待命";
+  public volatile String nativeSdkStatus = "Mega SDK：尚未加载";
+  public volatile String nativeManagerStatus = "属性管理器：尚未连接";
+  public volatile boolean diagnosticLogs;
+  private final LinkedHashMap<String, JSONObject> nativeProperties = new LinkedHashMap<>();
   public volatile String lockOutputStatus = "车外通道尚未测试";
   public volatile boolean scanning, monitoring;
   public volatile long revision;
+
+  private JSONObject nativeProperty(int id, int area) {
+    String key = id + ":" + area;
+    JSONObject item = nativeProperties.get(key);
+    if (item == null) {
+      if (nativeProperties.size() >= 512)
+        nativeProperties.remove(nativeProperties.keySet().iterator().next());
+      item = new JSONObject();
+      try {
+        item.put("propertyId", id)
+            .put("propertyHex", "0x" + Integer.toHexString(id))
+            .put("area", area);
+      } catch (Exception ignored) {
+      }
+      nativeProperties.put(key, item);
+    }
+    return item;
+  }
+
+  public synchronized void resetNativeProperties() {
+    nativeProperties.clear();
+  }
+
+  public synchronized void nativeSubscription(int id, boolean registered, String detail) {
+    JSONObject item = nativeProperty(id, -1);
+    try {
+      item.put("registered", registered).put("subscription", detail);
+    } catch (Exception ignored) {
+    }
+  }
+
+  public synchronized void nativeSample(
+      int id, int area, long timestamp, boolean callback, int status, String raw) {
+    JSONObject item = nativeProperty(id, area);
+    try {
+      item.put("timestamp", timestamp)
+          .put("status", status)
+          .put("raw", raw.length() > 500 ? raw.substring(0, 500) : raw)
+          .put("receivedUptimeMillis", android.os.SystemClock.uptimeMillis())
+          .put("receivedElapsedNanos", android.os.SystemClock.elapsedRealtimeNanos())
+          .put("readError", "")
+          .put("connected", true);
+      if (callback) item.put("callbackCount", item.optLong("callbackCount") + 1);
+      else item.put("readCount", item.optLong("readCount") + 1);
+    } catch (Exception ignored) {
+    }
+  }
+
+  public synchronized void nativePropertyError(int id, int area, String detail) {
+    try {
+      nativeProperty(id, area).put("readError", detail);
+    } catch (Exception ignored) {
+    }
+  }
+
+  public synchronized void nativeDisconnected() {
+    for (JSONObject item : nativeProperties.values())
+      try {
+        item.put("connected", false).put("registered", false);
+      } catch (Exception ignored) {
+      }
+  }
+
+  public synchronized String nativeSummary() {
+    StringBuilder text =
+        new StringBuilder(nativeSdkStatus).append('\n').append(nativeManagerStatus);
+    for (JSONObject item : nativeProperties.values()) {
+      text.append("\n").append(item.optString("propertyHex"));
+      if (item.optInt("area") == -1) text.append(" · ").append(item.optString("subscription"));
+      else
+        text.append(" / ")
+            .append(item.optInt("area"))
+            .append(" · 回调 ")
+            .append(item.optLong("callbackCount"))
+            .append(" · 读取 ")
+            .append(item.optLong("readCount"))
+            .append(" · status=")
+            .append(item.optInt("status", -1))
+            .append(" · 值=")
+            .append(item.optString("raw", "未知"))
+            .append(
+                item.optString("readError").isEmpty() ? "" : " · " + item.optString("readError"));
+    }
+    return text.toString();
+  }
 
   public synchronized void attach(android.content.Context context) {
     journal = new SessionJournal(context);
@@ -99,10 +188,13 @@ public final class Diagnostics {
   }
 
   public synchronized void line(String type, String message) {
-    if (journal != null && (type.equals("生命周期") || type.equals("日志通道")
-        || type.equals("锁车触发") || type.equals("车外播放") || type.equals("播放失败")
-        || type.equals("播放跳过")))
-      journal.record(type, message);
+    if (journal != null
+        && (type.equals("生命周期")
+            || type.equals("日志通道")
+            || type.equals("锁车触发")
+            || type.equals("车外播放")
+            || type.equals("播放失败")
+            || type.equals("播放跳过"))) journal.record(type, message);
     if (message.length() > 3000) message = message.substring(0, 3000);
     lines.addLast(
         new SimpleDateFormat("HH:mm:ss.SSS", Locale.CHINA).format(new Date())
@@ -212,8 +304,19 @@ public final class Diagnostics {
   }
 
   public synchronized String recordingStatus() {
-    return "已过滤 " + filteredLogs + " 条噪声 · 队列丢弃 " + logQueueDropped + " 条 · 变化记录 " + history.size()
-        + " 条 · 关键记录 " + events.size() + " 条 · 已淘汰 " + historyDropped + "/" + eventsDropped + " 条";
+    return "已过滤 "
+        + filteredLogs
+        + " 条噪声 · 队列丢弃 "
+        + logQueueDropped
+        + " 条 · 变化记录 "
+        + history.size()
+        + " 条 · 关键记录 "
+        + events.size()
+        + " 条 · 已淘汰 "
+        + historyDropped
+        + "/"
+        + eventsDropped
+        + " 条";
   }
 
   public synchronized void property(String source, int id, int[] areas, String type) {
@@ -229,7 +332,7 @@ public final class Diagnostics {
     JSONObject root = new JSONObject();
     root.put("schemaVersion", 2);
     root.put("application", "cn.es.soundlab");
-    root.put("version", "0.2.3");
+    root.put("version", "0.3.0");
     root.put("vehicleProfile", "星纪元 ES / 原 APK 星途 ES 路径");
     root.put("exportedAt", System.currentTimeMillis());
     root.put("manufacturer", Build.MANUFACTURER);
@@ -239,6 +342,17 @@ public final class Diagnostics {
     root.put("readLogsGranted", granted);
     root.put("nativeStatus", nativeStatus);
     root.put("logStatus", logStatus);
+    root.put("eventBackend", "Mega native property subscription");
+    root.put("diagnosticLogs", diagnosticLogs);
+    root.put(
+        "megaGearEncoding",
+        store.prefs.getBoolean("mega.gear.sdkEnums", false) ? "sdk" : "es-observed");
+    root.put("nativeSdkStatus", nativeSdkStatus);
+    root.put("nativeManagerStatus", nativeManagerStatus);
+    JSONArray nativeItems = new JSONArray();
+    for (JSONObject item : nativeProperties.values())
+      nativeItems.put(new JSONObject(item.toString()));
+    root.put("nativeSubscriptions", nativeItems);
     root.put("monitoring", monitoring);
     root.put("discovery", scanning);
     JSONArray cs = new JSONArray();
@@ -288,33 +402,42 @@ public final class Diagnostics {
     JSONArray outputs = new JSONArray();
     try {
       for (AudioDeviceInfo device : store.audioOutputs())
-        outputs.put(new JSONObject().put("id", device.getId()).put("type", device.getType())
-            .put("name", String.valueOf(device.getProductName()))
-            .put("address", Build.VERSION.SDK_INT >= 28 ? device.getAddress() : ""));
+        outputs.put(
+            new JSONObject()
+                .put("id", device.getId())
+                .put("type", device.getType())
+                .put("name", String.valueOf(device.getProductName()))
+                .put("address", Build.VERSION.SDK_INT >= 28 ? device.getAddress() : ""));
     } catch (Exception error) {
       root.put("audioOutputError", error.toString());
     }
     root.put("audioOutputs", outputs);
-    root.put("lockConfiguration", new JSONObject()
-        .put("enabled", store.enabled("lock"))
-        .put("volume", store.volume("lock"))
-        .put("lockSource", store.source(EventSpec.find("lock.lock")))
-        .put("unlockSource", store.source(EventSpec.find("lock.unlock")))
-        .put("lockedValue", store.prefs.getString("lock.locked", ""))
-        .put("unlockedValue", store.prefs.getString("lock.unlocked", ""))
-        .put("outputId", store.prefs.getInt("lock.output.id", -1))
-        .put("outputType", store.prefs.getInt("lock.output.type", -1))
-        .put("outputName", store.prefs.getString("lock.output.name", ""))
-        .put("outputAddress", store.prefs.getString("lock.output.address", ""))
-        .put("outputConfirmed", store.prefs.getBoolean("lock.output.confirmed", false)));
+    root.put(
+        "lockConfiguration",
+        new JSONObject()
+            .put("enabled", store.enabled("lock"))
+            .put("volume", store.volume("lock"))
+            .put("lockSource", store.source(EventSpec.find("lock.lock")))
+            .put("unlockSource", store.source(EventSpec.find("lock.unlock")))
+            .put("lockedValue", store.prefs.getString("lock.locked", ""))
+            .put("unlockedValue", store.prefs.getString("lock.unlocked", ""))
+            .put("outputId", store.prefs.getInt("lock.output.id", -1))
+            .put("outputType", store.prefs.getInt("lock.output.type", -1))
+            .put("outputName", store.prefs.getString("lock.output.name", ""))
+            .put("outputAddress", store.prefs.getString("lock.output.address", ""))
+            .put("outputConfirmed", store.prefs.getBoolean("lock.output.confirmed", false)));
     root.put("signalHistory", exportHistory(history));
     root.put("eventHistory", exportHistory(events));
     JSONArray catalog = new JSONArray();
     for (PropertyInfo property : properties.values()) {
       JSONArray areas = new JSONArray();
       for (int area : property.areas) areas.put(area);
-      catalog.put(new JSONObject().put("source", property.source).put("propertyId", property.id)
-          .put("areas", areas).put("type", property.type));
+      catalog.put(
+          new JSONObject()
+              .put("source", property.source)
+              .put("propertyId", property.id)
+              .put("areas", areas)
+              .put("type", property.type));
     }
     root.put("propertyCatalog", catalog);
     return root.toString(2);
@@ -324,19 +447,20 @@ public final class Diagnostics {
     JSONArray changes = new JSONArray();
     for (SignalChange change : entries) {
       Protocol.Sample sample = change.sample, previous = change.previous;
-      changes.put(new JSONObject()
-          .put("time", sample.time)
-          .put("source", sample.source)
-          .put("topic", sample.topic)
-          .put("propertyId", sample.propertyId)
-          .put("area", sample.area)
-          .put("status", sample.status)
-          .put("raw", sample.raw)
-          .put("mappedKey", sample.key == null ? JSONObject.NULL : sample.key)
-          .put("value", sample.value == null ? JSONObject.NULL : sample.value)
-          .put("baseline", previous == null)
-          .put("previousRaw", previous == null ? JSONObject.NULL : previous.raw)
-          .put("previousStatus", previous == null ? JSONObject.NULL : previous.status));
+      changes.put(
+          new JSONObject()
+              .put("time", sample.time)
+              .put("source", sample.source)
+              .put("topic", sample.topic)
+              .put("propertyId", sample.propertyId)
+              .put("area", sample.area)
+              .put("status", sample.status)
+              .put("raw", sample.raw)
+              .put("mappedKey", sample.key == null ? JSONObject.NULL : sample.key)
+              .put("value", sample.value == null ? JSONObject.NULL : sample.value)
+              .put("baseline", previous == null)
+              .put("previousRaw", previous == null ? JSONObject.NULL : previous.raw)
+              .put("previousStatus", previous == null ? JSONObject.NULL : previous.status));
     }
     return changes;
   }

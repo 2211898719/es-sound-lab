@@ -44,15 +44,16 @@ public final class MonitorService extends Service
   private long legacyDoorAt;
   private String legacyDoorValue;
   private final Runnable flushLegacy = this::flushLegacyDoors;
-  private boolean running, destroyed, silenced;
+  private boolean running, destroyed, silenced, diagnosticLogs;
   private int generation, logGeneration;
   private long previousElapsed, previousUptime;
-  private final BroadcastReceiver powerEvents = new BroadcastReceiver() {
-    @Override
-    public void onReceive(Context context, Intent intent) {
-      diagnostics.line("生命周期", "屏幕/用户事件 " + intent.getAction());
-    }
-  };
+  private final BroadcastReceiver powerEvents =
+      new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+          diagnostics.line("生命周期", "屏幕/用户事件 " + intent.getAction());
+        }
+      };
 
   private static final class State {
     final String value, source;
@@ -149,6 +150,8 @@ public final class MonitorService extends Service
     diagnostics.monitoring = false;
     diagnostics.scanning = false;
     store.prefs.edit().putBoolean("monitor", false).apply();
+    diagnosticLogs = false;
+    diagnostics.diagnosticLogs = false;
     stopSources();
     states.clear();
     gate.reset();
@@ -174,9 +177,13 @@ public final class MonitorService extends Service
     if (enabled && !running) begin();
     if (diagnostics.scanning == enabled) return;
     diagnostics.scanning = enabled;
-    diagnostics.line("检测", enabled ? "开始扩展检测，属性和原始日志将保存在本次记录中" : "结束扩展检测，恢复已知事件监听");
+    diagnostics.line("检测", enabled ? "开始原生属性扩展检测；日志采集由独立开关控制" : "结束扩展检测，保留原生事件基线");
     if (logs != null) logs.discovery(enabled);
-    restartVehicles();
+    // The active native baseline survives toggling discovery; rebuild only on explicit reconnect.
+    if (vehicles != null) {
+      VehicleAccess active = vehicles;
+      io.post(() -> active.discovery(enabled));
+    }
   }
 
   public void reconnect() {
@@ -185,22 +192,20 @@ public final class MonitorService extends Service
       resetSource("日志");
       logTimes.clear();
       restartSources();
-    }
-    else begin();
+    } else begin();
   }
 
   private void restartSources() {
     restartVehicles();
-    if (running && logs == null) startLogs();
+    if (running && diagnosticLogs && logs == null) startLogs();
+    if (!diagnosticLogs) diagnostics.logStatus = "日志采集已关闭 · 音效由原生属性触发";
   }
 
   private void restartVehicles() {
-    diagnostics.line("生命周期", "重建车辆接口，扩展检测=" + diagnostics.scanning + "；保留日志连接及其基线");
+    diagnostics.line("生命周期", "重建 Mega 原生接口，扩展检测=" + diagnostics.scanning);
     stopVehicles();
     if (!running) return;
-    resetSource("Desay");
     resetSource("Mega");
-    resetSource("Android");
     final int token = generation;
     vehicles =
         new VehicleAccess(
@@ -224,6 +229,22 @@ public final class MonitorService extends Service
               }
             });
     vehicles.start(diagnostics.scanning);
+  }
+
+  public boolean diagnosticLogs() {
+    return diagnosticLogs;
+  }
+
+  public void diagnosticLogs(boolean enabled) {
+    diagnosticLogs = enabled;
+    diagnostics.diagnosticLogs = enabled;
+    if (enabled) {
+      if (!running) begin();
+      if (logs == null) startLogs();
+    } else {
+      stopLogs();
+      diagnostics.logStatus = "日志采集已关闭 · 音效由原生属性触发";
+    }
   }
 
   private void startLogs() {
@@ -326,15 +347,16 @@ public final class MonitorService extends Service
   }
 
   private int rank(Protocol.Sample s) {
-    if (s.source.equals("日志")) return s.topic.equals("VehicleDoor/TrunkSts") ? 95 : 100;
-    if (s.source.equals("Desay")) return 90;
-    if (s.source.equals("Mega")) return 80;
+    if (s.source.equals("日志")) return 0;
+    if (s.source.equals("Mega")) return s.propertyId == 100663305 ? 75 : 100;
     return s.propertyId == Protocol.CURRENT_GEAR ? 65 : 70;
   }
 
   private void accept(Protocol.Sample s) {
     if (!running) return;
     diagnostics.sample(s);
+    // All log/legacy samples are observational only; only Mega properties drive audio/rules.
+    if (!s.source.equals("Mega")) return;
     applyRules(s);
     if (s.key == null) return;
     // The legacy property can broadcast a single aggregate value to all four areas.
@@ -379,8 +401,17 @@ public final class MonitorService extends Service
               store.autoHoldState(s.value));
     String lockRaw = "lock".equals(s.key) ? s.raw : null;
     if (s.key.equals("lock"))
-      s = new Protocol.Sample(s.topic, s.propertyId, s.area, s.status, s.raw, s.time,
-          s.source, s.key, store.lockState(s.value));
+      s =
+          new Protocol.Sample(
+              s.topic,
+              s.propertyId,
+              s.area,
+              s.status,
+              s.raw,
+              s.time,
+              s.source,
+              s.key,
+              store.lockState(s.value));
     String source = s.source + "|" + s.topic + "|" + s.area;
     State previous = states.get(s.key);
     if (previous != null && previous.rank > rank(s)) return;
@@ -401,11 +432,16 @@ public final class MonitorService extends Service
         audio.cancelAutoHold();
     }
     if (lockRaw != null) {
-      String reason = !store.lockCalibrated() ? "未校准，不触发"
-          : s.value == null ? "状态无效或不在校准值中，不触发"
-          : change == TransitionGate.Change.BASELINE ? "首样本/重连基线，不触发"
-          : change != TransitionGate.Change.CHANGED ? "状态未变化，不触发"
-          : silent ? "静默样本，不触发" : store.lockReadiness();
+      String reason =
+          !store.lockCalibrated()
+              ? "未校准，不触发"
+              : s.value == null
+                  ? "状态无效或不在校准值中，不触发"
+                  : change == TransitionGate.Change.BASELINE
+                      ? "首样本/重连基线，不触发"
+                      : change != TransitionGate.Change.CHANGED
+                          ? "状态未变化，不触发"
+                          : silent ? "静默样本，不触发" : store.lockReadiness();
       diagnostics.lockDecision("原始值=" + lockRaw + " · " + reason);
     }
     if (s.key.equals("lock")
@@ -511,10 +547,18 @@ public final class MonitorService extends Service
     if (destroyed || key.equals("monitor") || key.startsWith("selected.")) return;
     if (key.equals("rules")) {
       ruleGate.reset();
-      if (running) restartVehicles();
+      if (running && vehicles != null) {
+        VehicleAccess active = vehicles;
+        boolean scan = diagnostics.scanning;
+        io.post(() -> active.discovery(scan));
+      }
       return;
     }
     if (key.equals("custom.events")) return;
+    if (key.equals("mega.gear.sdkEnums")) {
+      if (running) restartVehicles();
+      return;
+    }
     if (key.equals("autohold.holding") || key.equals("autohold.released")) {
       states.remove("autohold");
       gate.forget("autohold");
@@ -528,9 +572,10 @@ public final class MonitorService extends Service
       diagnostics.removeLive("lock");
     }
     if (key.startsWith("lock.output."))
-      diagnostics.lockOutputStatus = p.getBoolean("lock.output.confirmed", false)
-          ? "车外设备已人工确认，等待实际播放时核验路由"
-          : "车外配置已改变，须重新测试并人工确认";
+      diagnostics.lockOutputStatus =
+          p.getBoolean("lock.output.confirmed", false)
+              ? "车外设备已人工确认，等待实际播放时核验路由"
+              : "车外配置已改变，须重新测试并人工确认";
     audio.refresh(key);
     updateLoops();
   }

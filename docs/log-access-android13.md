@@ -4,6 +4,8 @@
 
 2026-10-30补充：用户已通过MegaEngineeringMode开启ADB并提取车机APK，ADB可用性得到用户确认；root、Shizuku、shell车辆权限及重启后恢复仍未知。新样本的直接车辆订阅与车外音频发现见[APK接口分析](vehicle-apk-research-20261030.md)，当前App仍未接入shell桥。
 
+0.3.0补充：内置音效现改为[原生车辆事件](native-vehicle-events.md)。默认不启动logcat；用户手动开启的日志辅助采集仍受本文的Android日志授权约束，但不再驱动音效或规则。
+
 ## 1. 确认的系统机制
 
 以固定版本 AOSP `android-13.0.0_r1` 为依据：

@@ -267,32 +267,9 @@ public final class Protocol {
             key = "door." + DOORS[i];
             value = String.valueOf((int) n);
           }
-      if (mega && id == 67108874 && Double.isFinite(n)) {
+      if (mega && id == 67108874 && area == 0) {
         key = "gear";
-        switch ((int) n) {
-          case 0:
-          case 101:
-            value = "1";
-            break;
-          case 1:
-          case 102:
-            value = "2";
-            break;
-          case 2:
-          case 103:
-          case 300:
-            value = "3";
-            break;
-          case 3:
-          case 113:
-            value = "4";
-            break;
-          case 4:
-            value = "5";
-            break;
-          default:
-            break;
-        }
+        value = megaGear(raw, false);
       }
       if (!mega && (id == GEAR_SELECTION || id == CURRENT_GEAR) && area == 0) {
         key = "gear";
@@ -336,10 +313,22 @@ public final class Protocol {
                 : (id == DOOR_POS && area == new int[] {1, 4, 16, 64}[i]);
         if (match) key = "door." + DOORS[i];
       }
-      if ((mega && id == 67108874)
+      if ((mega && id == 67108874 && area == 0)
           || (!mega && (id == GEAR_SELECTION || id == CURRENT_GEAR) && area == 0)) key = "gear";
       if ((mega && id == 67108875) || (!mega && id == SPEED)) key = "speed";
       if (mega && id == 100663345) key = "tailgate";
+    }
+    if (mega && id == CENTRAL_LOCK && area == 0) {
+      key = "lock";
+      value =
+          status == 0 && raw instanceof Integer && lockValue(String.valueOf(raw))
+              ? String.valueOf(raw)
+              : null;
+    }
+    if (mega && id == AUTO_HOLD && area == 0) {
+      key = "autohold";
+      value =
+          status == 0 && raw instanceof Integer && (n == 1 || n == 2) ? String.valueOf(raw) : null;
     }
     return new Sample(
         "property/0x" + Integer.toHexString(id),
@@ -351,6 +340,32 @@ public final class Protocol {
         mega ? "Mega" : "Android",
         key,
         value);
+  }
+
+  /** ES observed encoding is the default; the alternate SDK definition needs manual selection. */
+  public static String megaGear(Object raw, boolean sdkEnums) {
+    if (!(raw instanceof Integer)) return null;
+    int n = (Integer) raw;
+    if (!sdkEnums) return gearLog(n);
+    switch (n) {
+      case 0:
+      case 101:
+        return "1";
+      case 1:
+      case 102:
+        return "2";
+      case 2:
+      case 103:
+      case 300:
+        return "3";
+      case 3:
+      case 113:
+        return "4";
+      case 4:
+        return "5";
+      default:
+        return null;
+    }
   }
 
   public static String event(String key, String value) {

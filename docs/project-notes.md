@@ -1,6 +1,16 @@
 # 项目交接与已知结论
 
-更新日期：2026-10-30；当前源码版本：0.2.3（versionCode 5），仓库最近安装包仍为0.2.2。本次按用户要求只修改代码并自行测试，正式包由用户回家在原签名环境构建。本文区分代码已实现、日志已观察和待实车验证。
+更新日期：2026-10-30；当前源码版本：0.3.0（versionCode 6），仓库最近安装包仍为0.2.2。本次按用户要求只修改代码并自行测试，正式包由用户回家在原签名环境构建。本文区分代码已实现、日志已观察和待实车验证。
+
+## 原生车辆事件（0.3.0，当前方案）
+
+- 用户要求将门/挡位/中控锁/AutoHold更换为非日志订阅，已实现[原生车辆事件方案](native-vehicle-events.md)。下方0.2.x和APK分析记录是历史依据，关于日志触发及待接线的描述已被本节替代。
+- `VehicleAccess`专用于Mega硬件属性接口，加载系统共享类或已安装Mega服务/CarControlAdapter的SDK及分包/共享库；移除Desay/Android自动接入。逐项注册，禁用厂商异步sticky读取并显式采集初值，单项权限/目录失败隔离；订阅失败才3秒轮询。
+- 门/尾门、挡位、中控锁、AutoHold全接原生映射；补VEHICLE_CONTROL、SEQUOIA声明。SDK保护级别及实际授权仍不能靠声明解决。锁和AutoHold仍需用户校准，车外输出约束及R→D打断不变。
+- 默认按ES已观测1=P/2=R/3=N/4=D解码；检测页可显式选SDK的0=P/1=R/2=N/3=D/4=M/S，切换后重连建基线。不能从静态SDK定义认定实车使用哪套。
+- 日志辅助采集默认关闭、非持久开关；所有日志/旧来源样本只进诊断，不执行音效/规则，旧规则保留并提示从Mega重新绑定。扩展检测/规则变化只增减订阅，不清除已有基线。
+- 逐属性过滤倒序时间戳，断线/关闭丢弃旧回调，错误回调使对应状态失效；Mega车速不再套用Android纳秒判断，仅接受与SDK uptime毫秒一致的新鲜时间戳，其他约定待确认。导出保留原始时间戳及双时钟。
+- 检测页新增SDK、实际管理器、逐项注册/回调/读取/原始值/错误；导出新增eventBackend、diagnosticLogs、megaGearEncoding、nativeSubscriptions。通过145项核心检查、70项Android/Robolectric回归及资源/Java/DEX编译；包括真实反射接口形状的模拟SDK回调到音效引擎测试。无实车测试、无签名APK。
 
 ## AutoHold 音效（0.2.3 源码）
 
@@ -11,7 +21,7 @@
 - 最新AutoHold状态取消旧的在播/排队AutoHold提示，晚到的prepare回调不能复活旧音效；其他门/挡位短音不被AutoHold抢占，新的有效挡位提示仍可抢占并清队列。
 - AutoHold进入独立`eventHistory`，避免被方向盘等连续量挤掉。导出增加`autoHoldConfiguration`和`autoHoldTriggerStatus`；检测页显示原始候选、当前语义状态及不触发原因。
 - 本地通过121项核心检查、51项Android/Robolectric回归，资源/Java/DEX编译通过。覆盖UI校准保存/清除、持久化与历史、首样本、无效/重复值、快速释放和旧回调、来源局部重置、排队及挡位抢占。真实枚举方向和车机音频仍待实车核对。
-- 新增 `python3 tools/build.py --compile-only`，只编译资源、Java、DEX，不签名、不改历史APK。该模式用于本次验证。要生成0.2.3安装包，在原0.2.x密钥所在环境执行常规 `python3 tools/build.py`；不要使用这台电脑的0.1.0密钥替换原密钥。
+- 新增 `python3 tools/build.py --compile-only`，只编译资源、Java、DEX，不签名、不改历史APK。该模式用于本次验证。当前要生成0.3.0安装包，在原0.2.x密钥所在环境执行常规 `python3 tools/build.py`；不要使用这台电脑的0.1.0密钥替换原密钥。
 
 ## 手动分屏探测（同为0.2.3源码）
 
@@ -47,7 +57,7 @@
 | --- | --- |
 | `MainActivity.java` | 原生代码界面、音频选择/导入、检测、规则、锁状态校准和车外输出确认 |
 | `MonitorService.java` | 前台监听，主线程处理样本与状态，独立 IO 线程连接车辆接口，来源优先级与音效触发 |
-| `VehicleAccess.java` | Desay Binder、Mega、Android CarProperty，属性读取、订阅/轮询 |
+| `VehicleAccess.java` | Mega SDK动态加载、原生属性订阅、初值/失败轮询、回调生命周期 |
 | `LogReader.java` | 普通应用身份执行 logcat，标准/扩展过滤原位切换，stderr 单独记录，断流后等待用户主动重连 |
 | `Protocol.java` | 日志/属性解码、原始值提取、信号映射、精确噪声过滤 |
 | `TransitionGate.java` | 首样本、来源变化和无效恢复建立基线；后续有效变化才触发短音效 |
@@ -58,7 +68,7 @@
 | `BootReceiver.java` | 收到开机/包更新广播后，在已开启监听时尝试恢复服务 |
 | `MicrophoneBridge.java` | 手动喊话 |
 
-测试入口为 `tests/CoreTest.java`、`tests/UiTest.java`、`tests/PlaybackTest.java`、`tests/LogReaderTest.java`、`tests/SplitProbeTest.java`。构建入口为 `tools/build.py`，Android/Robolectric 检查入口为 `tools/ui_check.py`。
+测试入口为 `tests/CoreTest.java`、`tests/UiTest.java`、`tests/PlaybackTest.java`、`tests/LogReaderTest.java`、`tests/SplitProbeTest.java`、`tests/VehicleAccessTest.java`。构建入口为 `tools/build.py`，Android/Robolectric 检查入口为 `tools/ui_check.py`。
 
 ## 实车证据与信号
 
@@ -128,14 +138,14 @@
 
 ## 建议的下一轮顺序
 
-1. 对照实际操作确认锁枚举，在车机清醒且驻车安全的条件下证明自动锁/解锁链路。
-2. 不主动切换检测或重连，标记下车锁车/解锁进入，再导出含新诊断的记录。
-3. 区分事件没到、未映射、仅基线、播放未获焦点、路由失败与已放音但功放未发声。
-4. 先验证 0.2.2 的日志复用与不中断短音；真正断流先导出 stderr/退出码，再主动重连。确认 ADB / Shizuku / root 条件后再研究显式授权的 shell 桥或厂商车辆接口，不要同时更改枚举和读取后端。
+1. 在保留原0.2.x密钥的环境构建0.3.0，先关闭音效组，确认Mega SDK、权限及四类原生回调。
+2. 核对挡位编码、锁/AutoHold枚举与实际操作后启用对应组；普通侧载被拒绝时导出错误，不自动回退日志或宣称已获权。
+3. 快速R→D、错误恢复、重连验证取消旧播放且首样本静默，日志辅助开关和扩展检测不干扰既有原生状态。
+4. 再验证解闭锁独立车外路由、休眠/后台可用性；厂商usage2007尚未改动，详见[原生方案](native-vehicle-events.md)。
 
 ## 构建、签名与发布
 
-0.2.2此前通过98项核心检查、44项Android/Robolectric测试；0.2.3本轮结果见上方。真实音频解码、车辆休眠和物理扬声器不能由这些测试证明。
+0.2.2此前通过98项核心检查、44项Android/Robolectric测试；0.3.0本轮结果见上方。真实音频解码、车辆休眠和物理扬声器不能由这些测试证明。
 
 ```sh
 export JAVA_HOME=$(/usr/libexec/java_home -v 21)

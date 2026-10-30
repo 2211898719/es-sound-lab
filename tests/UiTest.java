@@ -84,6 +84,9 @@ public final class UiTest {
       image(a, "home-landscape", 1280, 1080);
       find(root, "车辆检测").performClick();
       assertNotNull(find(root, "开始扩展检测"));
+      assertNotNull(find(root, "原生订阅检测"));
+      assertNotNull(find(root, "开启日志辅助采集"));
+      assertNotNull(find(root, "挡位编码设置"));
       assertEquals(1, count(root, EditText.class));
       image(a, "detection-landscape", 1280, 1080);
       find(root, "规则管理").performClick();

@@ -131,13 +131,33 @@ public final class CoreTest {
         "5",
         Protocol.property(false, Protocol.GEAR_SELECTION, 0, 0, 16, 1).value,
         "Android selection manual gear");
-    eq("2", Protocol.property(true, 67108874, 0, 0, 1, 1).value, "Mega R gear");
+    eq("2", Protocol.property(true, 67108874, 0, 0, 2, 1).value, "ES Mega R gear");
     eq("36.0", Protocol.property(false, Protocol.SPEED, 0, 0, 10f, 1).value, "Android m/s to km/h");
     eq(
         "door.rear_left",
         Protocol.property(false, Protocol.DOOR_POS, 16, 0, 25, 1).key,
         "Android door area");
     eq(null, Protocol.property(false, Protocol.DOOR_POS, 999, 0, 25, 1).key, "unmapped area");
+    eq(null, Protocol.property(true, 67108874, 0, 0, 0, 1).value, "ES zero gear is unknown");
+    eq("4", Protocol.property(true, 67108874, 0, 0, 4, 1).value, "ES D encoding");
+    eq("1", Protocol.property(true, 67108874, 0, 0, 101, 1).value, "extended Mega P");
+    eq(null, Protocol.property(true, 67108874, 1, 0, 4, 1).key, "gear requires global area");
+    eq(null, Protocol.property(true, 67108874, 0, 0, 2.5f, 1).value, "fractional gear rejected");
+    eq("2", Protocol.megaGear(1, true), "explicit SDK R encoding");
+    eq("4", Protocol.megaGear(3, true), "explicit SDK D encoding");
+    for (int status : new int[] {0, 1, 2}) {
+      Protocol.Sample nativeLock = Protocol.property(true, Protocol.CENTRAL_LOCK, 0, status, 1, 1);
+      eq("lock", nativeLock.key, "native lock identity survives unavailable");
+      eq(status == 0 ? "1" : null, nativeLock.value, "native lock valid status only");
+      Protocol.Sample nativeHold = Protocol.property(true, Protocol.AUTO_HOLD, 0, status, 2, 1);
+      eq("autohold", nativeHold.key, "native hold identity survives unavailable");
+      eq(status == 0 ? "2" : null, nativeHold.value, "native hold valid status only");
+    }
+    eq(null, Protocol.property(true, Protocol.AUTO_HOLD, 1, 0, 1, 1).key, "hold area strict");
+    eq(null, Protocol.property(true, Protocol.CENTRAL_LOCK, 1, 0, 1, 1).key, "lock area strict");
+    eq(null, Protocol.property(true, Protocol.AUTO_HOLD, 0, 0, 0, 1).value, "unknown hold enum");
+    eq(null, Protocol.property(true, Protocol.CENTRAL_LOCK, 0, 0, -1, 1).value, "negative lock enum");
+    eq(null, Protocol.property(true, Protocol.AUTO_HOLD, 0, 0, "1", 1).value, "hold typed integer");
     TransitionGate gate = new TransitionGate();
     eq(TransitionGate.Change.BASELINE, gate.accept("door", "0", "Mega"), "first reading is silent");
     eq(TransitionGate.Change.SAME, gate.accept("door", "0", "Mega"), "duplicates silent");
