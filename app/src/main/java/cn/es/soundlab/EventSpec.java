@@ -50,6 +50,8 @@ public final class EventSpec {
     }
     add("lock.unlock", "lock", "车辆解锁", "unlock.wav", false, 4);
     add("lock.lock", "lock", "车辆闭锁", "lock.wav", false, 4);
+    add("autohold.holding", "autohold", "AutoHold · 保持", "autohold_holding.wav", false, 2);
+    add("autohold.released", "autohold", "AutoHold · 释放", "autohold_released.wav", false, 2);
     add("engine.loop", "engine", "行驶声浪", "engine.wav", true, 0);
     add("reverse.loop", "reverse", "倒车提醒", "reverse_alert.mp3", true, 0);
     add("shout.clip", "shout", "车外语音 · 手动播放", "welcome.mp3", false, 2);
@@ -84,6 +86,8 @@ public final class EventSpec {
         return "开关门提示音";
       case "lock":
         return "解闭锁提示音";
+      case "autohold":
+        return "AutoHold 音效";
       case "engine":
         return "模拟声浪";
       case "reverse":

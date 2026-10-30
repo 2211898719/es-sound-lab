@@ -47,6 +47,37 @@ public final class CoreTest {
     eq("4", log("DrivingInfo/Gear", "0x400000a", "113", 0, "").value, "D gear enum");
     eq("3", log("DrivingInfo/Gear", "0x400000a", "300", 0, "").value, "N gear enum");
     eq(null, Protocol.gearLog(5), "unknown log gear is not guessed");
+    Protocol.Sample autoHold = log("T1CF1/AutoHold", "0x50000022", "1", 0, "");
+    eq("autohold", autoHold.key, "observed AutoHold identity");
+    eq("1", autoHold.value, "AutoHold retains raw enum");
+    eq(null, Protocol.event("autohold", "1"), "no guessed AutoHold sound");
+    eq(null, Protocol.autoHoldState("1", "", ""), "AutoHold requires calibration");
+    eq(null, Protocol.autoHoldState("1", "1", "1"), "AutoHold enums must differ");
+    eq(null, Protocol.autoHoldState("1", "1", "3"), "only observed AutoHold enums accepted");
+    eq("holding", Protocol.autoHoldState("2", "2", "1"), "holding calibration");
+    eq("released", Protocol.autoHoldState("1", "2", "1"), "release calibration");
+    eq("holding", Protocol.autoHoldState("1", "1", "2"), "reverse calibration allowed");
+    eq(
+        null,
+        Protocol.autoHoldState(null, "1", "2"),
+        "invalid status remains invalid after mapping");
+    eq("autohold.holding", Protocol.event("autohold", "holding"), "holding event");
+    eq("autohold.released", Protocol.event("autohold", "released"), "released event");
+    for (String bad : new String[] {"0", "3", "-1", "1.0", "01"})
+      eq(
+          null,
+          log("T1CF1/AutoHold", "0x50000022", bad, 0, "").value,
+          "invalid AutoHold raw " + bad);
+    eq(null, log("T1CF1/AutoHold", "0x50000022", "1", 1, "").value, "AutoHold status unavailable");
+    eq(null, log("T1CF1/AutoHold", "0x50000023", "1", 0, "").key, "AutoHold ID must match");
+    eq(null, log("Other/AutoHold", "0x50000022", "1", 0, "").key, "AutoHold topic must match");
+    eq(
+        null,
+        Protocol.decode(
+                "1760000000.125 345 789 I MessageProperty: receive T1CF1/AutoHold,"
+                    + " value: CarPropertyValue{id=0x50000022, area=0x1, status=0, value=1}")
+            .key,
+        "AutoHold area must match");
     eq("tailgate", log("VehicleDoor/Door/Back", "0x6000031", "1", 0, "").key, "tailgate");
     eq("speed", log("DrivingInfo/Speed", "0x400000b", "17.3", 0, "").key, "speed");
     eq(null, log("DrivingInfo/Speed", "0x400000b", "NaN", 0, "").value, "nonfinite speed");

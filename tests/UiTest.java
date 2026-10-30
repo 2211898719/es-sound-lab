@@ -3,6 +3,7 @@ package cn.es.soundlab;
 import static org.junit.Assert.*;
 import static org.robolectric.Shadows.shadowOf;
 
+import android.app.AlertDialog;
 import android.app.Application;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -77,7 +78,9 @@ public final class UiTest {
       assertNotNull(find(root, "挂挡音效"));
       assertNotNull(find(root, "解闭锁提示音"));
       assertNotNull(find(root, "充电提示音"));
-      assertEquals(10, count(root, Switch.class));
+      assertNotNull(find(root, "AutoHold 音效"));
+      assertNotNull(find(root, "AutoHold 设置"));
+      assertEquals(11, count(root, Switch.class));
       image(a, "home-landscape", 1280, 1080);
       find(root, "车辆检测").performClick();
       assertNotNull(find(root, "开始扩展检测"));
@@ -227,6 +230,93 @@ public final class UiTest {
     assertTrue(reopened.mapped("lock.lock"));
     assertTrue(reopened.mapped("lock.unlock"));
     assertFalse(reopened.prefs.getBoolean("lock.output.confirmed", false));
+  }
+
+  @Test
+  public void autoHoldCalibrationPersistsAndHistoryIsKeptSeparateFromContinuousSignals()
+      throws Exception {
+    Store store = new Store(RuntimeEnvironment.getApplication());
+    store.prefs.edit().clear().commit();
+    assertFalse(store.autoHoldCalibrated());
+    assertFalse(store.mapped("autohold.holding"));
+    for (String[] bad : new String[][] {{"", ""}, {"1", "1"}, {"0", "1"}, {"1", "3"}}) {
+      try {
+        store.calibrateAutoHold(bad[0], bad[1]);
+        fail("invalid calibration accepted");
+      } catch (IllegalArgumentException expected) {
+      }
+    }
+    store.calibrateAutoHold("2", "1");
+    Store reopened = new Store(RuntimeEnvironment.getApplication());
+    assertTrue(reopened.autoHoldCalibrated());
+    assertEquals("holding", reopened.autoHoldState("2"));
+    assertEquals("released", reopened.autoHoldState("1"));
+    assertTrue(reopened.mapped("autohold.holding"));
+    assertFalse(reopened.enabled("autohold"));
+    Diagnostics diag = new Diagnostics();
+    Protocol.Sample sample =
+        Protocol.decode(
+            "1760000000.125 345 789 I MessageProperty: receive T1CF1/AutoHold,"
+                + " value: CarPropertyValue{id=0x50000022, area=0x0, status=0, value=2}");
+    diag.sample(sample);
+    for (int i = 0; i < 1300; i++)
+      diag.sample(new Protocol.Sample("continuous", 1, "0x0", 0, "" + i, i, "日志", null, null));
+    org.json.JSONObject exported = new org.json.JSONObject(diag.export(true, reopened));
+    assertEquals(1, exported.getJSONArray("eventHistory").length());
+    assertEquals(
+        "autohold", exported.getJSONArray("eventHistory").getJSONObject(0).getString("mappedKey"));
+    assertTrue(exported.getJSONObject("autoHoldConfiguration").getBoolean("calibrated"));
+    assertEquals("2", exported.getJSONObject("autoHoldConfiguration").getString("holdingValue"));
+    assertTrue(exported.has("autoHoldTriggerStatus"));
+  }
+
+  @Test
+  public void autoHoldSettingsAllowCalibrationAndClearingFromTheScreen() throws Exception {
+    Store store = new Store(RuntimeEnvironment.getApplication());
+    store.prefs.edit().clear().commit();
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class).create().start().resume().visible()) {
+      MainActivity activity = controller.get();
+      View root = activity.findViewById(android.R.id.content);
+      find(root, "AutoHold 设置").performClick();
+      AlertDialog menu = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+      org.robolectric.Shadows.shadowOf(menu).clickOnItem(0);
+      AlertDialog dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+      shadowOf(Looper.getMainLooper()).idle();
+      View dialogRoot = dialog.getWindow().getDecorView();
+      EditText holding = (EditText) findDescription(dialogRoot, "AutoHold 保持原始值");
+      EditText released = (EditText) findDescription(dialogRoot, "AutoHold 释放原始值");
+      assertNotNull(holding);
+      assertNotNull(released);
+      holding.setText("1");
+      released.setText("1");
+      dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+      assertTrue(dialog.isShowing());
+      assertFalse(store.autoHoldCalibrated());
+      released.setText("2");
+      dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+      assertTrue(store.autoHoldCalibrated());
+      assertEquals("holding", store.autoHoldState("1"));
+      find(root, "AutoHold 设置").performClick();
+      menu = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+      org.robolectric.Shadows.shadowOf(menu).clickOnItem(0);
+      dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+      shadowOf(Looper.getMainLooper()).idle();
+      dialog.getButton(AlertDialog.BUTTON_NEUTRAL).performClick();
+      shadowOf(Looper.getMainLooper()).idle();
+      assertFalse(store.autoHoldCalibrated());
+    }
+  }
+
+  private View findDescription(View view, String description) {
+    if (description.contentEquals(
+        view.getContentDescription() == null ? "" : view.getContentDescription())) return view;
+    if (view instanceof ViewGroup)
+      for (int index = 0; index < ((ViewGroup) view).getChildCount(); index++) {
+        View match = findDescription(((ViewGroup) view).getChildAt(index), description);
+        if (match != null) return match;
+      }
+    return null;
   }
 
   @Test

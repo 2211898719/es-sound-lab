@@ -413,6 +413,18 @@ public final class SoundEngine {
     if (shotSpec != null && shotSpec.group.equals("lock")) next();
   }
 
+  /** Keep only the latest AutoHold state, without interrupting unrelated short clips. */
+  public void autoHoldChanged(String event) {
+    cancelAutoHold();
+    play(event, false);
+  }
+
+  public void cancelAutoHold() {
+    for (Iterator<Job> jobs = queue.iterator(); jobs.hasNext(); )
+      if (jobs.next().spec.group.equals("autohold")) jobs.remove();
+    if (shotSpec != null && shotSpec.group.equals("autohold")) next();
+  }
+
   private void releaseLoop() {
     if (loop != null) {
       MediaPlayer p = loop;
@@ -437,6 +449,10 @@ public final class SoundEngine {
   }
 
   public void refresh(String key) {
+    if (key.startsWith("autohold.")) {
+      cancelAutoHold();
+      return;
+    }
     if (key.startsWith("lock.")) {
       cancelLock();
       return;

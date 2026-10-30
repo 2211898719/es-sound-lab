@@ -29,7 +29,8 @@ public final class Protocol {
       GEAR_SELECTION = 289408000,
       CURRENT_GEAR = 289408001,
       SPEED = 291504647,
-      CENTRAL_LOCK = 1728053398;
+      CENTRAL_LOCK = 1728053398,
+      AUTO_HOLD = 0x50000022;
 
   public static final class Sample {
     public final String topic, area, raw, source;
@@ -137,6 +138,13 @@ public final class Protocol {
     return unlocked.equals(raw) ? "unlocked" : null;
   }
 
+  public static String autoHoldState(String raw, String holding, String released) {
+    if (!(holding.equals("1") && released.equals("2"))
+        && !(holding.equals("2") && released.equals("1"))) return null;
+    if (holding.equals(raw)) return "holding";
+    return released.equals(raw) ? "released" : null;
+  }
+
   public static long logTime(String line) {
     Matcher m = HEADER.matcher(line);
     if (!m.matches()) return -1;
@@ -212,6 +220,10 @@ public final class Protocol {
       if (topic.equals("VehicleDoor/CentralLock") && id == CENTRAL_LOCK && area.equals("0x0")) {
         key = "lock";
         value = status == 0 && lockValue(raw) ? raw : null;
+      }
+      if (topic.equals("T1CF1/AutoHold") && id == AUTO_HOLD && area.equals("0x0")) {
+        key = "autohold";
+        value = status == 0 && (raw.equals("1") || raw.equals("2")) ? raw : null;
       }
       return new Sample(topic, id, area, status, raw, time, "日志", key, value);
     } catch (RuntimeException e) {
@@ -343,6 +355,10 @@ public final class Protocol {
 
   public static String event(String key, String value) {
     if (value == null) return null;
+    if (key.equals("autohold")) {
+      if (value.equals("holding")) return "autohold.holding";
+      return value.equals("released") ? "autohold.released" : null;
+    }
     if (key.equals("lock")) {
       if (value.equals("locked")) return "lock.lock";
       return value.equals("unlocked") ? "lock.unlock" : null;

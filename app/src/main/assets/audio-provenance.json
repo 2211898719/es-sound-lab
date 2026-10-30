@@ -152,5 +152,15 @@
   {
     "file": "engine.wav",
     "source": "procedurally generated harmonic loop; speed-modulated"
+  },
+  {
+    "file": "autohold_holding.wav",
+    "source": "procedurally generated two-note chime; AutoHold enum requires vehicle calibration",
+    "sha256": "9e0adf0a853a1f35a48ca9fbcf153ee881ed586beca087c632bf9e04c7d97cf2"
+  },
+  {
+    "file": "autohold_released.wav",
+    "source": "procedurally generated two-note chime; AutoHold enum requires vehicle calibration",
+    "sha256": "477084dbcf5daf862e428a38649858c540e8b11eabb15127d2f3cf154e48d4a1"
   }
 ]

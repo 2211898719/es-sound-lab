@@ -76,6 +76,7 @@ public final class Diagnostics {
   private long filteredLogs, historyDropped, eventsDropped, propertiesDropped, logQueueDropped;
   private SessionJournal journal;
   public volatile String lockTriggerStatus = "尚未收到中控锁状态";
+  public volatile String autoHoldTriggerStatus = "尚未收到 AutoHold 状态";
   public volatile String nativeStatus = "尚未开始车辆监听", logStatus = "尚未开始日志监听", playing = "待命";
   public volatile String lockOutputStatus = "车外通道尚未测试";
   public volatile boolean scanning, monitoring;
@@ -89,6 +90,12 @@ public final class Diagnostics {
     if (message.equals(lockTriggerStatus)) return;
     lockTriggerStatus = message;
     line("锁车触发", message);
+  }
+
+  public synchronized void autoHoldDecision(String message) {
+    if (message.equals(autoHoldTriggerStatus)) return;
+    autoHoldTriggerStatus = message;
+    line("AutoHold触发", message);
   }
 
   public synchronized void line(String type, String message) {
@@ -173,6 +180,7 @@ public final class Diagnostics {
   public synchronized void clear() {
     if (journal != null) journal.clear();
     lockTriggerStatus = "记录已清空，等待中控锁状态";
+    autoHoldTriggerStatus = "记录已清空，等待 AutoHold 状态";
     lines.clear();
     candidates.clear();
     markers.clear();
@@ -221,7 +229,7 @@ public final class Diagnostics {
     JSONObject root = new JSONObject();
     root.put("schemaVersion", 2);
     root.put("application", "cn.es.soundlab");
-    root.put("version", "0.2.2");
+    root.put("version", "0.2.3");
     root.put("vehicleProfile", "星纪元 ES / 原 APK 星途 ES 路径");
     root.put("exportedAt", System.currentTimeMillis());
     root.put("manufacturer", Build.MANUFACTURER);
@@ -261,6 +269,17 @@ public final class Diagnostics {
     root.put("propertyCatalogDropped", propertiesDropped);
     root.put("lockOutputStatus", lockOutputStatus);
     root.put("lockTriggerStatus", lockTriggerStatus);
+    root.put("autoHoldTriggerStatus", autoHoldTriggerStatus);
+    root.put(
+        "autoHoldConfiguration",
+        new JSONObject()
+            .put("calibrated", store.autoHoldCalibrated())
+            .put("holdingValue", store.prefs.getString("autohold.holding", ""))
+            .put("releasedValue", store.prefs.getString("autohold.released", ""))
+            .put("enabled", store.enabled("autohold"))
+            .put("volume", store.volume("autohold"))
+            .put("holdingSource", store.source(EventSpec.find("autohold.holding")))
+            .put("releasedSource", store.source(EventSpec.find("autohold.released"))));
     root.put("lockReadiness", store.lockReadiness());
     if (journal != null) {
       root.put("runtime", journal.snapshot());

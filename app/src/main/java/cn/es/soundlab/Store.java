@@ -131,6 +131,7 @@ public final class Store {
   }
 
   public boolean mapped(String event) {
+    if (event.startsWith("autohold.")) return autoHoldCalibrated();
     if (event.startsWith("lock.") && lockCalibrated()) return true;
     EventSpec s = EventSpec.find(event);
     if (s != null && s.mapped) return true;
@@ -144,7 +145,27 @@ public final class Store {
     return Protocol.lockState(
             prefs.getString("lock.locked", ""),
             prefs.getString("lock.locked", ""),
-            prefs.getString("lock.unlocked", "")) != null;
+            prefs.getString("lock.unlocked", ""))
+        != null;
+  }
+
+  public boolean autoHoldCalibrated() {
+    return autoHoldState(prefs.getString("autohold.holding", "")) != null;
+  }
+
+  public String autoHoldState(String raw) {
+    return Protocol.autoHoldState(
+        raw, prefs.getString("autohold.holding", ""), prefs.getString("autohold.released", ""));
+  }
+
+  public void calibrateAutoHold(String holding, String released) {
+    if (Protocol.autoHoldState(holding, holding, released) == null)
+      throw new IllegalArgumentException("保持和释放须分别填写 1 与 2，含义请对照实车确认");
+    prefs
+        .edit()
+        .putString("autohold.holding", holding)
+        .putString("autohold.released", released)
+        .apply();
   }
 
   public String lockReadiness() {

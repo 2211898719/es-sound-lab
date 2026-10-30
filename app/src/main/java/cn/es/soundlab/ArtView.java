@@ -62,6 +62,13 @@ public final class ArtView extends View {
     c.drawCircle(50, 50, 47, p);
     stroke(accent, 5);
     switch (type) {
+      case "autohold":
+        c.drawCircle(50, 50, 23, p);
+        c.drawArc(new RectF(14, 14, 86, 86), 140, 80, false, p);
+        c.drawArc(new RectF(14, 14, 86, 86), -40, 80, false, p);
+        path(c, 40, 62, 50, 36, 60, 62);
+        path(c, 44, 53, 56, 53);
+        break;
       case "gear":
         c.save();
         c.rotate(13, 50, 50);

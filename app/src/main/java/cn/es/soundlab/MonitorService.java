@@ -5,9 +5,9 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Intent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -310,6 +310,10 @@ public final class MonitorService extends Service
       if (!entry.getValue().source.startsWith(source + "|")) continue;
       diagnostics.removeLive(entry.getKey());
       if (entry.getKey().equals("gear")) audio.invalidateGear();
+      if (entry.getKey().equals("autohold")) {
+        audio.cancelAutoHold();
+        diagnostics.autoHoldDecision(source + "来源中断，等待新样本建立基线");
+      }
       if (entry.getKey().equals("lock")) {
         audio.cancelLock();
         diagnostics.lockDecision(source + "来源中断，等待新锁样本建立基线；不补播历史事件");
@@ -360,6 +364,19 @@ public final class MonitorService extends Service
   }
 
   private void acceptKnown(Protocol.Sample s, boolean silent) {
+    String autoHoldRaw = "autohold".equals(s.key) ? s.raw : null;
+    if (autoHoldRaw != null)
+      s =
+          new Protocol.Sample(
+              s.topic,
+              s.propertyId,
+              s.area,
+              s.status,
+              s.raw,
+              s.time,
+              s.source,
+              s.key,
+              store.autoHoldState(s.value));
     String lockRaw = "lock".equals(s.key) ? s.raw : null;
     if (s.key.equals("lock"))
       s = new Protocol.Sample(s.topic, s.propertyId, s.area, s.status, s.raw, s.time,
@@ -368,6 +385,21 @@ public final class MonitorService extends Service
     State previous = states.get(s.key);
     if (previous != null && previous.rank > rank(s)) return;
     TransitionGate.Change change = gate.accept(s.key, s.value, source);
+    if (autoHoldRaw != null) {
+      String reason =
+          !store.autoHoldCalibrated()
+              ? "未校准，不触发"
+              : s.value == null
+                  ? "无效或未知状态，不触发"
+                  : change == TransitionGate.Change.BASELINE
+                      ? "首样本/重连基线，不触发"
+                      : change != TransitionGate.Change.CHANGED
+                          ? "状态未变化，不触发"
+                          : !store.enabled("autohold") ? "音效开关关闭" : "状态变化，交由音效队列处理";
+      diagnostics.autoHoldDecision("原始值=" + autoHoldRaw + " · " + reason);
+      if (change == TransitionGate.Change.INVALID || change == TransitionGate.Change.BASELINE)
+        audio.cancelAutoHold();
+    }
     if (lockRaw != null) {
       String reason = !store.lockCalibrated() ? "未校准，不触发"
           : s.value == null ? "状态无效或不在校准值中，不触发"
@@ -396,6 +428,7 @@ public final class MonitorService extends Service
       String event = Protocol.event(s.key, s.value);
       if (event != null) {
         if (s.key.equals("gear")) audio.gearChanged(event);
+        else if (s.key.equals("autohold")) audio.autoHoldChanged(event);
         else audio.play(event, false);
       }
       diagnostics.line("事件", s.key + " → " + s.value + " · " + s.source);
@@ -404,7 +437,7 @@ public final class MonitorService extends Service
   }
 
   private void applyRules(Protocol.Sample s) {
-    if ("lock".equals(s.key)) return;
+    if ("lock".equals(s.key) || "autohold".equals(s.key)) return;
     JSONArray rules = store.rules();
     for (int i = 0; i < rules.length(); i++) {
       JSONObject r = rules.optJSONObject(i);
@@ -482,6 +515,12 @@ public final class MonitorService extends Service
       return;
     }
     if (key.equals("custom.events")) return;
+    if (key.equals("autohold.holding") || key.equals("autohold.released")) {
+      states.remove("autohold");
+      gate.forget("autohold");
+      diagnostics.removeLive("autohold");
+      diagnostics.autoHoldDecision("校准已改变，等待新的有效状态建立基线");
+    }
     if (key.equals("lock.locked") || key.equals("lock.unlocked")) {
       diagnostics.lockDecision("校准已改变，等待新的有效锁状态建立基线");
       states.remove("lock");

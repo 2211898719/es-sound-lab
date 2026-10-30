@@ -348,7 +348,8 @@ public final class MainActivity extends Activity {
         "shout",
         "charge",
         "tailgate",
-        "pedestrian");
+        "pedestrian",
+        "autohold");
     if (!EventSpec.group("custom").isEmpty()) groups.add("custom");
     int width = getResources().getConfiguration().screenWidthDp,
         columns = width >= 1000 ? 3 : width >= 660 ? 2 : 1;
@@ -374,6 +375,8 @@ public final class MainActivity extends Activity {
     switch (g) {
       case "gear":
         return "换挡时播放，优先打断当前提示音";
+      case "autohold":
+        return "保持与释放分别设置，先校准状态含义";
       case "door":
         return "四个车门，开门与关门分别设置";
       case "lock":
@@ -408,6 +411,7 @@ public final class MainActivity extends Activity {
         return 0xffcd71bf;
       case "charge":
       case "pedestrian":
+      case "autohold":
         return 0xff36a798;
       default:
         return BLUE;
@@ -427,6 +431,7 @@ public final class MainActivity extends Activity {
         return 0xfff9eaf6;
       case "charge":
       case "pedestrian":
+      case "autohold":
         return 0xffe6f6f2;
       default:
         return 0xffe7f2ff;
@@ -453,12 +458,16 @@ public final class MainActivity extends Activity {
     titles.addView(title);
     gap(titles, 6);
     String badge =
-        group.equals("lock")
-            ? (store.lockCalibrated() ? "已校准" : "未校准，不会自动播放")
-                + (store.prefs.getBoolean("lock.output.confirmed", false) ? " · 车外设备已确认" : " · 车外设备待确认")
-            : (group.equals("charge") || group.equals("custom"))
-            ? "待检测 / 可绑定规则"
-            : group.equals("shout") ? "手动播放 · 输出待确认" : "已接入 · 待实车验证";
+        group.equals("autohold")
+            ? (store.autoHoldCalibrated() ? "已校准 · 变化时播放" : "待校准 · 已发现 1/2 状态")
+            : group.equals("lock")
+                ? (store.lockCalibrated() ? "已校准" : "未校准，不会自动播放")
+                    + (store.prefs.getBoolean("lock.output.confirmed", false)
+                        ? " · 车外设备已确认"
+                        : " · 车外设备待确认")
+                : (group.equals("charge") || group.equals("custom"))
+                    ? "待检测 / 可绑定规则"
+                    : group.equals("shout") ? "手动播放 · 输出待确认" : "已接入 · 待实车验证";
     TextView badgeView = text(badge, 10, accent(group));
     titles.addView(badgeView);
     header.addView(titles, new LinearLayout.LayoutParams(0, -2, 1));
@@ -474,6 +483,7 @@ public final class MainActivity extends Activity {
           store.enable(group, on);
           if (on && !group.equals("shout")) ensureMonitor();
           if (on && group.equals("lock") && !store.lockCalibrated()) lockCalibration();
+          if (on && group.equals("autohold") && !store.autoHoldCalibrated()) autoHoldCalibration();
         });
     header.addView(enabled, new LinearLayout.LayoutParams(dp(48), dp(42)));
     add(card, header, 70);
@@ -573,11 +583,27 @@ public final class MainActivity extends Activity {
       weighted(
           actions,
           button(
-              group.equals("pedestrian") ? "车速上限" : group.equals("lock") ? "锁车设置" : "更多设置",
+              group.equals("pedestrian")
+                  ? "车速上限"
+                  : group.equals("lock")
+                      ? "锁车设置"
+                      : group.equals("autohold") ? "AutoHold 设置" : "更多设置",
               false,
               () -> {
                 if (group.equals("pedestrian")) speedThreshold();
-                else if (group.equals("lock")) lockSettings(events.get(picker.getSelectedItemPosition()));
+                else if (group.equals("lock"))
+                  lockSettings(events.get(picker.getSelectedItemPosition()));
+                else if (group.equals("autohold"))
+                  new AlertDialog.Builder(this)
+                      .setTitle("AutoHold 音效")
+                      .setItems(
+                          new String[] {"校准保持 / 释放状态", "更多音频设置"},
+                          (dialog, item) -> {
+                            if (item == 0) autoHoldCalibration();
+                            else editEvent(events.get(picker.getSelectedItemPosition()));
+                          })
+                      .setNegativeButton("关闭", null)
+                      .show();
                 else editEvent(events.get(picker.getSelectedItemPosition()));
               }),
           40,
@@ -777,6 +803,69 @@ public final class MainActivity extends Activity {
             })
         .setNegativeButton("关闭", null)
         .show();
+  }
+
+  private void autoHoldCalibration() {
+    LinearLayout body = col();
+    body.setPadding(dp(22), dp(10), dp(22), dp(16));
+    body.addView(
+        text("已在行程日志中发现 1 / 2 两种状态，但尚未确认其含义。请对照实车 AutoHold 保持与释放的时刻填写。未校准时可试听，不自动播放。", 13, INK));
+    if (service != null)
+      for (Diagnostics.Candidate candidate : service.diagnostics.candidates())
+        if ("autohold".equals(candidate.sample.key))
+          body.addView(
+              text(
+                  "最近原始值：" + candidate.sample.raw + " · 已观测 " + candidate.values + "（仅供核对）",
+                  13,
+                  MUTED));
+    EditText holding = new EditText(this), released = new EditText(this);
+    for (EditText input : new EditText[] {holding, released}) {
+      input.setSingleLine(true);
+      input.setTextColor(INK);
+      input.setHintTextColor(MUTED);
+      input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+    }
+    body.addView(text("保持车辆时的原始值", 13, INK));
+    holding.setHint("填写 1 或 2");
+    holding.setContentDescription("AutoHold 保持原始值");
+    holding.setText(store.prefs.getString("autohold.holding", ""));
+    body.addView(holding);
+    body.addView(text("释放保持时的原始值", 13, INK));
+    released.setHint("填写另一个值");
+    released.setContentDescription("AutoHold 释放原始值");
+    released.setText(store.prefs.getString("autohold.released", ""));
+    body.addView(released);
+    AlertDialog dialog =
+        new AlertDialog.Builder(this)
+            .setTitle("校准 AutoHold 状态")
+            .setView(body)
+            .setPositiveButton("保存校准", null)
+            .setNeutralButton(
+                "清除校准",
+                (view, which) -> {
+                  store.prefs.edit().remove("autohold.holding").remove("autohold.released").apply();
+                  render();
+                })
+            .setNegativeButton("取消", null)
+            .create();
+    dialog.setOnShowListener(
+        view ->
+            dialog
+                .getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(
+                    button -> {
+                      try {
+                        store.calibrateAutoHold(
+                            holding.getText().toString().trim(),
+                            released.getText().toString().trim());
+                        dialog.dismiss();
+                        render();
+                        toast("已保存；下次有效状态建立基线，后续变化才播音");
+                      } catch (IllegalArgumentException error) {
+                        released.setError(error.getMessage());
+                      }
+                    }));
+    dialog.show();
   }
 
   private void lockSettings(EventSpec event) {
@@ -1154,6 +1243,10 @@ public final class MainActivity extends Activity {
       lockCalibration();
       return;
     }
+    if ("autohold".equals(sample.key)) {
+      autoHoldCalibration();
+      return;
+    }
     if (sample.status != 0) {
       toast("该信号当前状态无效，请等待有效值后再绑定");
       return;
@@ -1173,7 +1266,7 @@ public final class MainActivity extends Activity {
     List<EventSpec> events = new ArrayList<>();
     List<String> labels = new ArrayList<>();
     for (EventSpec e : EventSpec.ALL)
-      if (!e.id.endsWith(".loop") && !e.group.equals("shout")) {
+      if (!e.id.endsWith(".loop") && !e.group.equals("shout") && !e.group.equals("autohold")) {
         events.add(e);
         labels.add(e.title);
       }
@@ -1250,6 +1343,7 @@ public final class MainActivity extends Activity {
   }
 
   private String signalName(String key) {
+    if (key.equals("autohold")) return "AutoHold（保持 / 释放需校准）";
     if (key.equals("lock")) return "中控锁（原始值需校准）";
     if (key.equals("gear")) return "挡位";
     if (key.equals("speed")) return "车速";
@@ -1261,6 +1355,11 @@ public final class MainActivity extends Activity {
   }
 
   private String signalValue(String key, String value) {
+    if (key.equals("autohold")) {
+      if (value.equals("holding")) return "正在保持";
+      if (value.equals("released")) return "已释放保持";
+      return "未校准或无效";
+    }
     if (key.equals("lock")) {
       if (value.equals("locked")) return "已闭锁";
       if (value.equals("unlocked")) return "已解锁";
@@ -1300,8 +1399,17 @@ public final class MainActivity extends Activity {
             + "\n"
             + d.nativeStatus
             + "\n"
-            + d.logStatus + "\n" + store.lockReadiness() + "\n" + d.lockTriggerStatus
-            + "\n" + d.lockOutputStatus + "\n" + d.recordingStatus());
+            + d.logStatus
+            + "\n"
+            + store.lockReadiness()
+            + "\n"
+            + d.lockTriggerStatus
+            + "\n"
+            + d.lockOutputStatus
+            + "\nAutoHold："
+            + d.autoHoldTriggerStatus
+            + "\n"
+            + d.recordingStatus());
     captureButton.setText(d.scanning ? "结束扩展检测" : "开始扩展检测");
     StringBuilder live = new StringBuilder();
     for (Map.Entry<String, Diagnostics.Live> e : d.live().entrySet()) {

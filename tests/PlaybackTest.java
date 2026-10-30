@@ -5,8 +5,8 @@ import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Application;
 import android.content.Context;
-import android.media.AudioManager;
 import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
 import android.media.AudioRouting;
 import android.media.MediaPlayer;
 import android.media.PlaybackParams;
@@ -27,10 +27,10 @@ import org.robolectric.android.controller.ServiceController;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
+import org.robolectric.shadow.api.Shadow;
 import org.robolectric.shadows.ShadowMediaPlayer;
 import org.robolectric.shadows.util.DataSource;
 import org.robolectric.util.ReflectionHelpers;
-import org.robolectric.shadow.api.Shadow;
 
 /** Playback lifecycle tests. Audio decoding and real vehicle outputs still need device testing. */
 @RunWith(RobolectricTestRunner.class)
@@ -126,8 +126,25 @@ public final class PlaybackTest {
   }
 
   private void lock(int value, int status) {
-    accept(Protocol.decode("1760000000.125 345 789 I MessageProperty: receive VehicleDoor/CentralLock,"
-        + " value: CarPropertyValue{id=0x67000096, area=0x0, status=" + status + ", value=" + value + "}"));
+    accept(
+        Protocol.decode(
+            "1760000000.125 345 789 I MessageProperty: receive VehicleDoor/CentralLock,"
+                + " value: CarPropertyValue{id=0x67000096, area=0x0, status="
+                + status
+                + ", value="
+                + value
+                + "}"));
+  }
+
+  private void autoHold(int value, int status) {
+    accept(
+        Protocol.decode(
+            "1760000000.125 345 789 I MessageProperty: receive T1CF1/AutoHold,"
+                + " value: CarPropertyValue{id=0x50000022, area=0x0, status="
+                + status
+                + ", value="
+                + value
+                + "}"));
   }
 
   private Store store;
@@ -147,7 +164,17 @@ public final class PlaybackTest {
     shadowOf((AudioManager) c.getSystemService(Context.AUDIO_SERVICE))
         .setNextFocusRequestResponse(AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
     for (String id :
-        new String[] {"gear.p", "gear.r", "gear.d", "reverse.loop", "door.front_left.close", "lock.lock", "lock.unlock"}) {
+        new String[] {
+          "gear.p",
+          "gear.r",
+          "gear.d",
+          "reverse.loop",
+          "door.front_left.close",
+          "lock.lock",
+          "lock.unlock",
+          "autohold.holding",
+          "autohold.released"
+        }) {
       File dir = new File(c.getFilesDir(), "audio");
       dir.mkdirs();
       File f = File.createTempFile("playback-", ".wav", dir);
@@ -183,6 +210,126 @@ public final class PlaybackTest {
 
   private void advance(long ms) {
     shadowOf(Looper.getMainLooper()).idleFor(ms, TimeUnit.MILLISECONDS);
+  }
+
+  @Test
+  public void autoHoldRequiresCalibrationAndNeverRunsGenericRulesTwice() throws Exception {
+    store.enable("autohold", true);
+    store.addRule(
+        new org.json.JSONObject()
+            .put("id", "auto-test")
+            .put("source", "日志")
+            .put("topic", "T1CF1/AutoHold")
+            .put("propertyId", Protocol.AUTO_HOLD)
+            .put("area", "0x0")
+            .put("value", "1")
+            .put("event", "gear.p"));
+    autoHold(2, 0);
+    autoHold(1, 0);
+    advance(30);
+    assertEquals(0, players.size());
+    assertTrue(service.diagnostics.autoHoldTriggerStatus.contains("未校准"));
+    store.calibrateAutoHold("1", "2");
+    autoHold(2, 0);
+    autoHold(1, 0);
+    advance(20);
+    assertEquals(1, players.size());
+    assertEquals("AutoHold · 保持", service.diagnostics.playing);
+  }
+
+  @Test
+  public void autoHoldBaselineAndDuplicatesAreSilentAndReleaseCancelsStalePrepare() {
+    store.enable("autohold", true);
+    store.calibrateAutoHold("2", "1");
+    String path = store.source(EventSpec.find("autohold.holding")).substring(5);
+    ShadowMediaPlayer.addMediaInfo(
+        DataSource.toDataSource(path), new ShadowMediaPlayer.MediaInfo(2000, 1000));
+    autoHold(1, 0);
+    autoHold(1, 0);
+    assertEquals(0, players.size());
+    autoHold(2, 0);
+    MediaPlayer hold = players.get(0);
+    MediaPlayer.OnPreparedListener stale = shadowOf(hold).getOnPreparedListener();
+    autoHold(1, 0);
+    advance(20);
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(hold).getState());
+    stale.onPrepared(hold);
+    autoHold(1, 0);
+    assertEquals(2, players.size());
+    assertTrue(players.get(1).isPlaying());
+    assertEquals("AutoHold · 释放", service.diagnostics.playing);
+  }
+
+  @Test
+  public void latestAutoHoldQueuesBehindDoorAndGearClearsItsPendingSound() {
+    store.enable("autohold", true);
+    store.calibrateAutoHold("1", "2");
+    autoHold(2, 0);
+    service.preview("door.front_left.close");
+    advance(20);
+    MediaPlayer door = players.get(0);
+    autoHold(1, 0);
+    autoHold(2, 0);
+    assertTrue(door.isPlaying());
+    assertEquals(1, players.size());
+    advance(2010);
+    assertEquals(2, players.size());
+    assertEquals("AutoHold · 释放", service.diagnostics.playing);
+    gear(3);
+    advance(20);
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(players.get(1)).getState());
+    assertEquals("D 挡", service.diagnostics.playing);
+    autoHold(1, 0); // Waits behind D, then a newer P discards this obsolete request.
+    gear(0);
+    advance(2200);
+    assertEquals(4, players.size());
+  }
+
+  @Test
+  public void invalidAutoHoldAndRecalibrationCancelOnlyItsOwnSoundAndResetBaseline() {
+    store.enable("autohold", true);
+    store.calibrateAutoHold("1", "2");
+    autoHold(2, 0);
+    autoHold(1, 0);
+    advance(20);
+    MediaPlayer hold = players.get(0);
+    autoHold(1, 1);
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(hold).getState());
+    autoHold(2, 0);
+    assertEquals(1, players.size());
+    autoHold(1, 0);
+    advance(20);
+    store.calibrateAutoHold("2", "1");
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(players.get(1)).getState());
+    autoHold(1, 0);
+    assertEquals(2, players.size());
+    service.preview("door.front_left.close");
+    advance(20);
+    MediaPlayer door = players.get(2);
+    autoHold(0, 0);
+    assertTrue(door.isPlaying());
+    assertEquals(3, players.size());
+  }
+
+  @Test
+  public void autoHoldSourceResetIsLocalAndDisabledGroupDoesNotPlay() {
+    store.enable("autohold", true);
+    store.calibrateAutoHold("1", "2");
+    autoHold(2, 0);
+    ReflectionHelpers.callInstanceMethod(
+        service, "resetSource", ReflectionHelpers.ClassParameter.from(String.class, "Mega"));
+    autoHold(1, 0);
+    advance(20);
+    assertEquals(1, players.size());
+    ReflectionHelpers.callInstanceMethod(
+        service, "resetSource", ReflectionHelpers.ClassParameter.from(String.class, "日志"));
+    assertEquals(ShadowMediaPlayer.State.END, shadowOf(players.get(0)).getState());
+    autoHold(2, 0);
+    assertEquals(1, players.size());
+    store.enable("autohold", false);
+    autoHold(1, 0);
+    advance(20);
+    assertEquals(1, players.size());
   }
 
   @Test
