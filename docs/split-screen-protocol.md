@@ -33,7 +33,7 @@
 Settings.Global  system_split_pkg
 ```
 
-值是冒号分隔的两个包名，例如 `com.lion.appfwk.navi:com.lion.media`。左边是左侧应用。空或读失败表示当前不在这对分屏里。读这个值不需要写安全设置。不要写这个值。
+值是冒号分隔的两个包名，例如 `com.lion.appfwk.navi:com.lion.media`。左边是左侧应用。空值表示未读到有效配对；读取失败只能说明状态未知，不能认定已经退出。读这个值不需要写安全设置。不要写这个值。名称含义和证据边界另见[分屏知识笔记](mega-systemui-split-notes.md)。
 
 地图代码里没有 `com.lion.media`。畅听没有 `enter_split`。两个包都不会拉起对方进入分屏。自动并排的策略在 `com.mega.systemui`，不在这两个 APK 里。
 
@@ -64,7 +64,7 @@ context.startActivity(intent);
 - flag 只有 `FLAG_ACTIVITY_NEW_TASK`。不要加 `FLAG_ACTIVITY_LAUNCH_ADJACENT`，不要加 `split_invalid_intent`。那个 category 只出现在畅听的退出路径。
 - 不要申请 `android.uid.system`。畅听不是 system uid，仍然能发分屏 Intent。
 
-`openNoa()` 在 `system_split_pkg` 为空时直接返回。那是地图自己的策略：只有已经在分屏时才切到文远智行。系统接口没有这个要求。探测页必须允许从全屏直接进入，不要复制这个提前返回。
+`openNoa()` 在 `system_split_pkg` 为空时直接返回。那是地图自己的策略：只有已经在分屏时才切到文远智行。尚未分析SystemUI本体，不能据此确定系统接口是否也有前置条件。探测页必须允许从全屏手动请求，以验证系统行为，不要复制这个提前返回。
 
 第三方默认和地图分屏。提供两种启动方向，因为 SystemUI 把哪一个当主任务还没在车上证实：
 
@@ -206,7 +206,7 @@ context.startActivity(intent);
 2. 先点刷新，记录 `system_split_pkg`。
 3. 分别点四种「和地图进入」。看哪个组合让设置值变成包含 `cn.es.soundlab` 和 `com.lion.appfwk.navi`，并且本页宽度变为约 870 或 1682。
 4. 立刻点退出。确认设置值清空或不再包含本包，地图回到全屏。若 Provider 报 `SecurityException`，再试点 Intent 退出。
-5. 若四种进入都只是普通打开地图、设置值不变，就是 SystemUI 不接受这个侧载包。停止改 extra，不要再猜新接口。
+5. 若四种进入都只是普通打开地图、设置值不变，本次接入未成功；尚不能区分侧载限制、系统前置条件或版本差异。停止改 extra，不要再猜新接口，优先分析目标SystemUI及日志。
 
 ## 文件
 

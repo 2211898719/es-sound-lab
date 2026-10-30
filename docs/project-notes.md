@@ -15,6 +15,7 @@
 
 ## 手动分屏探测（同为0.2.3源码）
 
+- [Mega SystemUI与分屏知识笔记](mega-systemui-split-notes.md)整理名称、状态项、进入/退出接口、成功判据与实车排查。尚未完整分析目标SystemUI本体；读取失败是未知状态，四组合失败也不能单独证明存在侧载白名单限制。
 - 根据用户提供的[分屏协议](split-screen-protocol.md)新增`SplitController`和`SplitProbeActivity`；音效首页只增加入口。没有更改音效/车辆逻辑、版本号或签名，没有编译正式包。
 - 默认地图，四个进入组合；畅听只对照。退出使用`exit_spit` Provider Uri重载及`exit_split` Intent，另有只用于退出的invalid category对照。Provider声明权限但不保证侧载包可获得；异常在页内完整显示，不会因失败阻止另一条退出路径。
 - 探测Activity exported、resizeable、singleTask，无方向锁定或launcher入口；处理screenSize/smallestScreenSize/screenLayout/orientation/density变化。状态与按钮独立滚动，实际Activity窗口宽度用于分屏判定。
@@ -48,7 +49,7 @@
 | `BootReceiver.java` | 收到开机/包更新广播后，在已开启监听时尝试恢复服务 |
 | `MicrophoneBridge.java` | 手动喊话 |
 
-测试入口为 `tests/CoreTest.java`、`tests/UiTest.java`、`tests/PlaybackTest.java`、`tests/LogReaderTest.java`。构建入口为 `tools/build.py`，Android/Robolectric 检查入口为 `tools/ui_check.py`。
+测试入口为 `tests/CoreTest.java`、`tests/UiTest.java`、`tests/PlaybackTest.java`、`tests/LogReaderTest.java`、`tests/SplitProbeTest.java`。构建入口为 `tools/build.py`，Android/Robolectric 检查入口为 `tools/ui_check.py`。
 
 ## 实车证据与信号
 

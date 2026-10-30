@@ -2,7 +2,7 @@
 
 面向星纪元 ES 的独立 Android 音效测试 App，参考原 APK 的“星途 ES”事件接入路径重新实现。包名 `cn.es.soundlab`，与原 App 分开安装。支持 Android 8.0 及以上。
 
-当前源码版本 **0.2.3（versionCode 5）**，新增 AutoHold 音效。本次仅更新源码并验证，正式包由用户在保留 0.2.x 原签名密钥的环境构建；仓库中的[最近安装包仍为 0.2.2](dist/es-sound-lab-0.2.2-debug.apk)，尚不包含 AutoHold 功能，`dist/build-info.json` 也仍描述该历史安装包。
+当前源码版本 **0.2.3（versionCode 5）**，新增 AutoHold 音效和分屏探测页。本次仅更新源码并验证，正式包由用户在保留 0.2.x 原签名密钥的环境构建；仓库中的[最近安装包仍为 0.2.2](dist/es-sound-lab-0.2.2-debug.apk)，尚不包含 AutoHold 和分屏探测功能，`dist/build-info.json` 也仍描述该历史安装包。
 
 **升级注意：0.1.0 与仓库中 0.2.x 安装包的签名不同。构建 0.2.3 时请在原 0.2.x 构建环境保留并使用 `tools/debug.keystore`，不要新建或替换为 0.1.0 的密钥。不要为升级直接卸载旧版，否则私有音频和设置会丢失；检测 JSON 不是完整应用备份。旧版 APK 仍保留在 `dist/`。**
 
@@ -31,6 +31,8 @@
 操作、异常和状态同时写入 `SplitProbe` 系统日志和现有 `SessionJournal`，可在车辆检测页导出的 `sessionHistory` 查看。新增 `sessionOwner` 区分探测页和监听服务，探测页创建不记作“监听服务创建”。现有关键诊断最多保留160条，长异常分段写入会占用多条；不要把历史被淘汰理解为操作没发生。
 
 本地只验证调用构造、错误显示、窄栏界面及配置变化，不代表Mega SystemUI已经接受侧载包。四种地图请求都无法改变配对和宽度时，按协议停止尝试，不猜新接口。接口依据与实车步骤见[分屏协议](docs/split-screen-protocol.md)。本次沿用0.2.3源码版本，不另生成签名安装包。
+
+`system_split_pkg` 是系统保存配对状态的设置项，并非 APK。名称含义、Mega SystemUI 的职责、权限边界与失败结果解释见[Mega SystemUI 与分屏知识笔记](docs/mega-systemui-split-notes.md)。
 
 ## 已实现的内容
 
