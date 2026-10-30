@@ -13,11 +13,13 @@
     <uses-permission android:name="mega.car.permission.ENTRY_LOCK" />
     <uses-permission android:name="mega.car.permission.DRIVING_INFO" />
     <uses-permission android:name="mega.car.permission.CAR_DRIVING" />
+    <uses-permission android:name="com.mega.systemui.provider" />
     <application android:label="ES 音效实验室" android:icon="@drawable/ic_app" android:theme="@style/AppTheme" android:allowBackup="false" android:supportsRtl="true">
         <uses-library android:name="android.car" android:required="false" />
-        <activity android:name=".MainActivity" android:exported="true" android:configChanges="keyboardHidden|orientation|screenSize" android:windowSoftInputMode="adjustResize">
+        <activity android:name=".MainActivity" android:exported="true" android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout" android:windowSoftInputMode="adjustResize">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>
+        <activity android:name=".SplitProbeActivity" android:exported="true" android:resizeableActivity="true" android:launchMode="singleTask" android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|density" />
         <service android:name=".MonitorService" android:exported="false" />
         <receiver android:name=".BootReceiver" android:exported="false"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter></receiver>
     </application>

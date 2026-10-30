@@ -13,6 +13,15 @@
 - 本地通过121项核心检查、51项Android/Robolectric回归，资源/Java/DEX编译通过。覆盖UI校准保存/清除、持久化与历史、首样本、无效/重复值、快速释放和旧回调、来源局部重置、排队及挡位抢占。真实枚举方向和车机音频仍待实车核对。
 - 新增 `python3 tools/build.py --compile-only`，只编译资源、Java、DEX，不签名、不改历史APK。该模式用于本次验证。要生成0.2.3安装包，在原0.2.x密钥所在环境执行常规 `python3 tools/build.py`；不要使用这台电脑的0.1.0密钥替换原密钥。
 
+## 手动分屏探测（同为0.2.3源码）
+
+- 根据用户提供的[分屏协议](split-screen-protocol.md)新增`SplitController`和`SplitProbeActivity`；音效首页只增加入口。没有更改音效/车辆逻辑、版本号或签名，没有编译正式包。
+- 默认地图，四个进入组合；畅听只对照。退出使用`exit_spit` Provider Uri重载及`exit_split` Intent，另有只用于退出的invalid category对照。Provider声明权限但不保证侧载包可获得；异常在页内完整显示，不会因失败阻止另一条退出路径。
+- 探测Activity exported、resizeable、singleTask，无方向锁定或launcher入口；处理screenSize/smallestScreenSize/screenLayout/orientation/density变化。状态与按钮独立滚动，实际Activity窗口宽度用于分屏判定。
+- 仅手动按钮调用进入/退出，生命周期只读取状态。配对精确匹配两个包，且实际宽度符合870/1682±100px才显示匹配；普通startActivity无异常不当作成功。绝不写system_split_pkg，不使用标准分屏或未知Mega接口。
+- 日志标记`SplitProbe`，诊断复用`SessionJournal`；新增可选会话名称及`sessionOwner`字段，原监听服务构造行为保持一致，探测页不伪造监听服务创建。完整异常按400字符拆分适配现有每条500字符上限，总160条保留策略不变。
+- 本地通过121项核心检查、58项Android/Robolectric测试及资源/Java/DEX编译；验证协议extra类型/flag、进入四组合、退出两目标和category、Provider参数和权限异常、缺失Activity异常、精确配对与尺寸、页面入口、窄/宽栏与配置回调。侧载接入成功及车机实际宽度仍需实车验证。正式打包继续使用用户家中原密钥。
+
 ## 目标与不可破坏的约束
 
 - 独立 Android Java 应用，包名 `cn.es.soundlab`，无服务端、无 Compose。minSdk 26、targetSdk 28、compileSdk 35。

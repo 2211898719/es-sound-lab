@@ -18,11 +18,17 @@ public final class SessionJournal {
   private final SharedPreferences prefs;
   private final ArrayDeque<JSONObject> entries = new ArrayDeque<>();
   private final long startedAt = System.currentTimeMillis();
+  private final String sessionOwner;
 
   public SessionJournal(Context owner) {
+    this(owner, "监听服务");
+  }
+
+  public SessionJournal(Context owner, String name) {
+    sessionOwner = name;
     context = owner.getApplicationContext();
     prefs = context.getSharedPreferences("session_journal", Context.MODE_PRIVATE);
-    record("生命周期", "监听服务创建");
+    record("生命周期", name + "创建");
   }
 
   private void reload() {
@@ -43,6 +49,7 @@ public final class SessionJournal {
         .put("processId", PROCESS_ID)
         .put("pid", android.os.Process.myPid())
         .put("serviceSessionId", sessionId)
+        .put("sessionOwner", sessionOwner)
         .put("serviceStartedAt", startedAt)
         .put("bootCount", Settings.Global.getInt(context.getContentResolver(), Settings.Global.BOOT_COUNT, -1))
         .put("elapsedRealtimeMs", SystemClock.elapsedRealtime())

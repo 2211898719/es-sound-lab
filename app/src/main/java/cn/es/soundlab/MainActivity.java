@@ -336,6 +336,9 @@ public final class MainActivity extends Activity {
         42,
         0);
     add(content, links, 42);
+    gap(content, 8);
+    add(content, button("分屏探测", false,
+        () -> startActivity(new Intent(this, SplitProbeActivity.class))), 42);
     gap(content, 16);
     List<String> groups = new ArrayList<>();
     Collections.addAll(
