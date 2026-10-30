@@ -1,6 +1,15 @@
 # 项目交接与已知结论
 
-更新日期：2026-10-30；当前源码版本：0.3.0（versionCode 6），仓库最近安装包仍为0.2.2。本次按用户要求只修改代码并自行测试，正式包由用户回家在原签名环境构建。本文区分代码已实现、日志已观察和待实车验证。
+更新日期：2026-10-30；当前源码版本：0.3.1（versionCode 7），仓库最近安装包仍为0.2.2。本次按用户要求只修改代码并自行测试，正式包由用户回家在原签名环境构建。本文区分代码已实现、日志已观察和待实车验证。
+
+## App内ADB诊断（0.3.1，当前新增）
+
+- 用户选择车机App内直接连接ADB。检测页新增“ADB只读诊断”，填写传统TCP ADB实际地址和端口、经标准RSA授权后，执行固定只读元数据命令和有限近期相关logcat快照。
+- `AdbClient`实现标准ADB连接/认证和有上限的shell输出；密钥只存App私有目录，不导入电脑密钥、不随报告导出。Android加INTERNET；诊断Activity不导出，只有用户点击连接才采集，离开销毁时取消连接。
+- `AdbDiagnostics`保存最新完整/部分报告，连接失败或取消可导出；检测JSON附adbDiagnostics，也能在ADB页单独导出。`complete`仅表示采集流程完整，不代表权限已授予；传统shell不提供可靠退出码，明示exitCode=null。
+- 收集Mega权限保护级别与本App/智行生活授权、实际服务包/SDK依赖/路径、shell身份及相关日志；没有做车辆控制、授权修改或ADB车辆读取桥。TLS/配对码无线调试暂不支持，不猜默认端口。
+- 用户已指出旧代码也尝试过原生订阅；旧实车记录出现ENTRY_LOCK/CAR_DRIVING拒绝。0.3.0的接线和本地模拟测试不能证明权限障碍解决，不应把它宣传为已验证可替代日志。先用本轮诊断收集实车授权事实。
+- 本地通过145项核心检查、81项Android/Robolectric测试和资源/Java/DEX编译；使用说明及限制见[ADB只读诊断](adb-diagnostics.md)。本轮不签名、不更新历史APK，正式构建使用原密钥。
 
 ## 原生车辆事件（0.3.0，当前方案）
 
@@ -21,7 +30,7 @@
 - 最新AutoHold状态取消旧的在播/排队AutoHold提示，晚到的prepare回调不能复活旧音效；其他门/挡位短音不被AutoHold抢占，新的有效挡位提示仍可抢占并清队列。
 - AutoHold进入独立`eventHistory`，避免被方向盘等连续量挤掉。导出增加`autoHoldConfiguration`和`autoHoldTriggerStatus`；检测页显示原始候选、当前语义状态及不触发原因。
 - 本地通过121项核心检查、51项Android/Robolectric回归，资源/Java/DEX编译通过。覆盖UI校准保存/清除、持久化与历史、首样本、无效/重复值、快速释放和旧回调、来源局部重置、排队及挡位抢占。真实枚举方向和车机音频仍待实车核对。
-- 新增 `python3 tools/build.py --compile-only`，只编译资源、Java、DEX，不签名、不改历史APK。该模式用于本次验证。当前要生成0.3.0安装包，在原0.2.x密钥所在环境执行常规 `python3 tools/build.py`；不要使用这台电脑的0.1.0密钥替换原密钥。
+- 新增 `python3 tools/build.py --compile-only`，只编译资源、Java、DEX，不签名、不改历史APK。该模式用于本次验证。当前要生成0.3.1安装包，在原0.2.x密钥所在环境执行常规 `python3 tools/build.py`；不要使用这台电脑的0.1.0密钥替换原密钥。
 
 ## 手动分屏探测（同为0.2.3源码）
 
@@ -57,6 +66,7 @@
 | --- | --- |
 | `MainActivity.java` | 原生代码界面、音频选择/导入、检测、规则、锁状态校准和车外输出确认 |
 | `MonitorService.java` | 前台监听，主线程处理样本与状态，独立 IO 线程连接车辆接口，来源优先级与音效触发 |
+| `AdbClient.java` / `AdbDiagnostics.java` / `AdbDiagnosticsActivity.java` | 手动标准ADB认证、只读命令采集、部分结果保存与导出 |
 | `VehicleAccess.java` | Mega SDK动态加载、原生属性订阅、初值/失败轮询、回调生命周期 |
 | `LogReader.java` | 普通应用身份执行 logcat，标准/扩展过滤原位切换，stderr 单独记录，断流后等待用户主动重连 |
 | `Protocol.java` | 日志/属性解码、原始值提取、信号映射、精确噪声过滤 |
@@ -68,7 +78,7 @@
 | `BootReceiver.java` | 收到开机/包更新广播后，在已开启监听时尝试恢复服务 |
 | `MicrophoneBridge.java` | 手动喊话 |
 
-测试入口为 `tests/CoreTest.java`、`tests/UiTest.java`、`tests/PlaybackTest.java`、`tests/LogReaderTest.java`、`tests/SplitProbeTest.java`、`tests/VehicleAccessTest.java`。构建入口为 `tools/build.py`，Android/Robolectric 检查入口为 `tools/ui_check.py`。
+测试入口为 `tests/CoreTest.java`、`tests/UiTest.java`、`tests/PlaybackTest.java`、`tests/LogReaderTest.java`、`tests/SplitProbeTest.java`、`tests/VehicleAccessTest.java`、`tests/AdbDiagnosticsTest.java`。构建入口为 `tools/build.py`，Android/Robolectric 检查入口为 `tools/ui_check.py`。
 
 ## 实车证据与信号
 

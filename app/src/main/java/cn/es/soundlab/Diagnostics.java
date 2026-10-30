@@ -75,6 +75,7 @@ public final class Diagnostics {
   private final LinkedHashMap<String, PropertyInfo> properties = new LinkedHashMap<>();
   private long filteredLogs, historyDropped, eventsDropped, propertiesDropped, logQueueDropped;
   private SessionJournal journal;
+  private android.content.Context appContext;
   public volatile String lockTriggerStatus = "尚未收到中控锁状态";
   public volatile String autoHoldTriggerStatus = "尚未收到 AutoHold 状态";
   public volatile String nativeStatus = "尚未开始车辆监听", logStatus = "尚未开始日志监听", playing = "待命";
@@ -172,6 +173,7 @@ public final class Diagnostics {
   }
 
   public synchronized void attach(android.content.Context context) {
+    appContext = context.getApplicationContext();
     journal = new SessionJournal(context);
   }
 
@@ -332,7 +334,7 @@ public final class Diagnostics {
     JSONObject root = new JSONObject();
     root.put("schemaVersion", 2);
     root.put("application", "cn.es.soundlab");
-    root.put("version", "0.3.0");
+    root.put("version", "0.3.1");
     root.put("vehicleProfile", "星纪元 ES / 原 APK 星途 ES 路径");
     root.put("exportedAt", System.currentTimeMillis());
     root.put("manufacturer", Build.MANUFACTURER);
@@ -342,6 +344,12 @@ public final class Diagnostics {
     root.put("readLogsGranted", granted);
     root.put("nativeStatus", nativeStatus);
     root.put("logStatus", logStatus);
+    if (appContext != null) {
+      try {
+        JSONObject adb = AdbDiagnostics.latest(appContext);
+        if (adb != null) root.put("adbDiagnostics", adb);
+      } catch (Exception error) { root.put("adbDiagnosticsError", error.toString()); }
+    }
     root.put("eventBackend", "Mega native property subscription");
     root.put("diagnosticLogs", diagnosticLogs);
     root.put(

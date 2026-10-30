@@ -20,7 +20,7 @@ cp = os.pathsep.join([str(root / "build/classes"), str(root / "tools/android/and
 java_root = Path(os.environ.get("ES_SOUNDLAB_JAVA_HOME", str(Path.home() / ".sdkman/candidates/java/21.0.6-amzn"))) / "bin"
 javac = str(java_root / "javac") if java_root.exists() else "javac"
 java = str(java_root / "java") if java_root.exists() else "java"
-subprocess.run([javac, "--release", "11", "-encoding", "UTF-8", "-cp", cp, "-d", str(out), str(root / "tests/UiTest.java"), str(root / "tests/PlaybackTest.java"), str(root / "tests/LogReaderTest.java"), str(root / "tests/SplitProbeTest.java"), str(root / "tests/VehicleAccessTest.java")] + [str(p) for p in sorted((root / "tests/fixtures").rglob("*.java"))], cwd=root, check=True)
+subprocess.run([javac, "--release", "11", "-encoding", "UTF-8", "-cp", cp, "-d", str(out), str(root / "tests/UiTest.java"), str(root / "tests/PlaybackTest.java"), str(root / "tests/LogReaderTest.java"), str(root / "tests/SplitProbeTest.java"), str(root / "tests/VehicleAccessTest.java"), str(root / "tests/AdbDiagnosticsTest.java")] + [str(p) for p in sorted((root / "tests/fixtures").rglob("*.java"))], cwd=root, check=True)
 subprocess.run([java, "--add-opens=java.base/java.lang=ALL-UNNAMED", "--add-opens=java.base/java.util=ALL-UNNAMED",
                 "-Drobolectric.dependency.repo.url=https://repo.maven.apache.org/maven2",
-                "-cp", str(out) + os.pathsep + cp, "org.junit.runner.JUnitCore", "cn.es.soundlab.UiTest", "cn.es.soundlab.PlaybackTest", "cn.es.soundlab.LogReaderTest", "cn.es.soundlab.SplitProbeTest", "cn.es.soundlab.VehicleAccessTest"], cwd=root, check=True)
+                "-cp", str(out) + os.pathsep + cp, "org.junit.runner.JUnitCore", "cn.es.soundlab.UiTest", "cn.es.soundlab.PlaybackTest", "cn.es.soundlab.LogReaderTest", "cn.es.soundlab.SplitProbeTest", "cn.es.soundlab.VehicleAccessTest", "cn.es.soundlab.AdbDiagnosticsTest"], cwd=root, check=True)

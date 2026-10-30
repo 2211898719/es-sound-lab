@@ -108,7 +108,7 @@ def main():
         run("keytool", "-genkeypair", "-keystore", key, "-alias", "androiddebugkey",
             "-storepass", "android", "-keypass", "android", "-dname", "CN=ES Sound Lab Debug,O=Local,C=CN",
             "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000", "-storetype", "JKS")
-    apk = DIST / "es-sound-lab-0.3.0-debug.apk"
+    apk = DIST / "es-sound-lab-0.3.1-debug.apk"
     signer = bt / "lib/apksigner.jar"
     run("java", "-jar", signer, "sign", "--ks", key, "--ks-key-alias", "androiddebugkey",
         "--ks-pass", "pass:android", "--key-pass", "pass:android", "--out", apk, BUILD / "aligned.apk")
@@ -116,7 +116,7 @@ def main():
     run(bt / "zipalign", "-c", "4", apk)
     metadata = {"file": apk.name, "bytes": apk.stat().st_size,
                 "sha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
-                "package": "cn.es.soundlab", "version": "0.3.0", "minSdk": 26,
+                "package": "cn.es.soundlab", "version": "0.3.1", "minSdk": 26,
                 "targetSdk": 28, "compileSdk": 35, "signing": "local debug certificate"}
     (DIST / "build-info.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
     print(json.dumps(metadata, ensure_ascii=False, indent=2))

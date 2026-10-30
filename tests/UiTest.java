@@ -85,6 +85,7 @@ public final class UiTest {
       find(root, "车辆检测").performClick();
       assertNotNull(find(root, "开始扩展检测"));
       assertNotNull(find(root, "原生订阅检测"));
+      assertNotNull(find(root, "ADB 只读诊断"));
       assertNotNull(find(root, "开启日志辅助采集"));
       assertNotNull(find(root, "挡位编码设置"));
       assertEquals(1, count(root, EditText.class));

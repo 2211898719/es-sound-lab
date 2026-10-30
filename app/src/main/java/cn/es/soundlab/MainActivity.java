@@ -1059,6 +1059,9 @@ public final class MainActivity extends Activity {
     top.addView(diagnosticLogButton);
     gap(top, 8);
     top.addView(button("挡位编码设置", false, () -> gearEncoding()));
+    gap(top, 8);
+    top.addView(button("ADB 只读诊断", false,
+        () -> startActivity(new Intent(this, AdbDiagnosticsActivity.class))));
     LinearLayout nativePanel = panel();
     nativePanel.addView(bold("原生订阅检测", 17, INK));
     nativePanel.addView(text("注册成功只代表请求已提交。请核对属性回调次数、原始值和实际车辆变化；失败的属性会单独显示原因，并以3秒轮询重试。", 12, MUTED));
@@ -1481,7 +1484,7 @@ public final class MainActivity extends Activity {
     List<Diagnostics.Candidate> list = d.candidates();
     Collections.sort(list, (a, b) -> Long.compare(b.sample.time, a.sample.time));
     if (list.isEmpty()) {
-      candidateList.addView(text("尚未发现信号。日志权限已授予后，开始检测并操作车辆。", 13, MUTED));
+      candidateList.addView(text("尚未发现信号。请先查看原生接口状态；被拒绝时可用ADB只读诊断采集原因。", 13, MUTED));
       return;
     }
     for (int i = 0; i < Math.min(40, list.size()); i++) {
