@@ -63,7 +63,7 @@ public final class MainActivity extends Activity {
   private boolean bound, resumed, updatingSwitch;
   private int page;
   private LinearLayout root, content, candidateList;
-  private TextView status, diagStatus, signals, rawLog;
+  private TextView diagStatus, signals, rawLog;
   private Switch monitorSwitch;
   private Button captureButton;
   private EditText filter;
@@ -274,21 +274,6 @@ public final class MainActivity extends Activity {
     if (page == 0) home();
     else if (page == 1) detection();
     else rules();
-    LinearLayout footer = row();
-    footer.setPadding(dp(20), dp(9), dp(20), dp(9));
-    footer.setBackgroundColor(Color.WHITE);
-    status = text("正在连接本地服务…", 12, MUTED);
-    status.setMaxLines(2);
-    footer.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
-    Button stop =
-        button(
-            "■ 停止播放",
-            false,
-            () -> {
-              if (service != null) service.stopAudio();
-            });
-    footer.addView(stop, new LinearLayout.LayoutParams(dp(124), dp(40)));
-    add(root, footer, 62);
     update();
   }
 
@@ -803,6 +788,11 @@ public final class MainActivity extends Activity {
                   .apply();
               dialog.dismiss();
               toast("输出已选择，可点击试听验证");
+            })
+        .setNeutralButton(
+            "停止播放",
+            (dialog, which) -> {
+              if (service != null) service.stopAudio();
             })
         .setNegativeButton("关闭", null)
         .show();
@@ -1423,17 +1413,8 @@ public final class MainActivity extends Activity {
   }
 
   private void update() {
-    if (status == null) return;
-    if (service == null) {
-      status.setText("本地服务连接中 · 星纪元 ES");
-      return;
-    }
+    if (service == null) return;
     Diagnostics d = service.diagnostics;
-    status.setText(
-        (d.monitoring ? "● 监听中" : "○ 监听已停止")
-            + "  ·  "
-            + d.playing
-            + (d.scanning ? "  ·  扩展检测中" : ""));
     if (monitorSwitch != null) {
       updatingSwitch = true;
       monitorSwitch.setChecked(d.monitoring);
