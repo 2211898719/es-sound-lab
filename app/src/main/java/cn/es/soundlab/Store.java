@@ -6,16 +6,59 @@ import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.os.Build;
 import java.io.File;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 public final class Store {
+  public static final String ES_STATE_PRESET = "es-known-log-v1";
+
+  public static boolean validIccInterval(int millis) { return millis == 250 || millis == 500 || millis == 1000; }
+
+  public int iccIntervalMillis() {
+    int millis = prefs.getInt("icc.intervalMillis", 250);
+    return validIccInterval(millis) ? millis : 250;
+  }
+
+  public void iccIntervalMillis(int millis) {
+    if (validIccInterval(millis)) prefs.edit().putInt("icc.intervalMillis", millis).apply();
+  }
+
+  public boolean logsEnabled() { return prefs.getBoolean("log.enabled", false); }
+
+  public void logsEnabled(boolean enabled) { prefs.edit().putBoolean("log.enabled", enabled).apply(); }
+
+  public boolean logLockSelected() {
+    return prefs.getString("lock.trigger.source", "icc").equals("authorized-log");
+  }
+
+  public void logLockSelected(boolean selected) {
+    prefs.edit().putString("lock.trigger.source", selected ? "authorized-log" : "icc").apply();
+  }
+
+  public boolean acceptsLogKey(String key) {
+    return VehicleStateSpec.logKey(key) || logLockSelected() && "lock".equals(key);
+  }
+
+  public boolean iccTriggerConfirmed(String key) {
+    return key.equals("lock") || key.equals("charge") && prefs.getBoolean("icc.charge.confirmed", false);
+  }
+
+  public void iccTriggerConfirmed(String key, boolean confirmed) {
+    if (key.equals("charge")) prefs.edit().putBoolean("icc.charge.confirmed", confirmed).apply();
+  }
+
+  public boolean lockTriggerCalibrated() { return !logLockSelected() || lockCalibrated(); }
   public final SharedPreferences prefs;
   private final Context context;
 
   public Store(Context c) {
     context = c.getApplicationContext();
     prefs = context.getSharedPreferences("es_sound_lab", 0);
+    if (!prefs.getBoolean("lock.factory-defaults.v1", false))
+      prefs.edit().putBoolean("enabled.lock", true).putInt("volume.lock", 100)
+          .putBoolean("lock.factory-defaults.v1", true).apply();
     try {
       JSONArray a = new JSONArray(prefs.getString("custom.events", "[]"));
       synchronized (EventSpec.ALL) {
@@ -48,15 +91,36 @@ public final class Store {
   }
 
   public boolean enabled(String group) {
-    return prefs.getBoolean("enabled." + group, false);
+    if (group.equals("engine")) return prefs.getBoolean("engine.simulation.enabled", false);
+    return prefs.getBoolean("enabled." + group, group.equals("lock"));
   }
 
   public void enable(String group, boolean enabled) {
-    prefs.edit().putBoolean("enabled." + group, enabled).apply();
+    prefs.edit().putBoolean(group.equals("engine") ? "engine.simulation.enabled" : "enabled." + group, enabled).apply();
+  }
+
+  EngineProfile engineProfile() { return EngineProfile.parse(prefs.getString("engine.profile", "")); }
+
+  boolean engineSynth() { return prefs.getBoolean("engine.synth.enabled", false); }
+
+  EngineTuning engineTuning() {
+    return new EngineTuning(prefs.getInt("engine.synth.style", 0), prefs.getInt("engine.synth.tone", 100),
+        prefs.getInt("engine.synth.intensity", 70), prefs.getInt("engine.synth.shifting", 55));
+  }
+
+  int engineHorsepower() { return Math.max(80, Math.min(800, prefs.getInt("engine.demo.horsepower", 280))); }
+
+  float engineZeroHundred() { return Math.max(30, Math.min(180, prefs.getInt("engine.demo.zeroHundredTenths", 70))) / 10f; }
+
+  String engineSource() { return engineSynth() ? engineTuning().source() : source(EventSpec.find("engine.loop")); }
+
+  void engineProfile(EngineProfile profile) {
+    try { prefs.edit().putString("engine.profile", profile.json().toString()).apply(); }
+    catch (Exception error) { throw new IllegalArgumentException("无法保存曲线", error); }
   }
 
   public int volume(String group) {
-    return Math.max(0, Math.min(100, prefs.getInt("volume." + group, 65)));
+    return Math.max(0, Math.min(100, prefs.getInt("volume." + group, group.equals("lock") ? 100 : 65)));
   }
 
   public void volume(String group, int v) {
@@ -131,13 +195,11 @@ public final class Store {
   }
 
   public boolean mapped(String event) {
+    if (event.startsWith("charge.")) return iccTriggerConfirmed("charge");
+    if (event.startsWith("lock.")) return lockTriggerCalibrated();
     if (event.startsWith("autohold.")) return autoHoldCalibrated();
-    if (event.startsWith("lock.") && lockCalibrated()) return true;
     EventSpec s = EventSpec.find(event);
     if (s != null && s.mapped) return true;
-    JSONArray a = rules();
-    for (int i = 0; i < a.length(); i++)
-      if (event.equals(a.optJSONObject(i).optString("event"))) return true;
     return false;
   }
 
@@ -150,12 +212,12 @@ public final class Store {
   }
 
   public boolean autoHoldCalibrated() {
-    return autoHoldState(prefs.getString("autohold.holding", "")) != null;
+    return autoHoldState(prefs.getString("autohold.holding", "2")) != null;
   }
 
   public String autoHoldState(String raw) {
     return Protocol.autoHoldState(
-        raw, prefs.getString("autohold.holding", ""), prefs.getString("autohold.released", ""));
+        raw, prefs.getString("autohold.holding", "2"), prefs.getString("autohold.released", "1"));
   }
 
   public void calibrateAutoHold(String holding, String released) {
@@ -169,15 +231,15 @@ public final class Store {
   }
 
   public String lockReadiness() {
-    if (!lockCalibrated()) return "中控锁未校准，不会自动播放；选择音源或确认车外设备不能代替状态校准";
     if (!enabled("lock")) return "解闭锁提示音开关已关闭";
-    if (!prefs.getBoolean("lock.output.confirmed", false)) return "车外设备未人工确认，不会自动播放";
+    if (logLockSelected() && !logsEnabled()) return "已选择日志锁事件，请先自行启用并授权日志";
+    if (!lockTriggerCalibrated()) return "日志锁原始值尚未校准，请核对历史映射";
     try {
       for (AudioDeviceInfo device : audioOutputs())
-        if (lockOutputMatches(device)) return "解闭锁配置就绪；首样本仅建立基线，后续有效变化才播放";
+        if (lockOutputMatches(device)) return "原厂车外通道就绪；先有新鲜P挡基线，后续锁变化才播放";
     } catch (Exception ignored) {
     }
-    return "所选车外设备不可用，请重新选择、试听并确认";
+    return "原厂车外总线BUS2007_VENDOR_CONTEXT2不可用，不回退车内输出";
   }
 
   public String lockState(String raw) {
@@ -189,6 +251,119 @@ public final class Store {
     if (Protocol.lockState(locked, locked, unlocked) == null)
       throw new IllegalArgumentException("请输入两个不同的非负整数，含义必须经实车确认");
     prefs.edit().putString("lock.locked", locked).putString("lock.unlocked", unlocked).apply();
+  }
+
+  public JSONObject stateCalibration(String key) {
+    try { return new JSONObject(prefs.getString("state.calibration." + key, "{}")); }
+    catch (Exception ignored) { return new JSONObject(); }
+  }
+
+  public boolean esStatePreset(String key) {
+    VehicleStateSpec spec = VehicleStateSpec.find(key);
+    return spec != null && spec.customMapping()
+        && ES_STATE_PRESET.equals(stateCalibration(key).optString("preset"));
+  }
+
+  public void applyEsStatePreset(String[] keys) {
+    if (keys == null || keys.length == 0) throw new IllegalArgumentException("请至少选择一项预设");
+    Set<String> selected = new LinkedHashSet<>();
+    for (String key : keys) {
+      VehicleStateSpec spec = VehicleStateSpec.find(key);
+      if (spec == null || !spec.customMapping())
+        throw new IllegalArgumentException("该状态没有已确认的ES预设");
+      selected.add(key);
+    }
+    SharedPreferences.Editor editor = prefs.edit();
+    try {
+      long now = System.currentTimeMillis();
+      for (VehicleStateSpec spec : VehicleStateSpec.ALL) {
+        String preference = "state.calibration." + spec.key;
+        if (selected.contains(spec.key))
+          editor.putString(preference, new JSONObject().put("preset", ES_STATE_PRESET)
+              .put("source", "日志").put("savedAt", now).put("verifiedOnVehicle", false)
+              .put("description", spec.esPresetDescription()).toString());
+        else if (esStatePreset(spec.key)) editor.remove(preference);
+      }
+      editor.apply();
+    } catch (org.json.JSONException error) { throw new IllegalArgumentException("无法保存预设", error); }
+  }
+
+  public void clearEsStatePreset() {
+    SharedPreferences.Editor editor = prefs.edit();
+    for (VehicleStateSpec spec : VehicleStateSpec.ALL)
+      if (esStatePreset(spec.key)) editor.remove("state.calibration." + spec.key);
+    editor.apply();
+  }
+
+  public void calibrateState(Protocol.Sample sample, String[] rawValues, boolean metersPerSecond) {
+    VehicleStateSpec spec = sample == null ? null : VehicleStateSpec.find(sample.key);
+    if (spec == null || !spec.customMapping() || !sample.source.equals("日志") || sample.status != 0
+        || !knownLogIdentity(sample))
+      throw new IllegalArgumentException("请先收到该状态的有效日志，再对照实车校准");
+    double observed = Protocol.number(sample.raw);
+    if (spec.key.equals("speed") ? !Double.isFinite(observed) || observed < 0 || observed > 300
+        : !Protocol.lockValue(sample.raw))
+      throw new IllegalArgumentException("当前原始值无效，请等待有效样本再校准");
+    try {
+      JSONObject config = new JSONObject().put("source", sample.source).put("topic", sample.topic)
+          .put("propertyId", sample.propertyId).put("area", sample.area)
+          .put("savedAt", System.currentTimeMillis());
+      if (spec.key.equals("speed")) config.put("metersPerSecond", metersPerSecond);
+      else {
+        if (rawValues == null || rawValues.length != spec.values.length)
+          throw new IllegalArgumentException("请填写完整映射");
+        JSONObject mapping = new JSONObject();
+        for (int index = 0; index < rawValues.length; index++) {
+          String raw = rawValues[index] == null ? "" : rawValues[index].trim();
+          if (spec.key.equals("gear") && index == 4 && raw.isEmpty()) continue;
+          if (!Protocol.lockValue(raw)) throw new IllegalArgumentException("请填写非负整数原始值，M挡可留空");
+          if (mapping.has(raw)) throw new IllegalArgumentException("不同状态不能使用同一个原始值");
+          mapping.put(raw, spec.values[index]);
+        }
+        config.put("mapping", mapping);
+      }
+      prefs.edit().putString("state.calibration." + spec.key, config.toString()).apply();
+    } catch (org.json.JSONException error) { throw new IllegalArgumentException("无法保存校准", error); }
+  }
+
+  static boolean knownLogIdentity(Protocol.Sample sample) {
+    if (sample == null || sample.key == null || !sample.source.equals("日志")) return false;
+    String raw = sample.key.equals("speed") ? "0" : "1";
+    String line = "1.000 1 1 I MessageProperty: receive " + sample.topic
+        + ", value: CarPropertyValue{id=0x" + Long.toHexString(sample.propertyId)
+        + ", area=" + sample.area + ", status=0, value=" + raw + "}";
+    Protocol.Sample decoded = Protocol.decode(line);
+    return decoded != null && sample.key.equals(decoded.key) && sample.area.equals("0x0");
+  }
+
+  public Protocol.Sample calibratedLogSample(Protocol.Sample sample) {
+    if (sample == null || !sample.source.equals("日志") || sample.key == null) return sample;
+    JSONObject config = stateCalibration(sample.key);
+    if (esStatePreset(sample.key)) return sample;
+    if (!sample.source.equals(config.optString("source")) || !sample.topic.equals(config.optString("topic"))
+        || sample.propertyId != config.optLong("propertyId") || !sample.area.equals(config.optString("area")))
+      return sample;
+    String value = null;
+    if (sample.status == 0 && knownLogIdentity(sample)) {
+      if (sample.key.equals("speed")) {
+        double speed = Protocol.number(sample.raw) * (config.optBoolean("metersPerSecond") ? 3.6 : 1);
+        if (Double.isFinite(speed) && speed >= 0 && speed <= 300) value = Double.toString(speed);
+      } else if (Protocol.lockValue(sample.raw)) {
+        JSONObject mapping = config.optJSONObject("mapping");
+        if (mapping != null) value = mapping.optString(sample.raw, null);
+        VehicleStateSpec spec = VehicleStateSpec.find(sample.key);
+        boolean allowed = false;
+        if (spec != null && spec.customMapping())
+          for (String expected : spec.values) if (expected.equals(value)) allowed = true;
+        if (!allowed) value = null;
+      }
+    }
+    return new Protocol.Sample(sample.topic, sample.propertyId, sample.area, sample.status,
+        sample.raw, sample.time, sample.source, sample.key, value);
+  }
+
+  public void clearStateCalibration(String key) {
+    prefs.edit().remove("state.calibration." + key).apply();
   }
 
   private String address(AudioDeviceInfo device) {
@@ -206,11 +381,7 @@ public final class Store {
   }
 
   public boolean lockOutputMatches(AudioDeviceInfo device) {
-    return device != null
-        && device.getId() == prefs.getInt("lock.output.id", -1)
-        && device.getType() == prefs.getInt("lock.output.type", -1)
-        && String.valueOf(device.getProductName()).equals(prefs.getString("lock.output.name", ""))
-        && address(device).equals(prefs.getString("lock.output.address", ""));
+    return ExteriorAudio.matches(device);
   }
 
   public AudioDeviceInfo[] audioOutputs() {

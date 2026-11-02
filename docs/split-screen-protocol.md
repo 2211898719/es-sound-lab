@@ -6,9 +6,9 @@
 
 ## 结论
 
-奇瑞 E0X 8295 的分屏由 Mega SystemUI 执行，不由应用互相拉起。应用要做的是发一次带固定 extra 的 `startActivity`，并让自己的 Activity 能被塞进窄栏。
+2026-10-30补充：已拿到目标固件的 `RockySystemUI.apk`，真实包名为 `com.android.systemui`。本批普通启动拦截仅接受默认分屏列表中的包，且要求分屏开关开启和导航状态成立；列表为地图、畅听和文远智行，不含本应用。Provider 受 signature 权限保护。详见[新系统APK分析](system-apks-analysis-20261030.md)。
 
-第三方包可以自己触发。SystemUI 是否接受侧载包，本文无法从现有 APK 证明，必须上车看 `system_split_pkg` 是否变成自己的包名。实现探测页，不要在启动、开机或车辆事件里自动分屏。
+下文记录早期从地图/畅听调用方得到的参数与历史探测实现，不能再理解为“第三方任意发一次 Intent 即可分屏”的接入保证。不要继续重复已失败组合，不在启动、开机或车辆事件里自动分屏，不改系统列表或签名。
 
 ## 已确认的事实
 
@@ -35,7 +35,7 @@ Settings.Global  system_split_pkg
 
 值是冒号分隔的两个包名，例如 `com.lion.appfwk.navi:com.lion.media`。左边是左侧应用。空值表示未读到有效配对；读取失败只能说明状态未知，不能认定已经退出。读这个值不需要写安全设置。不要写这个值。名称含义和证据边界另见[分屏知识笔记](mega-systemui-split-notes.md)。
 
-地图代码里没有 `com.lion.media`。畅听没有 `enter_split`。两个包都不会拉起对方进入分屏。自动并排的策略在 `com.mega.systemui`，不在这两个 APK 里。
+地图代码里没有 `com.lion.media`。畅听没有 `enter_split`。两个包都不会拉起对方进入分屏。自动并排的策略在本批 `com.android.systemui`，不在这两个 APK 里。
 
 ## 进入分屏
 
@@ -58,13 +58,13 @@ context.startActivity(intent);
 含义：
 
 - `setComponent` 是这一次启动的那一侧。
-- `mega.intent.extra.split.COMPONENT` 是另一侧，类型必须是 `ComponentName`，不要传字符串。
+- `mega.intent.extra.split.COMPONENT` 在原地图调用方中表示另一侧，类型是 `ComponentName`；本批服务端该分支仅记录它，不据此接受任意第三方配对。
 - `mega.intent.extra.split.METHOD` 必须是 `enter_split`。
 - `mega.intent.extra.split.IS_HANDLE_LEFT` 是 boolean，表示分割条把手在左侧。地图在已分屏且 `system_split_pkg` 以 `com.lion.appfwk.navi` 开头时传 false，否则传 true。这是它切换对手时的把手策略，不是进入分屏的前置条件。
 - flag 只有 `FLAG_ACTIVITY_NEW_TASK`。不要加 `FLAG_ACTIVITY_LAUNCH_ADJACENT`，不要加 `split_invalid_intent`。那个 category 只出现在畅听的退出路径。
 - 不要申请 `android.uid.system`。畅听不是 system uid，仍然能发分屏 Intent。
 
-`openNoa()` 在 `system_split_pkg` 为空时直接返回。那是地图自己的策略：只有已经在分屏时才切到文远智行。尚未分析SystemUI本体，不能据此确定系统接口是否也有前置条件。探测页必须允许从全屏手动请求，以验证系统行为，不要复制这个提前返回。
+`openNoa()` 在 `system_split_pkg` 为空时直接返回，是地图自身切换到文远智行的策略。历史探测页允许从全屏手动请求；现在已从本批 SystemUI 确认默认列表、开关和导航状态条件，不能再将从全屏发送请求视为通用第三方接入方案。
 
 第三方默认和地图分屏。提供两种启动方向，因为 SystemUI 把哪一个当主任务还没在车上证实：
 
@@ -130,7 +130,7 @@ contentResolver.call(
 
 第三个参数是要退出的包名。畅听分别传自己的包名、地图包名，或 `system_split_pkg` 里除自己以外的那个包名。探测页三个都做按钮：退出自己、退出地图、退出当前配对里的另一侧。
 
-这个调用需要 `com.mega.systemui.provider`。畅听声明了该权限，但是预装包。侧载调试签名很可能拿到 `SecurityException`。必须声明权限，必须捕获异常并显示，不能当成进入失败。
+这个调用需要 `com.mega.systemui.provider`。本批定义已确认是 signature；声明权限不代表本项目调试签名可获授。必须捕获访问拒绝并显示，不能混为进入请求的执行结果。
 
 ```xml
 <uses-permission android:name="com.mega.systemui.provider" />
@@ -196,7 +196,9 @@ context.startActivity(intent);
 - 不要提高 targetSdk，不要加 `android:sharedUserId`，不要改签名、versionCode、音效资源。
 - 不要为了编译去依赖 `android.car.VehicleAreaDoor`。flag 直接用 `Intent.FLAG_ACTIVITY_NEW_TASK`。
 
-## 实现后如何验证
+## 历史实现验证流程
+
+以下是原探测流程的留档，不要求在已知默认列表和权限条件不满足时继续重试。本批最新结论以本文顶部和系统APK分析为准。
 
 本机可做的：编译通过；探测页在普通手机或模拟器上打开不崩；点进入时异常被显示而不是闪退。普通设备没有这个 SystemUI，进入失败是预期。
 

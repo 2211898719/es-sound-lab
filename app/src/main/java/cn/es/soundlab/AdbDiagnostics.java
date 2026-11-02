@@ -61,6 +61,34 @@ public final class AdbDiagnostics {
   public static JSONObject collect(
       Context context, AdbClient client, String host, int port, AdbClient.Progress progress)
       throws Exception {
+    return collect(context, client, host, port, false, false, progress);
+  }
+
+  public static JSONObject collect(
+      Context context, AdbClient client, String host, int port, boolean includeApks,
+      boolean nativeProbe, AdbClient.Progress progress) throws Exception {
+    return collect(context, client, host, port, AdbApkExtractor.targets(includeApks, false),
+        nativeProbe, progress);
+  }
+
+  public static JSONObject collect(
+      Context context, AdbClient client, String host, int port, String[] apkTargets,
+      boolean nativeProbe, AdbClient.Progress progress) throws Exception {
+    return collect(context, client, host, port, apkTargets, nativeProbe, false,
+        HidlDiagnostics::lookup, progress);
+  }
+
+  public static JSONObject collectHidl(Context context, AdbClient client, String host, int port,
+      AdbClient.Progress progress) throws Exception {
+    return collect(context, client, host, port, new String[0], false, true,
+        HidlDiagnostics::lookup, progress);
+  }
+
+  static JSONObject collect(Context context, AdbClient client, String host, int port, String[] apkTargets,
+      boolean nativeProbe, boolean hidlRequested, HidlDiagnostics.Lookup lookup,
+      AdbClient.Progress progress) throws Exception {
+    String[] selected = AdbApkExtractor.validateTargets(apkTargets);
+    boolean includeApks = selected.length > 0;
     JSONObject report =
         new JSONObject()
             .put("schemaVersion", 1)
@@ -69,11 +97,21 @@ public final class AdbDiagnostics {
             .put("host", host)
             .put("port", port)
             .put("complete", false)
+            .put("platformVehicleProbe", Diagnostics.latestPlatformProbe(context))
+            .put("messageCenterProbe", Diagnostics.latestMessageCenterProbe(context))
+            .put("standardCarProbe", Diagnostics.latestStandardCarProbe(context))
+            .put("targetedReadOnlyDiagnostics", AdbReadOnlyStatus.snapshot())
+            .put("hidlDiagnostics", HidlDiagnostics.snapshot())
+            .put("hidlDiagnosticsRequested", hidlRequested)
+            .put("apkExtraction", new JSONObject().put("requested", includeApks).put("complete", false)
+                .put("packages", new JSONArray(Arrays.asList(selected))))
+            .put("nativeProbeRequested", nativeProbe)
             .put("commandExitCodesAvailable", false)
-            .put("note", "只读元数据和定量日志；传统shell不提供退出码。命令输出中的拒绝/缺失需结合内容判断，ADB身份不代表应用已获车辆权限。");
+            .put("note", "只读元数据和定量日志；传统shell不提供退出码，HIDL定点命令用末尾状态标记单独记录。拒绝/缺失需结合内容判断，ADB身份不代表应用车辆权限。");
     JSONArray results = new JSONArray();
     report.put("commands", results);
     List<AdbDiagnosticCommands.Command> commands = AdbDiagnosticCommands.metadata();
+    for (String pkg : selected) AdbDiagnosticCommands.addPackage(commands, pkg);
     int total = 0;
     if (!COLLECTING.compareAndSet(false, true)) {
       client.close();
@@ -83,9 +121,15 @@ public final class AdbDiagnostics {
       checkpoint(context, report);
       progress.message("正在连接 ADB…");
       client.connect(host, port, key(context), progress);
+      if (hidlRequested)
+        total = HidlDiagnostics.collect(client, host, report, progress, () -> checkpoint(context, report), lookup);
+      if (nativeProbe)
+        commands.add(AdbDiagnosticCommands.nativeProbe(context.getApplicationInfo().sourceDir));
       for (int index = 0; index < commands.size(); index++) {
         AdbDiagnosticCommands.Command command = commands.get(index);
-        progress.message("采集 " + (index + 1) + "/" + commands.size() + " · " + command.name);
+        progress.message(command.name.equals("shell-native-read-probe")
+            ? "shell分阶段只读验证最多11秒 · 请停车，可开关主驾门观察变化"
+            : "采集 " + (index + 1) + "/" + commands.size() + " · " + command.name);
         JSONObject item =
             new JSONObject()
                 .put("name", command.name)
@@ -101,9 +145,14 @@ public final class AdbDiagnostics {
               .put("truncated", output.truncated)
               .put("transportCompleted", true)
               .put("exitCode", JSONObject.NULL);
+          AdbReadOnlyStatus.record(report.getJSONObject("targetedReadOnlyDiagnostics"),
+              command.name, command.shell, output.text, output.truncated, true);
+          AdbDiagnosticCommands.addApkHashes(commands, command.name, output.text, output.truncated);
+          if (command.name.equals("shell-native-read-probe"))
+            report.put("nativeReadProbe", AdbDiagnosticCommands.probeResult(output.text, output.truncated));
           if (command.name.equals("car-service-package")) {
             String pkg = output.text.trim();
-            if (!Arrays.asList(AdbDiagnosticCommands.PACKAGES).contains(pkg))
+            if (pkg.contains(".") && !Arrays.asList(AdbDiagnosticCommands.PACKAGES).contains(pkg))
               AdbDiagnosticCommands.addPackage(commands, pkg);
           }
           if (command.name.equals("home-activity")) {
@@ -117,6 +166,8 @@ public final class AdbDiagnostics {
           item.put("transportCompleted", false).put("error", error.toString());
           if (error instanceof AdbClient.ShellException)
             item.put("output", ((AdbClient.ShellException) error).partialOutput);
+          AdbReadOnlyStatus.record(report.getJSONObject("targetedReadOnlyDiagnostics"),
+              command.name, command.shell, item.optString("output"), false, false);
           throw error;
         } finally {
           item.put("finishedAt", System.currentTimeMillis());
@@ -142,12 +193,20 @@ public final class AdbDiagnostics {
           logResult.put("output", ((AdbClient.ShellException) error).partialOutput);
         throw error;
       }
+      if (includeApks) {
+        progress.message("诊断完成，正在提取所选" + selected.length + "个包的APK…");
+        AdbApkExtractor.extract(context, client, report.getJSONObject("apkExtraction"),
+            report.getLong("startedAt"), selected, progress);
+      }
       report.put("complete", true);
     } catch (Exception error) {
       report.put("error", error.toString());
       progress.message("采集未完整完成，已保存部分结果：" + error.getMessage());
     } finally {
       client.close();
+      report.put("platformVehicleProbe", Diagnostics.latestPlatformProbe(context));
+      report.put("messageCenterProbe", Diagnostics.latestMessageCenterProbe(context));
+      report.put("standardCarProbe", Diagnostics.latestStandardCarProbe(context));
       report.put("finishedAt", System.currentTimeMillis());
       try {
         checkpoint(context, report);

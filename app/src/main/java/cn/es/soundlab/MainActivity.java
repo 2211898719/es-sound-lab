@@ -47,29 +47,29 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 public final class MainActivity extends Activity {
-  private static final int BLUE = 0xff2475f5, INK = 0xff203553, MUTED = 0xff72839a, BG = 0xfff3f7fc;
+  private UiTheme theme;
+  private int BLUE, INK, MUTED, BG;
   private final Handler ui = new Handler();
   private final ExecutorService files = Executors.newSingleThreadExecutor();
   private Store store;
   private MonitorService service;
   private boolean bound, resumed, updatingSwitch;
   private int page;
-  private LinearLayout root, content, candidateList;
-  private TextView diagStatus, signals, rawLog;
+  private LinearLayout root, content;
+  private TextView diagStatus, rawLog, calibrationStatus;
+  private StateDashboardView stateDashboard;
+  private EngineSettingsView engineSettings;
+  private Button calibrationButton;
+  private AlertDialog activeCalibrationDialog;
   private Switch monitorSwitch;
   private Button captureButton;
-  private EditText filter;
   private String pendingImport;
   private File pendingExport;
-  private long lastRevision = -1;
   private final List<TextView> tabs = new ArrayList<>();
   private final ServiceConnection connection =
       new ServiceConnection() {
@@ -92,6 +92,11 @@ public final class MainActivity extends Activity {
   @Override
   public void onCreate(Bundle state) {
     super.onCreate(state);
+    theme = new UiTheme(this);
+    BLUE = theme.accent;
+    INK = theme.text;
+    MUTED = theme.muted;
+    BG = theme.background;
     store = new Store(this);
     if (state != null) {
       page = state.getInt("page", 0);
@@ -99,14 +104,17 @@ public final class MainActivity extends Activity {
       String export = state.getString("export");
       if (export != null) pendingExport = new File(export);
     }
-    getWindow().setStatusBarColor(BG);
-    getWindow().setNavigationBarColor(BG);
-    getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+    theme.systemBars(this);
     render();
     bound = bindService(new Intent(this, MonitorService.class), connection, BIND_AUTO_CREATE);
-    if (store.prefs.getBoolean("monitor", false))
-      startForegroundService(
-          new Intent(this, MonitorService.class).setAction(MonitorService.START));
+  }
+
+  @Override
+  protected void onStart() {
+    super.onStart();
+    store.prefs.edit().putBoolean("monitor", true).apply();
+    startForegroundService(
+        new Intent(this, MonitorService.class).setAction(MonitorService.START));
   }
 
   @Override
@@ -119,15 +127,24 @@ public final class MainActivity extends Activity {
 
   @Override
   protected void onPause() {
+    if (engineSettings != null) engineSettings.shutdown();
     resumed = false;
     ui.removeCallbacks(ticker);
-    if (service != null) service.stopMicrophone();
+    if (service != null) {
+      service.calibrationMode(false);
+      service.stopMicrophone();
+    }
+    if (activeCalibrationDialog != null) activeCalibrationDialog.dismiss();
     super.onPause();
   }
 
   @Override
   protected void onDestroy() {
-    if (service != null) service.stopMicrophone();
+    if (engineSettings != null) engineSettings.shutdown();
+    if (service != null) {
+      service.calibrationMode(false);
+      service.stopMicrophone();
+    }
     if (bound) unbindService(connection);
     ui.removeCallbacksAndMessages(null);
     files.shutdown();
@@ -190,6 +207,9 @@ public final class MainActivity extends Activity {
 
   private Button button(String label, boolean primary, Runnable click) {
     Button b = new Button(this);
+    b.setStateListAnimator(null);
+    b.setElevation(0);
+    b.setTranslationZ(0);
     b.setText(label);
     b.setTextSize(14);
     b.setAllCaps(false);
@@ -199,7 +219,7 @@ public final class MainActivity extends Activity {
     b.setMinimumWidth(0);
     b.setTextColor(primary ? Color.WHITE : BLUE);
     b.setPadding(dp(14), dp(10), dp(14), dp(10));
-    b.setBackground(shape(primary ? BLUE : 0xfffafdff, primary ? 0 : 0xffdce7f5, 12));
+    b.setBackground(shape(primary ? theme.primary : theme.raised, primary ? 0 : theme.border, 12));
     b.setOnClickListener(v -> click.run());
     return b;
   }
@@ -229,7 +249,22 @@ public final class MainActivity extends Activity {
   }
 
   private void render() {
-    lastRevision = -1;
+    if (engineSettings != null) engineSettings.shutdown();
+    engineSettings = null;
+    if (page == 2) {
+      diagStatus = null;
+      stateDashboard = null;
+      monitorSwitch = null;
+      engineSettings = new EngineSettingsView(this, store,
+          () -> { page = 0; render(); }, this::ensureMonitor,
+          () -> chooseAudio(EventSpec.find("engine.loop"), engineSettings.audioName),
+          () -> importAudio(EventSpec.find("engine.loop")),
+          () -> { if (service != null) service.preview("engine.loop"); else toast("服务连接中，请稍后重试"); },
+          () -> { if (service != null) service.stopAudio(); }, () -> service);
+      setContentView(engineSettings);
+      update();
+      return;
+    }
     root = col();
     root.setBackgroundColor(BG);
     setContentView(root);
@@ -240,23 +275,27 @@ public final class MainActivity extends Activity {
     content.setPadding(dp(20), dp(16), dp(20), dp(20));
     scroll.addView(content);
     root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-    ArtView hero = new ArtView(this, "hero", BLUE);
-    add(content, hero, 154);
-    gap(content, 18);
+    if (page != 1) {
+      ArtView hero = new ArtView(this, "hero", BLUE);
+      add(content, hero, 154);
+      gap(content, 18);
+    }
     LinearLayout nav = row();
     tabs.clear();
-    String[] names = {"音效设置", "车辆检测", "规则管理"};
-    for (int i = 0; i < 3; i++) {
+    String[] names = {"音效设置", "车辆检测"};
+    if (page > 1) page = 0;
+    for (int i = 0; i < names.length; i++) {
       final int index = i;
       TextView tab = bold(names[i], 16, page == i ? Color.WHITE : MUTED);
       tab.setPadding(dp(20), dp(12), dp(20), dp(12));
       tab.setGravity(Gravity.CENTER);
-      tab.setBackground(shape(page == i ? BLUE : 0xffeaf0f8, 0, 12));
+      tab.setBackground(shape(page == i ? theme.primary : theme.color(0xffeaf0f8, theme.raised), 0, 12));
       LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(46), 1);
-      p.rightMargin = dp(i == 2 ? 0 : 8);
+      p.rightMargin = dp(i == names.length - 1 ? 0 : 8);
       nav.addView(tab, p);
       tab.setOnClickListener(
           v -> {
+            if (page == 1 && index != 1 && service != null) service.calibrationMode(false);
             page = index;
             render();
           });
@@ -265,15 +304,15 @@ public final class MainActivity extends Activity {
     add(content, nav, 46);
     gap(content, 18);
     diagStatus = null;
-    signals = null;
+    stateDashboard = null;
+    calibrationStatus = null;
+    calibrationButton = null;
     rawLog = null;
-    filter = null;
-    candidateList = null;
+    logSourceButton = null;
     captureButton = null;
     monitorSwitch = null;
     if (page == 0) home();
-    else if (page == 1) detection();
-    else rules();
+    else detection();
     update();
   }
 
@@ -291,7 +330,7 @@ public final class MainActivity extends Activity {
     monitorSwitch.setThumbTintList(
         new ColorStateList(
             new int[][] {new int[] {android.R.attr.state_checked}, new int[0]},
-            new int[] {BLUE, 0xffb4c3d8}));
+            new int[] {BLUE, theme.inactive}));
     monitorSwitch.setChecked(store.prefs.getBoolean("monitor", false));
     monitorSwitch.setOnCheckedChangeListener(
         (b, on) -> {
@@ -306,39 +345,23 @@ public final class MainActivity extends Activity {
     controls.addView(monitorSwitch);
     add(content, controls, 58);
     gap(content, 10);
-    LinearLayout links = row();
-    Button output = button("♬ 音频输出", false, () -> output());
-    weighted(links, output, 42, 8);
-    weighted(
-        links,
-        button(
-            "查看实车信号 →",
-            false,
-            () -> {
-              page = 1;
-              render();
-            }),
-        42,
-        0);
-    add(content, links, 42);
-    gap(content, 8);
-    add(content, button("分屏探测", false,
-        () -> startActivity(new Intent(this, SplitProbeActivity.class))), 42);
-    gap(content, 16);
-    List<String> groups = new ArrayList<>();
-    Collections.addAll(
-        groups,
-        "gear",
-        "door",
-        "lock",
-        "engine",
-        "reverse",
-        "shout",
-        "charge",
-        "tailgate",
-        "pedestrian",
-        "autohold");
-    if (!EventSpec.group("custom").isEmpty()) groups.add("custom");
+    if (store.logLockSelected()) {
+      homeCards("ICC 接口 · 无需日志授权", "gear", "charge");
+      homeCards("授权日志 · 用户自行启用", "door", "tailgate", "autohold", "lock");
+    } else {
+      homeCards("ICC 接口 · 无需日志授权", "gear", "lock", "charge");
+      homeCards("授权日志 · 用户自行启用", "door", "tailgate", "autohold");
+    }
+    homeCards("声浪与手动音效", "engine", "reverse", "pedestrian", "shout");
+    TextView note = text("解闭锁默认启用：先有新鲜P挡基线，再响应中控锁变化；自动使用原厂车外通道。充电仍需核对，日志未授权不影响ICC。", 13, MUTED);
+    note.setLineSpacing(dp(4), 1);
+    add(content, note, -2);
+  }
+
+  private void homeCards(String title, String... groupNames) {
+    add(content, bold(title, 17, INK), -2);
+    gap(content, 12);
+    List<String> groups = java.util.Arrays.asList(groupNames);
     int width = getResources().getConfiguration().screenWidthDp,
         columns = width >= 1000 ? 3 : width >= 660 ? 2 : 1;
     for (int at = 0; at < groups.size(); at += columns) {
@@ -354,9 +377,6 @@ public final class MainActivity extends Activity {
       }
       margin(content, r, -2, 14);
     }
-    TextView note = text("解闭锁需校准中控锁状态，并单独选择、确认车外通道；不使用普通音效输出。充电及更多事件可在检测页绑定。", 13, MUTED);
-    note.setLineSpacing(dp(4), 1);
-    add(content, note, -2);
   }
 
   private String description(String g) {
@@ -364,19 +384,19 @@ public final class MainActivity extends Activity {
       case "gear":
         return "换挡时播放，优先打断当前提示音";
       case "autohold":
-        return "保持与释放分别设置，先校准状态含义";
+        return "本车已核对：1释放保持 / 2正在保持，不等同P挡";
       case "door":
         return "四个车门，开门与关门分别设置";
       case "lock":
-        return "中控锁变化触发，仅使用已确认的车外通道";
+        return "先有P挡基线，再由中控锁变化触发 · 原厂车外通道";
       case "engine":
-        return "随已读取的车速变化播放声浪";
+        return "车速＋估算加速度驱动 · 可替换音频、选择预设与微调曲线";
       case "reverse":
         return "进入 R 挡播放，退出后停止";
       case "shout":
         return "播放语音，或按住按钮实时喊话";
       case "charge":
-        return "绑定实车充电开始、结束信号";
+        return "ICC接口 · 核对后启用充电开始、结束提示";
       case "tailgate":
         return "后尾门开启和关闭的语音提醒";
       case "pedestrian":
@@ -389,18 +409,18 @@ public final class MainActivity extends Activity {
   private int accent(String g) {
     switch (g) {
       case "door":
-        return 0xffdf963e;
+        return theme.color(0xffdf963e, 0xfff0bd77);
       case "lock":
       case "tailgate":
-        return 0xff35aa91;
+        return theme.color(0xff35aa91, 0xff7ddac5);
       case "engine":
-        return 0xff9a73dd;
+        return theme.color(0xff9a73dd, 0xffc6adff);
       case "shout":
-        return 0xffcd71bf;
+        return theme.color(0xffcd71bf, 0xffefa8df);
       case "charge":
       case "pedestrian":
       case "autohold":
-        return 0xff36a798;
+        return theme.color(0xff36a798, 0xff81d8cb);
       default:
         return BLUE;
     }
@@ -409,20 +429,20 @@ public final class MainActivity extends Activity {
   private int pastel(String g) {
     switch (g) {
       case "door":
-        return 0xfffff3e4;
+        return theme.color(0xfffff3e4, 0xff30281e);
       case "lock":
       case "tailgate":
-        return 0xffe7f7f1;
+        return theme.color(0xffe7f7f1, 0xff19342f);
       case "engine":
-        return 0xfff0eafb;
+        return theme.color(0xfff0eafb, 0xff2b253d);
       case "shout":
-        return 0xfff9eaf6;
+        return theme.color(0xfff9eaf6, 0xff332338);
       case "charge":
       case "pedestrian":
       case "autohold":
-        return 0xffe6f6f2;
+        return theme.color(0xffe6f6f2, 0xff193337);
       default:
-        return 0xffe7f2ff;
+        return theme.color(0xffe7f2ff, 0xff1c2c43);
     }
   }
 
@@ -431,9 +451,9 @@ public final class MainActivity extends Activity {
     card.setPadding(dp(16), dp(16), dp(16), dp(16));
     GradientDrawable bg =
         new GradientDrawable(
-            GradientDrawable.Orientation.TL_BR, new int[] {pastel(group), 0xfffbfdff});
+            GradientDrawable.Orientation.TL_BR, new int[] {pastel(group), theme.color(0xfffbfdff, theme.surface)});
     bg.setCornerRadius(dp(20));
-    bg.setStroke(dp(1), 0xffe5edf8);
+    bg.setStroke(dp(1), theme.border);
     card.setBackground(bg);
     card.setElevation(dp(1));
     LinearLayout header = row();
@@ -446,31 +466,49 @@ public final class MainActivity extends Activity {
     titles.addView(title);
     gap(titles, 6);
     String badge =
-        group.equals("autohold")
+        group.equals("engine")
+            ? "车速拟合 · 默认关闭"
+            : group.equals("autohold")
             ? (store.autoHoldCalibrated() ? "已校准 · 变化时播放" : "待校准 · 已发现 1/2 状态")
             : group.equals("lock")
-                ? (store.lockCalibrated() ? "已校准" : "未校准，不会自动播放")
-                    + (store.prefs.getBoolean("lock.output.confirmed", false)
-                        ? " · 车外设备已确认"
-                        : " · 车外设备待确认")
+                ? (store.logLockSelected() ? "授权日志锁事件" : "ICC锁事件") + " · P挡限定 / 原厂车外通道"
+                : group.equals("charge")
+                    ? (store.iccTriggerConfirmed("charge") ? "ICC已核对 · 变化时播放" : "ICC仅展示 · 待核对后触发")
                 : (group.equals("charge") || group.equals("custom"))
-                    ? "待检测 / 可绑定规则"
+                    ? "等待授权日志"
                     : group.equals("shout") ? "手动播放 · 输出待确认" : "已接入 · 待实车验证";
     TextView badgeView = text(badge, 10, accent(group));
     titles.addView(badgeView);
     header.addView(titles, new LinearLayout.LayoutParams(0, -2, 1));
+    if (group.equals("engine")) {
+      card.setTag("engine.simulation");
+      card.setMinimumHeight(dp(338));
+      add(card, header, 70);
+      gap(card, 16);
+      TextView state = bold(store.enabled("engine") ? "已启用 · 仅D挡行驶" : "尚未启用 · 默认关闭", 19, accent(group));
+      add(card, state, 42);
+      add(card, text(store.engineSynth() ? "多层合成：" + EngineTuning.NAMES[store.engineTuning().style]
+          : "当前曲线：" + store.engineProfile().name, 13, INK), 30);
+      TextView explanation = text(description(group), 13, MUTED);
+      explanation.setLineSpacing(dp(4), 1);
+      add(card, explanation, 52);
+      add(card, button("选择预设 / 曲线详情 →", false, () -> { page = 2; render(); }), 48);
+      card.setOnClickListener(view -> { page = 2; render(); });
+      return card;
+    }
     Switch enabled = new Switch(this);
     enabled.setContentDescription(EventSpec.groupName(group) + "开关");
     enabled.setChecked(store.enabled(group));
     enabled.setThumbTintList(
         new ColorStateList(
             new int[][] {new int[] {android.R.attr.state_checked}, new int[0]},
-            new int[] {BLUE, 0xffbbc9db}));
+            new int[] {BLUE, theme.inactive}));
     enabled.setOnCheckedChangeListener(
         (b, on) -> {
           store.enable(group, on);
           if (on && !group.equals("shout")) ensureMonitor();
-          if (on && group.equals("lock") && !store.lockCalibrated()) lockCalibration();
+          if (on && group.equals("lock") && !store.lockTriggerCalibrated()) lockCalibration();
+          if (on && group.equals("charge") && !store.iccTriggerConfirmed("charge")) iccStateSettings("charge");
           if (on && group.equals("autohold") && !store.autoHoldCalibrated()) autoHoldCalibration();
         });
     header.addView(enabled, new LinearLayout.LayoutParams(dp(48), dp(42)));
@@ -489,7 +527,7 @@ public final class MainActivity extends Activity {
     }
     Spinner picker = spinner(labels);
     picker.setSelection(selected);
-    picker.setBackground(shape(0x99ffffff, 0xffdbe7f6, 10));
+    picker.setBackground(shape(theme.color(0x99ffffff, theme.field), theme.border, 10));
     picker.setContentDescription(EventSpec.groupName(group) + "事件选择");
     add(card, picker, 40);
     gap(card, 9);
@@ -498,7 +536,7 @@ public final class MainActivity extends Activity {
     name.setSingleLine(true);
     name.setEllipsize(TextUtils.TruncateAt.MIDDLE);
     name.setPadding(dp(11), 0, dp(5), 0);
-    name.setBackground(shape(0xbbffffff, 0xffdbe7f6, 10));
+    name.setBackground(shape(theme.color(0xbbffffff, theme.field), theme.border, 10));
     LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(0, dp(40), 1);
     nameLp.rightMargin = dp(7);
     name.setGravity(Gravity.CENTER_VERTICAL);
@@ -515,7 +553,7 @@ public final class MainActivity extends Activity {
     seek.setMax(100);
     seek.setProgress(store.volume(group));
     seek.setProgressTintList(ColorStateList.valueOf(BLUE));
-    seek.setThumbTintList(ColorStateList.valueOf(Color.WHITE));
+    seek.setThumbTintList(ColorStateList.valueOf(theme.thumb));
     volume.addView(seek, new LinearLayout.LayoutParams(0, dp(36), 1));
     TextView percent = bold(store.volume(group) + "%", 12, MUTED);
     percent.setGravity(Gravity.END);
@@ -619,7 +657,7 @@ public final class MainActivity extends Activity {
             t.setTextColor(INK);
             t.setTextSize(14);
             t.setPadding(dp(12), dp(10), dp(12), dp(10));
-            t.setBackgroundColor(dropdown ? Color.WHITE : Color.TRANSPARENT);
+            t.setBackgroundColor(dropdown ? theme.surface : Color.TRANSPARENT);
             if (!dropdown) t.setText(t.getText() + "  ▾");
             return t;
           }
@@ -702,6 +740,7 @@ public final class MainActivity extends Activity {
       if (names == null) return;
       List<String> paths = new ArrayList<>(), labels = new ArrayList<>();
       for (String n : names) {
+        if (!n.endsWith(".wav") && !n.endsWith(".mp3") && !n.endsWith(".ogg") && !n.endsWith(".flac") && !n.endsWith(".m4a")) continue;
         paths.add(n);
         String display = AssetNames.display(n);
         labels.add(display);
@@ -763,7 +802,7 @@ public final class MainActivity extends Activity {
         .show();
   }
 
-  private void output() {
+  void engineOutput() {
     AudioManager manager = (AudioManager) getSystemService(AUDIO_SERVICE);
     List<AudioDeviceInfo> devices = new ArrayList<>();
     List<String> labels = new ArrayList<>();
@@ -802,7 +841,7 @@ public final class MainActivity extends Activity {
     LinearLayout body = col();
     body.setPadding(dp(22), dp(10), dp(22), dp(16));
     body.addView(
-        text("已在行程日志中发现 1 / 2 两种状态，但尚未确认其含义。请对照实车 AutoHold 保持与释放的时刻填写。未校准时可试听，不自动播放。", 13, INK));
+        text("本车已核对：1=行车/释放保持，2=驻车/正在保持。这里仅表示AutoHold状态，不等同于P挡、手刹或车辆可行驶。可按实车重新校准；日志仍需自行授权，音效开关不会自动开启。", 13, INK));
     if (service != null)
       for (Diagnostics.Candidate candidate : service.diagnostics.candidates())
         if ("autohold".equals(candidate.sample.key))
@@ -821,12 +860,12 @@ public final class MainActivity extends Activity {
     body.addView(text("保持车辆时的原始值", 13, INK));
     holding.setHint("填写 1 或 2");
     holding.setContentDescription("AutoHold 保持原始值");
-    holding.setText(store.prefs.getString("autohold.holding", ""));
+    holding.setText(store.prefs.getString("autohold.holding", "2"));
     body.addView(holding);
     body.addView(text("释放保持时的原始值", 13, INK));
     released.setHint("填写另一个值");
     released.setContentDescription("AutoHold 释放原始值");
-    released.setText(store.prefs.getString("autohold.released", ""));
+    released.setText(store.prefs.getString("autohold.released", "1"));
     body.addView(released);
     AlertDialog dialog =
         new AlertDialog.Builder(this)
@@ -836,7 +875,7 @@ public final class MainActivity extends Activity {
             .setNeutralButton(
                 "清除校准",
                 (view, which) -> {
-                  store.prefs.edit().remove("autohold.holding").remove("autohold.released").apply();
+                  store.prefs.edit().putString("autohold.holding", "").putString("autohold.released", "").apply();
                   render();
                 })
             .setNegativeButton("取消", null)
@@ -858,265 +897,469 @@ public final class MainActivity extends Activity {
                         released.setError(error.getMessage());
                       }
                     }));
-    dialog.show();
+    showCalibrationDialog(dialog);
   }
 
   private void lockSettings(EventSpec event) {
-    new AlertDialog.Builder(this)
-        .setTitle(store.lockCalibrated() ? "解闭锁 · 独立车外通道" : "解闭锁 · 未校准，不会自动播放")
-        .setItems(new String[] {"校准中控锁状态", "选择车外输出设备", "测试所选车外设备",
-            "确认该设备为车外扬声器", "更多音频设置"}, (dialog, item) -> {
-          if (item == 0) lockCalibration();
-          else if (item == 1) lockOutput();
-          else if (item == 2) {
-            if (service != null) service.preview(event.id);
-          } else if (item == 3) confirmLockOutput();
-          else editEvent(event);
-        })
-        .setNegativeButton("关闭", null)
-        .show();
+    new AlertDialog.Builder(this).setTitle("解闭锁 · 原厂车外通道")
+        .setItems(new String[] {"车外通道与P挡条件", "试听车外声音", "更多音频设置", "锁事件来源（ICC / 授权日志）", "校准日志锁状态"}, (dialog, item) -> {
+          if (item == 0) iccStateSettings("lock");
+          else if (item == 1) { if (service != null) service.preview(event.id); }
+          else if (item == 2) editEvent(event);
+          else if (item == 3) lockTriggerSource();
+          else lockCalibration();
+        }).setNegativeButton("关闭", null).show();
+  }
+
+  private void lockTriggerSource() {
+    new AlertDialog.Builder(this).setTitle("锁事件来源 · 不自动补位")
+        .setSingleChoiceItems(new String[] {"ICC接口（默认，无需日志授权）", "授权日志（需另行启用、授权及校准）"},
+            store.logLockSelected() ? 1 : 0, (dialog, which) -> {
+              store.logLockSelected(which == 1);
+              dialog.dismiss();
+              render();
+              toast(which == 1 ? "已选日志锁事件；请核对校准，并在来源设置自行启用和授权日志" : "已选ICC；等待新基线");
+            })
+        .setNegativeButton("取消", null).show();
   }
 
   private void lockCalibration() {
     LinearLayout body = col();
     body.setPadding(dp(22), dp(10), dp(22), dp(16));
-    body.addView(text("信号：VehicleDoor/CentralLock · 0x67000096 · 区域 0\n"
-        + "必填：选好音源和车外设备后仍须校准，否则不会自动播放。\n"
-        + "不预设 0/1 的含义。请先分别标记锁车、解锁并查看变化记录，再填写两个实际值。", 13, INK));
-    if (service != null)
-      for (Diagnostics.Candidate candidate : service.diagnostics.candidates())
-        if ("lock".equals(candidate.sample.key))
-          body.addView(text("最近观测：" + candidate.sample.raw + " · "
-              + new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.CHINA)
-                  .format(new java.util.Date(candidate.sample.time))
-              + "（仅供对照，不推断闭锁/解锁）", 13, INK));
+    body.addView(text("仅校准授权日志的锁原始值，保留以前保存的映射，不套用ICC的1/2。保存不会启用日志或改变车辆。两种来源都要求新鲜ICC P挡，息屏/休眠后不保证可播放。", 13, INK));
     EditText locked = new EditText(this), unlocked = new EditText(this);
-    locked.setSingleLine(true);
-    unlocked.setSingleLine(true);
-    locked.setHint("闭锁时的原始值（不预设）");
-    unlocked.setHint("解锁时的原始值（不预设）");
-    locked.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
-    unlocked.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+    for (EditText input : new EditText[] {locked, unlocked}) {
+      input.setSingleLine(true);
+      input.setTextColor(INK);
+      input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+    }
+    body.addView(text("闭锁原始值", 13, INK));
+    locked.setContentDescription("日志闭锁原始值");
+    locked.setTag("lock.log.locked");
     locked.setText(store.prefs.getString("lock.locked", ""));
-    unlocked.setText(store.prefs.getString("lock.unlocked", ""));
     body.addView(locked);
+    body.addView(text("解锁原始值", 13, INK));
+    unlocked.setContentDescription("日志解锁原始值");
+    unlocked.setTag("lock.log.unlocked");
+    unlocked.setText(store.prefs.getString("lock.unlocked", ""));
     body.addView(unlocked);
-    AlertDialog dialog = new AlertDialog.Builder(this)
-        .setTitle("校准中控锁状态")
-        .setView(body)
-        .setPositiveButton("保存校准", null)
-        .setNeutralButton("清除校准", (view, which) -> {
-          store.prefs.edit().remove("lock.locked").remove("lock.unlocked").apply();
-          render();
-        })
-        .setNegativeButton("取消", null).create();
+    AlertDialog dialog = new AlertDialog.Builder(this).setTitle("校准日志锁状态").setView(body)
+        .setPositiveButton("保存校准", null).setNegativeButton("取消", null).create();
     dialog.setOnShowListener(view -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(button -> {
-      String lockedValue = locked.getText().toString().trim(), unlockedValue = unlocked.getText().toString().trim();
       try {
-        store.calibrateLock(lockedValue, unlockedValue);
+        store.calibrateLock(locked.getText().toString().trim(), unlocked.getText().toString().trim());
         dialog.dismiss();
         render();
-        toast("校准已保存；下次有效状态仅建立基线，不播音");
-      } catch (IllegalArgumentException error) {
-        unlocked.setError(error.getMessage());
-      }
+        toast("已保存日志映射；等待新基线，不补播");
+      } catch (IllegalArgumentException invalid) { unlocked.setError(invalid.getMessage()); }
     }));
-    dialog.show();
-  }
-
-  private void lockOutput() {
-    AudioManager manager = (AudioManager) getSystemService(AUDIO_SERVICE);
-    List<AudioDeviceInfo> devices = new ArrayList<>();
-    List<String> labels = new ArrayList<>();
-    labels.add("禁用车外输出（不回退车内）");
-    int selected = 0;
-    if (manager != null)
-      for (AudioDeviceInfo device : manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
-        devices.add(device);
-        labels.add(device.getProductName() + " · 设备 " + device.getId() + " · 类型 " + device.getType());
-        if (store.lockOutputMatches(device)) selected = labels.size() - 1;
-      }
-    new AlertDialog.Builder(this)
-        .setTitle("选择车外设备 · 须在车外测试确认")
-        .setSingleChoiceItems(labels.toArray(new String[0]), selected, (dialog, item) -> {
-          if (item == 0)
-            store.prefs.edit().remove("lock.output.id").remove("lock.output.type")
-                .remove("lock.output.name").remove("lock.output.address")
-                .putBoolean("lock.output.confirmed", false).apply();
-          else store.lockOutput(devices.get(item - 1));
-          dialog.dismiss();
-          render();
-          toast("自动播放暂未授权，请测试并确认物理车外扬声器");
-        })
-        .setNegativeButton("关闭", null).show();
-  }
-
-  private void confirmLockOutput() {
-    AudioManager manager = (AudioManager) getSystemService(AUDIO_SERVICE);
-    boolean available = false;
-    if (manager != null)
-      for (AudioDeviceInfo device : manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS))
-        if (store.lockOutputMatches(device)) available = true;
-    if (!available) {
-      toast("未选择有效车外设备，请先选择并测试");
-      return;
-    }
-    new AlertDialog.Builder(this)
-        .setTitle("已在车外听到测试音？")
-        .setMessage("系统设备名称不能证明是车外扬声器。只有亲自在车外确认测试音来自目标扬声器后才能授权自动播放。"
-            + "如果车外通道未被系统枚举，需另行确认厂商音频接口，不能用车内通道代替。")
-        .setPositiveButton("已确认，授权自动播放", (dialog, item) -> {
-          store.prefs.edit().putBoolean("lock.output.confirmed", true).apply();
-          render();
-        })
-        .setNegativeButton("尚未确认", null).show();
+    showCalibrationDialog(dialog);
   }
 
   private LinearLayout panel() {
     LinearLayout box = col();
     box.setPadding(dp(18), dp(16), dp(18), dp(16));
-    box.setBackground(shape(Color.WHITE, 0xffe0e9f5, 18));
+    box.setBackground(shape(theme.surface, theme.border, 18));
     margin(content, box, -2, 14);
     return box;
   }
 
-  private Button diagnosticLogButton;
-  private TextView nativeDetails;
+  private Button logSourceButton;
 
   private void detection() {
     LinearLayout top = panel();
-    top.addView(bold("发现你的 ES 能提供哪些事件", 22, INK));
-    gap(top, 9);
-    TextView intro = text("默认通过 Mega 原生属性订阅门、挡位、中控锁和 AutoHold。先核对实时状态，再启用音效；日志只在手动开启时采集，不参与音效触发。", 13, MUTED);
-    intro.setLineSpacing(dp(5), 1);
-    top.addView(intro);
-    gap(top, 15);
-    diagStatus = text("正在读取权限与接口状态…", 13, INK);
+    top.addView(bold("车辆事件监听", 22, INK));
+    gap(top, 12);
+    diagStatus = text("ICC接口与授权日志分别读取…", 13, INK);
     diagStatus.setLineSpacing(dp(5), 1);
     top.addView(diagStatus);
     gap(top, 14);
     LinearLayout controls = row();
     captureButton =
         button(
-            "开始扩展检测",
+            "开始监听",
             true,
             () -> {
               if (service == null) {
                 toast("服务正在连接");
                 return;
               }
-              service.discovery(!service.diagnostics.scanning);
+              if (service.running()) service.end();
+              else ensureMonitor();
               update();
             });
     weighted(controls, captureButton, 44, 8);
-    weighted(controls, button("标记当前操作", false, () -> marker()), 44, 8);
+    weighted(controls, button("重新连接", false, () -> {
+      if (service == null) { toast("服务正在连接"); return; }
+      if (service.running()) service.reconnect();
+      else ensureMonitor();
+      update();
+    }), 44, 8);
     weighted(controls, button("导出记录", false, () -> export()), 44, 0);
     top.addView(controls);
     gap(top, 10);
-    LinearLayout extra = row();
-    weighted(extra, button("权限说明", false, () -> permissions()), 40, 8);
-    weighted(
-        extra,
-        button(
-            "重新连接",
-            false,
-            () -> {
-              if (service != null) service.reconnect();
-            }),
-        40,
-        8);
-    weighted(
-        extra,
-        button(
-            "清空记录",
-            false,
-            () -> {
-              if (service != null) {
-                service.diagnostics.clear();
-                update();
-              }
-            }),
-        40,
-        0);
-    top.addView(extra);
+    LinearLayout options = row();
+    logSourceButton = button("来源设置", false, () -> logSource());
+    weighted(options, logSourceButton, 40, 8);
+    weighted(options, button("更多", false, () -> detectionOptions()), 40, 0);
+    top.addView(options);
     gap(top, 10);
-    diagnosticLogButton = button("开启日志辅助采集", false, () -> {
-      if (service != null) {
-        service.diagnosticLogs(!service.diagnosticLogs());
-        update();
-      }
-    });
-    top.addView(diagnosticLogButton);
-    gap(top, 8);
-    top.addView(button("挡位编码设置", false, () -> gearEncoding()));
-    gap(top, 8);
-    top.addView(button("ADB 只读诊断", false,
-        () -> startActivity(new Intent(this, AdbDiagnosticsActivity.class))));
-    LinearLayout nativePanel = panel();
-    nativePanel.addView(bold("原生订阅检测", 17, INK));
-    nativePanel.addView(text("注册成功只代表请求已提交。请核对属性回调次数、原始值和实际车辆变化；失败的属性会单独显示原因，并以3秒轮询重试。", 12, MUTED));
-    nativeDetails = text("等待 Mega 接口…", 12, MUTED);
-    nativeDetails.setTextIsSelectable(true);
-    nativePanel.addView(nativeDetails);
+    top.addView(text("仅在安全驻车时测试。首样本不播音；0次或报错也请导出。", 12, MUTED));
     LinearLayout values = panel();
-    values.addView(bold("已知车辆状态", 17, INK));
+    values.addView(bold("车辆状态大屏", 22, INK));
+    gap(values, 10);
+    LinearLayout dashboardActions = row();
+    calibrationButton = button("统一校准", true, () -> dashboardCalibration());
+    weighted(dashboardActions, calibrationButton, 44, 0);
+    values.addView(dashboardActions);
+    calibrationStatus = text("ICC六项固定走接口；门、尾门和AutoHold固定走授权日志，点击卡片核对。", 12, MUTED);
+    calibrationStatus.setPadding(0, dp(10), 0, 0);
+    values.addView(calibrationStatus);
     gap(values, 12);
-    signals = text("暂无实车数据。开启检测后，首次状态仅作为基线。", 14, MUTED);
-    signals.setLineSpacing(dp(6), 1);
-    values.addView(signals);
-    LinearLayout candidates = panel();
-    candidates.addView(bold("候选信号与属性", 17, INK));
-    gap(candidates, 6);
-    candidates.addView(text("显示最近的 40 项；完整记录随导出文件保存。点击条目查看或绑定。", 11, MUTED));
-    gap(candidates, 12);
-    candidateList = col();
-    candidates.addView(candidateList);
+    stateDashboard = new StateDashboardView(this, key -> calibrateDashboardState(key));
+    values.addView(stateDashboard);
+    values.addView(text("绿色为近5秒样本；灰色为未收到/上次状态。车速拟合声浪需单独启用，仅D挡使用近2.5秒数据；倒车、行人循环不自动启用。", 11, MUTED));
+    stateDashboard.update(service == null ? new Diagnostics() : service.diagnostics, store,
+        service != null && service.running(), System.currentTimeMillis());
     LinearLayout logs = panel();
-    logs.addView(bold("实时日志", 17, INK));
-    logs.addView(text("显示接口、播放和可选系统日志。日志辅助采集默认关闭；原生属性目录、回调计数和变化历史会随检测记录导出。", 11, MUTED));
+    logs.addView(bold("近期日志", 17, INK));
     gap(logs, 10);
-    filter = new EditText(this);
-    filter.setTextColor(INK);
-    filter.setHintTextColor(MUTED);
-    filter.setSingleLine(true);
-    filter.setTextSize(13);
-    filter.setHint("筛选，例如 Lock / Charge / VehicleDoor");
-    filter.setPadding(dp(12), dp(8), dp(12), dp(8));
-    filter.setBackground(shape(0xfff4f7fb, 0xffe0e9f5, 10));
-    add(logs, filter, 42);
-    gap(logs, 12);
-    rawLog = text("等待日志…", 11, 0xff60718c);
+    rawLog = text("等待日志…", 11, theme.secondaryText);
     rawLog.setTypeface(Typeface.MONOSPACE);
     rawLog.setTextIsSelectable(true);
     rawLog.setLineSpacing(dp(3), 1);
     logs.addView(rawLog);
   }
 
-  private void gearEncoding() {
-    boolean sdk = store.prefs.getBoolean("mega.gear.sdkEnums", false);
-    new AlertDialog.Builder(this)
-        .setTitle("挡位编码：按原始值与实际挡位核对")
-        .setSingleChoiceItems(new String[] {
-          "ES 已观测：1=P、2=R、3=N、4=D（默认）",
-          "SDK 定义：0=P、1=R、2=N、3=D、4=M/S"
-        }, sdk ? 1 : 0, (dialog, which) -> {
-          store.prefs.edit().putBoolean("mega.gear.sdkEnums", which == 1).apply();
-          dialog.dismiss();
-          toast("已更换编码，重新连接并建立挡位基线");
-        })
-        .setNegativeButton("关闭", null).show();
+  @Override public void onBackPressed() {
+    if (page == 2) { page = 0; render(); return; }
+    if (service != null) service.calibrationMode(false);
+    super.onBackPressed();
+  }
+
+  private void dashboardCalibration() {
+    if (service == null) { toast("服务正在连接"); return; }
+    if (service.diagnostics.calibrating) {
+      service.calibrationMode(false);
+      update();
+      return;
+    }
+    service.calibrationMode(true);
+    update();
+    List<VehicleStateSpec> available = new ArrayList<>();
+    for (VehicleStateSpec spec : VehicleStateSpec.ALL)
+      if (!spec.key.equals("handbrake") && !spec.key.equals("power")
+          ) available.add(spec);
+    String[] names = new String[available.size()];
+    for (int index = 0; index < names.length; index++) names[index] = available.get(index).title;
+    AlertDialog menu = new AlertDialog.Builder(this).setTitle("统一校准 · 自动音效已暂停")
+        .setItems(names, (dialog, which) -> calibrateDashboardState(available.get(which).key))
+        .setNeutralButton("ES已知预设", (dialog, which) -> esStatePresetDialog())
+        .setNegativeButton("返回大屏", null).create();
+    showCalibrationDialog(menu);
+  }
+
+  private void esStatePresetDialog() {
+    if (service == null) { toast("服务正在连接"); return; }
+    service.calibrationMode(true);
+    LinearLayout body = col();
+    body.setPadding(dp(20), dp(12), dp(20), dp(12));
+    body.addView(text("可选应用已知ES车门/尾门日志映射，不代表本车已验证。仅覆盖勾选项，不修改车辆、不启用音效、不生成样本。ICC接口不套用日志预设；AutoHold需单独校准。", 13, INK));
+    body.addView(text("未勾选项的手动校准保留；原有ES预设取消勾选则恢复默认解析。", 12, MUTED));
+    boolean hasPreset = false;
+    for (VehicleStateSpec spec : VehicleStateSpec.ALL) if (store.esStatePreset(spec.key)) hasPreset = true;
+    List<android.widget.CheckBox> choices = new ArrayList<>();
+    for (VehicleStateSpec spec : VehicleStateSpec.ALL) {
+      if (!spec.customMapping() || !VehicleStateSpec.logKey(spec.key)) continue;
+      android.widget.CheckBox choice = new android.widget.CheckBox(this);
+      choice.setText(spec.title + "\n" + spec.esPresetDescription());
+      choice.setTextColor(INK);
+      choice.setTag(spec.key);
+      choice.setContentDescription("ES预设 " + spec.title);
+      choice.setChecked(!hasPreset || store.esStatePreset(spec.key));
+      body.addView(choice);
+      choices.add(choice);
+    }
+    TextView error = text("应用后继续留在校准模式；完成时请点击完成校准。", 12, MUTED);
+    body.addView(error);
+    ScrollView scroll = new ScrollView(this);
+    scroll.addView(body);
+    AlertDialog dialog = new AlertDialog.Builder(this).setTitle("ES预设 · 已知日志映射")
+        .setView(scroll).setPositiveButton("应用所选预设", null)
+        .setNeutralButton("移除ES预设", (view, which) -> {
+          store.clearEsStatePreset();
+          render();
+          toast("已移除ES预设，恢复默认解析；手动校准保留");
+        }).setNegativeButton("取消", null).create();
+    dialog.setOnShowListener(view -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(button -> {
+      List<String> selected = new ArrayList<>();
+      for (android.widget.CheckBox choice : choices)
+        if (choice.isChecked()) selected.add((String) choice.getTag());
+      try {
+        store.applyEsStatePreset(selected.toArray(new String[0]));
+        dialog.dismiss();
+        render();
+        toast("已应用ES预设；等待新日志，请继续对照实车核对");
+      } catch (IllegalArgumentException invalid) { error.setText(invalid.getMessage()); }
+    }));
+    showCalibrationDialog(dialog);
+  }
+
+  private void calibrateDashboardState(String key) {
+    if (service == null) { toast("服务正在连接"); return; }
+    VehicleStateSpec spec = VehicleStateSpec.find(key);
+    if (spec == null) return;
+    if (key.equals("lock")) { lockSettings(EventSpec.find("lock.lock")); return; }
+    if (key.equals("charge")) {
+      iccStateSettings(key);
+      return;
+    }
+    if ((key.equals("handbrake") || key.equals("power") || key.equals("speed"))) {
+      new AlertDialog.Builder(this).setTitle("ICC" + spec.title)
+          .setMessage(key.equals("speed") ? "本车已实测：ICC原值就是km/h，不再换算。成功回复、挡位有效且车速字段省略时按本车静止0显示，原字段仍记录为MISSING；无回复、失败、过期或挡位未知不会补0。不参与行人/声浪自动循环音。"
+              : key.equals("handbrake") ? "原厂协议1=手刹释放、2=手刹拉起，0/其他/缺失不猜测。此字段不是AutoHold，不复用其音效或校准。"
+              : "原厂协议1=OFF、2=ACC、3=ON、4=START，0/其他/缺失显示未知。仅展示，不据此判断可行驶、启动状态或执行任何车控。")
+          .setPositiveButton("知道了", null).show();
+      return;
+    }
+    if (key.equals("gear")) {
+      new AlertDialog.Builder(this).setTitle("ICC协议挡位")
+          .setMessage("挡位固定从ICC接口读取，1=P、2=N、3=D、4=R；不套用日志校准，不从日志补位。接口异常立即使状态失效，按1/2/4/8/10秒退避持续自动重试；恢复首样本静默。停止监听或切换/替换接口来源后取消旧请求和重试。")
+          .setPositiveButton("知道了", null).show();
+      return;
+    }
+    service.calibrationMode(true);
+    update();
+    if (key.equals("lock")) { lockCalibration(); return; }
+    if (key.equals("autohold")) { autoHoldCalibration(); return; }
+    Diagnostics.StateReading reading = service.diagnostics.stateReadings().get(key);
+    if (reading != null && IccVehicleWire.gear(reading.sample)) {
+      new AlertDialog.Builder(this).setTitle("ICC协议挡位")
+          .setMessage("ICC原始值1=P、2=N、3=D、4=R，独立转换为本App音效状态，不套用ES日志预设。已收到实车P/D变化；N/R仍需对照。这里只读，不修改车辆挡位；完成后点击完成校准，恢复首样本静默。")
+          .setPositiveButton("返回大屏", null).show();
+      return;
+    }
+    if (reading == null || !Store.knownLogIdentity(reading.sample) || reading.sample.status != 0) {
+      new AlertDialog.Builder(this).setTitle("等待" + spec.title + "日志")
+          .setMessage("请先开始日志监听，在安全驻车条件下操作并收到本项有效原始值，再校准。不会把未收到当成0，也不会修改车辆状态。")
+          .setPositiveButton("返回大屏", null).show();
+      return;
+    }
+    stateCalibrationDialog(spec, reading.sample);
+  }
+
+  private void stateCalibrationDialog(VehicleStateSpec spec, Protocol.Sample subject) {
+    LinearLayout body = col();
+    body.setPadding(dp(20), dp(12), dp(20), dp(12));
+    body.addView(text("自动音效已暂停；仅修改本App映射，不控制车辆。每项按实车状态填写，保存不会播放，完成后仍须新样本建立基线。", 13, INK));
+    body.addView(text("绑定来源：" + subject.topic + " / 0x" + Long.toHexString(subject.propertyId)
+        + " / " + subject.area + "\n开窗时原始值：" + subject.raw + "（可能已旧，不作为实时保证）", 12, MUTED));
+    if (store.esStatePreset(spec.key))
+      body.addView(text("当前为ES预设；保存本表将替换为仅绑定上述来源的手动校准，预填值仍须实车确认。", 12, MUTED));
+    JSONObject configuration = store.stateCalibration(spec.key);
+    boolean sameIdentity = subject.topic.equals(configuration.optString("topic"))
+        && subject.propertyId == configuration.optLong("propertyId")
+        && subject.area.equals(configuration.optString("area"));
+    JSONObject mapping = sameIdentity ? configuration.optJSONObject("mapping") : null;
+    List<EditText> inputs = new ArrayList<>();
+    Spinner units = spinner(java.util.Arrays.asList("原始值为 km/h", "原始值为 m/s（×3.6）"));
+    if (spec.key.equals("speed")) {
+      units.setSelection(sameIdentity && configuration.optBoolean("metersPerSecond") ? 1 : 0);
+      body.addView(text("请选择原始车速单位，不猜单位、不校准偏移。", 13, INK));
+      body.addView(units);
+    } else for (int index = 0; index < spec.values.length; index++) {
+      final int target = index;
+      body.addView(text(spec.labels[index] + (spec.key.equals("gear") && index == 4 ? "（可留空）" : "对应原始值"), 13, INK));
+      EditText input = new EditText(this);
+      input.setTextColor(INK);
+      input.setSingleLine(true);
+      input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+      input.setContentDescription(spec.title + " " + spec.labels[index] + "原始值");
+      String preset = store.esStatePreset(spec.key) ? spec.esPresetRawValues()[index] : "";
+      if (mapping != null) {
+        java.util.Iterator<String> keys = mapping.keys();
+        while (keys.hasNext()) {
+          String raw = keys.next();
+          if (spec.values[index].equals(mapping.optString(raw))) preset = raw;
+        }
+      }
+      input.setText(preset);
+      inputs.add(input);
+      LinearLayout field = row();
+      weighted(field, input, 48, 8);
+      field.addView(button("取当前", false, () -> {
+        if (service == null) return;
+        Diagnostics.StateReading current = service.diagnostics.stateReadings().get(spec.key);
+        long now = System.currentTimeMillis();
+        if (current == null || !current.sample.identity().equals(subject.identity())
+            || current.sample.status != 0 || !Protocol.lockValue(current.sample.raw)
+            || now - current.receivedAt > 5000 || now - current.sample.time > 5000
+            || current.sample.time > now + 500 || !service.running()) {
+          toast("没有同来源的近5秒有效样本，请等待新日志或手动填写已确认值");
+          return;
+        }
+        inputs.get(target).setText(current.sample.raw);
+      }), new LinearLayout.LayoutParams(dp(88), dp(44)));
+      body.addView(field);
+    }
+    android.widget.CheckBox confirmed = new android.widget.CheckBox(this);
+    confirmed.setText("已对照实车确认上述含义（不是修改实车状态）");
+    confirmed.setTextColor(INK);
+    body.addView(confirmed);
+    ScrollView scroll = new ScrollView(this);
+    scroll.addView(body);
+    AlertDialog dialog = new AlertDialog.Builder(this).setTitle("校准" + spec.title).setView(scroll)
+        .setPositiveButton("保存校准", null)
+        .setNeutralButton("恢复默认", (view, which) -> {
+          store.clearStateCalibration(spec.key);
+          render();
+          toast("已恢复默认；等待新样本建立基线");
+        }).setNegativeButton("取消", null).create();
+    dialog.setOnShowListener(view -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(button -> {
+      if (!confirmed.isChecked()) { confirmed.setError("请先对照实车确认"); return; }
+      String[] values = new String[inputs.size()];
+      for (int index = 0; index < values.length; index++) values[index] = inputs.get(index).getText().toString().trim();
+      try {
+        store.calibrateState(subject, values, units.getSelectedItemPosition() == 1);
+        dialog.dismiss();
+        render();
+        toast("已保存；可继续校准其他项，完成后点击完成校准");
+      } catch (IllegalArgumentException error) {
+        confirmed.setError(error.getMessage());
+      }
+    }));
+    showCalibrationDialog(dialog);
+  }
+
+  private void showCalibrationDialog(AlertDialog dialog) {
+    if (page == 1 && service != null && service.diagnostics.calibrating) {
+      activeCalibrationDialog = dialog;
+      dialog.setOnDismissListener(view -> {
+        if (activeCalibrationDialog == dialog) activeCalibrationDialog = null;
+      });
+    }
+    dialog.show();
+  }
+
+  private void detectionOptions() {
+    if (service == null) { toast("服务正在连接"); return; }
+    String[] items = {"读取详情", "标记当前操作", "日志授权说明", "ADB 诊断 / APK 提取", "清空记录"};
+    new AlertDialog.Builder(this).setTitle("更多")
+        .setItems(items, (dialog, which) -> {
+          if (service == null) return;
+          if (which == 0) {
+            String details = "接口：挡位、车速(km/h)、手刹、电源、充电" + (store.logLockSelected() ? "\n" : "、中控锁\n")
+                + service.diagnostics.iccVehicleSourceSummary()
+                + "\n\n日志：四门、尾门、AutoHold" + (store.logLockSelected() ? "、中控锁\n" : "\n") + service.diagnostics.logStatus
+                + "\n\n" + service.diagnostics.recordingStatus()
+                + "\n两类独立运行、不自动补位。车速仅在本车成功回复且挡位有效时，省略字段按静止0显示；未知、失效不补0。";
+            TextView detailView = text(details, 13, INK);
+            detailView.setTextIsSelectable(true);
+            detailView.setPadding(dp(20), dp(12), dp(20), dp(12));
+            ScrollView scroll = new ScrollView(this);
+            scroll.addView(detailView);
+            new AlertDialog.Builder(this).setTitle("读取详情").setView(scroll)
+                .setPositiveButton("关闭", null).show();
+          } else if (which == 1) marker();
+          else if (which == 2) permissions();
+          else if (which == 3) startActivity(new Intent(this, AdbDiagnosticsActivity.class));
+          else new AlertDialog.Builder(this).setTitle("清空检测记录？")
+              .setMessage("清空日志、候选和操作标记，不删除音源或设置。需要的记录请先导出。")
+              .setNegativeButton("取消", null)
+              .setPositiveButton("清空", (confirm, selected) -> {
+                if (service != null) service.diagnostics.clear();
+                update();
+              }).show();
+        }).setNegativeButton("关闭", null).show();
+  }
+
+  private void logSource() {
+    if (service == null) { toast("服务正在连接"); return; }
+    new AlertDialog.Builder(this).setTitle("接口与授权日志")
+        .setItems(new String[] {"ICC接口：查询间隔", service.logsEnabled() ? "授权日志：已启用（点击关闭）" : "授权日志：未启用（点击授权）", "日志授权说明"},
+            (dialog, which) -> {
+              if (which == 0) iccSourceSettings();
+              else if (which == 2) permissions();
+              else if (service != null && service.logsEnabled()) {
+                service.logsEnabled(false);
+                update();
+              } else new AlertDialog.Builder(this).setTitle("启用授权日志补充？")
+                  .setMessage("为四门、尾门、AutoHold及手动选中的日志锁事件读取系统实时日志；其余状态走ICC，不自动切换。\n\n请自行在应用信息中授予读取系统日志权限，并同意可能出现的系统日志确认。没有数据不当成关闭，授权不代表本车一定输出这些事件。\n\n启用后，开始监听会发起日志请求；断开不反复申请，需手动重新连接。可随时关闭，ICC不受影响。")
+                  .setNegativeButton("取消", null)
+                  .setNeutralButton("授权说明", (confirm, selected) -> permissions())
+                  .setPositiveButton("我同意，启用日志", (confirm, selected) -> {
+                    if (service != null) service.logsEnabled(true);
+                    update();
+                  }).show();
+            }).setNegativeButton("关闭", null).show();
+  }
+
+  private void iccSourceSettings() {
+    int[] intervals = {250, 500, 1000};
+    int[] selected = {store.iccIntervalMillis()};
+    LinearLayout body = col();
+    body.setPadding(dp(20), dp(12), dp(20), dp(12));
+    body.addView(text("ICC接口默认启用，只查询、不控制车辆。打开应用自动监听六项车况；中控锁默认启用P挡车外提示，充电仍需核对后开启，首样本/重连/未知恢复不播音。", 13, INK));
+    android.widget.RadioGroup choices = new android.widget.RadioGroup(this);
+    String[] labels = {"较快：完成后等250 ms（默认）", "适中：完成后等500 ms", "保守：完成后等1000 ms"};
+    for (int index = 0; index < intervals.length; index++) {
+      android.widget.RadioButton choice = new android.widget.RadioButton(this);
+      choice.setId(intervals[index]);
+      choice.setTag("icc.interval." + intervals[index]);
+      choice.setText(labels[index]);
+      choices.addView(choice);
+    }
+    choices.check(selected[0]);
+    choices.setOnCheckedChangeListener((group, id) -> selected[0] = id);
+    body.addView(choices);
+    body.addView(text("正常间隔=请求耗时+所选等待，串行不重叠。部分查询约1.2秒，缩短等待不能消除上游延迟。超时、网络/HTTP/报文失败后按1/2/4/8/10秒退避持续重试，不再永久停查；恢复后回到所选间隔，首样本静默，不补播。停止监听或替换ICC来源取消旧重试。\n\n保持服务运行不等于阻止整机休眠；系统挂起时不能执行请求，恢复调度后继续。无需日志/存储授权，不自动重新申请日志。手刹不是AutoHold；本车车速原值即km/h，持续循环音不自动开启。", 12, MUTED));
+    ScrollView scroll = new ScrollView(this);
+    scroll.addView(body);
+    new AlertDialog.Builder(this).setTitle("ICC查询间隔").setView(scroll)
+        .setNegativeButton("取消", null)
+        .setPositiveButton("保存", (dialog, which) -> {
+          store.iccIntervalMillis(selected[0]);
+          update();
+        }).show();
+  }
+
+  private void iccStateSettings(String key) {
+    if (!key.equals("lock") && !key.equals("charge")) return;
+    boolean lock = key.equals("lock");
+    if (lock) {
+      new AlertDialog.Builder(this).setTitle("中控锁 · P挡车外提示")
+          .setMessage((store.logLockSelected() ? "当前使用授权日志锁事件，原始值按日志锁校准解释；请另行启用并授权日志。" : "当前使用ICC锁事件，协议1=解锁、2=闭锁，无需二次确认。")
+              + "自动锁声默认启用，可在首页关闭。锁设置中可手动切换ICC/授权日志，不自动补位。\n\n两种来源都先建立新鲜ICC P挡与锁状态基线，之后中控锁变化才播放；D/R/N、未知或过期挡位均不播放，也不在回到P挡后补播。离开P挡立即取消待播与正在播放的自动锁声。\n\n默认匹配原厂BUS2007_VENDOR_CONTEXT2车外总线，播放和焦点使用usage2007；播放器默认100%增益，沿用该组系统音量，不擅自拉满全车音量。通道或usage不可用就停止，不回退车内，不切换全局outside_mode。息屏后是否仍有P挡、锁事件及车外输出，需导出检测确认。")
+          .setPositiveButton("关闭", null).show();
+      return;
+    }
+    LinearLayout body = col();
+    body.setPadding(dp(20), dp(12), dp(20), dp(12));
+    body.addView(text("ICC充电协议：1=未充电、2=待机、3=慢充、4=快充。仅3/4算充电中，1/2算未充电；快慢切换不重复播开始。先对照真实充电过程核对，再允许触发；仍需开启充电提示音。", 13, INK));
+    Diagnostics.StateReading reading = service == null ? null : service.diagnostics.stateReadings().get(key);
+    body.addView(text(reading != null && IccVehicleWire.state(reading.sample)
+        ? "最近回复：" + IccVehicleWire.stateLabel(reading.sample) + " · raw=" + reading.sample.raw + "（历史回复，不保证当前）"
+        : "尚无本来源样本，不能把缺失/0当作真实状态。", 12, MUTED));
+    android.widget.CheckBox confirmed = new android.widget.CheckBox(this);
+    confirmed.setTag("icc.confirm." + key);
+    confirmed.setText("我已对照实车核对ICC充电状态，允许本来源音效触发");
+    confirmed.setChecked(store.iccTriggerConfirmed(key));
+    body.addView(confirmed);
+    body.addView(text("默认仅展示。保存/撤销确认会取消旧查询及待播提示，恢复首样本静默；校准模式中仍不自动播放。不修改车辆状态或原厂配置。", 12, MUTED));
+    ScrollView scroll = new ScrollView(this);
+    scroll.addView(body);
+    new AlertDialog.Builder(this).setTitle("ICC充电状态核对").setView(scroll)
+        .setNegativeButton("取消", null)
+        .setPositiveButton("保存", (dialog, which) -> {
+          store.iccTriggerConfirmed(key, confirmed.isChecked());
+          update();
+        }).show();
   }
 
   private void permissions() {
     new AlertDialog.Builder(this)
-        .setTitle("原生接口与日志权限")
-        .setMessage(
-            "本版默认使用 Mega 原生属性，门/尾门需要 ENTRY_LOCK、挡位需要 CAR_DRIVING、"
-                + "中控锁需要 VEHICLE_CONTROL、AutoHold 需要 SEQUOIA。\n\n"
-                + "已声明这些权限，但是否获准由车机决定；READ_LOGS 不能代替车辆权限。"
-                + "请查看原生订阅检测中的 SDK、管理器、逐项读取/订阅结果。\n\n"
-                + "只有手动开启日志辅助采集时，才需在应用管家授予 cn.es.soundlab 读取系统日志权限。"
-                + "Android 13 可能再要求允许一次。关闭辅助采集不影响原生音效，车辆接口被拒绝也不会自动回退日志。")
+        .setTitle("日志授权说明")
+        .setMessage("ICC接口不需要日志或存储授权，负责挡位、车速、手刹、电源、充电及默认的中控锁。锁可在解闭锁设置中手动改为授权日志。\n\n四门、尾门、AutoHold及显式选中的日志锁事件需要您在来源设置中自行启用日志，并在系统应用信息中授予本应用读取系统日志权限。Android可能另行弹出日志访问确认，请自行同意；应用不会自动授予或绕过授权。\n\n授权不保证本车输出所有事件。日志断开后不会自动反复请求；关闭日志不影响ICC。已移除文件、Carota和无效车辆探针。")
         .setPositiveButton(
             "打开应用信息",
             (d, w) -> {
@@ -1147,6 +1390,10 @@ public final class MainActivity extends Activity {
       "副驾开 / 关门",
       "后排开 / 关门",
       "切换挡位",
+      "实车挡位 P（驻车）",
+      "实车挡位 R（倒车）",
+      "实车挡位 N（空挡）",
+      "实车挡位 D（前进）",
       "尾门开 / 关",
       "车辆解锁",
       "车辆闭锁",
@@ -1169,331 +1416,34 @@ public final class MainActivity extends Activity {
         .show();
   }
 
-  private void rules() {
-    LinearLayout intro = panel();
-    intro.addView(bold("让新事件拥有自己的声音", 22, INK));
-    gap(intro, 10);
-    intro.addView(text("在车辆检测页观察状态变化，选中对应信号，将实际出现的值绑定到音效。规则只响应绑定后的变化，首次读取不会播放。", 14, MUTED));
-    gap(intro, 15);
-    intro.addView(
-        button(
-            "前往车辆检测 →",
-            true,
-            () -> {
-              page = 1;
-              render();
-            }));
-    JSONArray a = store.rules();
-    if (a.length() == 0) {
-      LinearLayout empty = panel();
-      empty.addView(text("还没有扩展规则。\n解闭锁、充电及自定义音效可从实车检测结果中添加。", 14, MUTED));
-      return;
-    }
-    for (int at = 0; at < a.length(); at++) {
-      final int index = at;
-      JSONObject r = a.optJSONObject(at);
-      if (r == null) continue;
-      LinearLayout box = panel();
-      EventSpec event = EventSpec.find(r.optString("event"));
-      box.addView(bold(event == null ? r.optString("event") : event.title, 18, INK));
-      gap(box, 8);
-      TextView detail =
-          text(
-              r.optString("source")
-                  + " · "
-                  + r.optString("topic")
-                  + "\n0x"
-                  + Long.toHexString(r.optLong("propertyId"))
-                  + " · area "
-                  + r.optString("area")
-                  + "\n变化后等于 "
-                  + r.optString("value")
-                  + (r.optString("source").equals("Mega") ? " 时播放" : "（旧来源仅保留，当前不触发；请从 Mega 原生候选重新绑定）"),
-              12,
-              MUTED);
-      detail.setLineSpacing(dp(4), 1);
-      box.addView(detail);
-      gap(box, 12);
-      LinearLayout actions = row();
-      if (event != null) weighted(actions, button("设置音频", false, () -> editEvent(event)), 40, 8);
-      weighted(
-          actions,
-          button(
-              "删除规则",
-              false,
-              () ->
-                  new AlertDialog.Builder(this)
-                      .setMessage("删除这条扩展规则？")
-                      .setPositiveButton(
-                          "删除",
-                          (d, w) -> {
-                            store.deleteRule(index);
-                            render();
-                          })
-                      .setNegativeButton("取消", null)
-                      .show()),
-          40,
-          0);
-      box.addView(actions);
-    }
-  }
-
-  private void candidate(Diagnostics.Candidate c) {
-    Protocol.Sample s = c.sample;
-    String details =
-        "来源："
-            + s.source
-            + "\n主题："
-            + s.topic
-            + "\n属性：0x"
-            + Long.toHexString(s.propertyId)
-            + "\n区域："
-            + s.area
-            + "\n状态："
-            + s.status
-            + "\n当前值："
-            + s.raw
-            + "\n已见值："
-            + c.values
-            + "\n上报 "
-            + c.count
-            + " 次，变化 "
-            + c.changes
-            + " 次\n\n"
-            + (s.key == null ? "尚未预设事件含义，请结合实车操作确认。" : "已知映射：" + signalName(s.key));
-    new AlertDialog.Builder(this)
-        .setTitle("信号详情")
-        .setMessage(details)
-        .setPositiveButton("绑定音效", (d, w) -> bindRule(c))
-        .setNegativeButton("关闭", null)
-        .show();
-  }
-
-  private void bindRule(Diagnostics.Candidate candidate) {
-    Protocol.Sample sample = candidate.sample;
-    if (!sample.source.equals("Mega")) {
-      toast("日志候选只用于分析，请选择 Mega 原生候选绑定音效");
-      return;
-    }
-    if ("lock".equals(sample.key)) {
-      lockCalibration();
-      return;
-    }
-    if ("autohold".equals(sample.key)) {
-      autoHoldCalibration();
-      return;
-    }
-    if (sample.status != 0) {
-      toast("该信号当前状态无效，请等待有效值后再绑定");
-      return;
-    }
-    LinearLayout body = col();
-    body.setPadding(dp(22), dp(8), dp(22), dp(16));
-    body.addView(text(sample.topic + "\n当前值：" + sample.raw, 12, MUTED));
-    gap(body, 12);
-    EditText match = new EditText(this);
-    match.setTextColor(INK);
-    match.setHintTextColor(MUTED);
-    match.setSingleLine(true);
-    match.setText(sample.raw);
-    match.setHint("状态变化后等于这个值时播放");
-    body.addView(match);
-    gap(body, 10);
-    List<EventSpec> events = new ArrayList<>();
-    List<String> labels = new ArrayList<>();
-    for (EventSpec e : EventSpec.ALL)
-      if (!e.id.endsWith(".loop") && !e.group.equals("shout") && !e.group.equals("autohold")) {
-        events.add(e);
-        labels.add(e.title);
-      }
-    Spinner target = spinner(labels);
-    for (int i = 0; i < events.size(); i++)
-      if (events.get(i).id.equals("lock.unlock")) {
-        target.setSelection(i);
-        break;
-      }
-    body.addView(text("绑定已有音效", 13, INK));
-    body.addView(target);
-    gap(body, 12);
-    EditText custom = new EditText(this);
-    custom.setTextColor(INK);
-    custom.setHintTextColor(MUTED);
-    custom.setSingleLine(true);
-    custom.setHint("或新建音效，例如：迎宾灯亮起（可选）");
-    custom.setTextSize(13);
-    body.addView(custom);
-    TextView note = text("以检测到的主题、属性和区域精确匹配。保存后会启用该组音效；仍需再次操作车辆来验证。", 12, MUTED);
-    note.setPadding(0, dp(12), 0, 0);
-    body.addView(note);
-    AlertDialog dialog =
-        new AlertDialog.Builder(this)
-            .setTitle("将实车信号绑定到音效")
-            .setView(body)
-            .setPositiveButton("绑定并启用", null)
-            .setNegativeButton("取消", null)
-            .create();
-    dialog.setOnShowListener(
-        d ->
-            dialog
-                .getButton(AlertDialog.BUTTON_POSITIVE)
-                .setOnClickListener(
-                    v -> {
-                      String value = match.getText().toString().trim(),
-                          name = custom.getText().toString().trim();
-                      if (value.isEmpty() || value.length() > 128) {
-                        match.setError("请输入 1–128 个字符的实际值");
-                        return;
-                      }
-                      if (name.length() > 30) {
-                        custom.setError("名称最多 30 个字");
-                        return;
-                      }
-                      try {
-                        EventSpec e =
-                            name.isEmpty()
-                                ? events.get(target.getSelectedItemPosition())
-                                : store.custom(name);
-                        JSONObject r =
-                            new JSONObject()
-                                .put("id", UUID.randomUUID().toString())
-                                .put("source", sample.source)
-                                .put("topic", sample.topic)
-                                .put("propertyId", sample.propertyId)
-                                .put("area", sample.area)
-                                .put("value", value)
-                                .put("event", e.id)
-                                .put("name", e.title)
-                                .put("createdAt", System.currentTimeMillis())
-                                .put("confirmation", "user-observed");
-                        store.addRule(r);
-                        store.enable(e.group, true);
-                        ensureMonitor();
-                        dialog.dismiss();
-                        toast("规则已保存，等待下一次真实变化");
-                        editEvent(e);
-                      } catch (Exception ex) {
-                        toast("保存规则失败：" + ex.getMessage());
-                      }
-                    }));
-    dialog.show();
-  }
-
-  private String signalName(String key) {
-    if (key.equals("autohold")) return "AutoHold（保持 / 释放需校准）";
-    if (key.equals("lock")) return "中控锁（原始值需校准）";
-    if (key.equals("gear")) return "挡位";
-    if (key.equals("speed")) return "车速";
-    if (key.equals("tailgate")) return "后尾门";
-    for (int i = 0; i < 4; i++)
-      if (key.equals("door." + Protocol.DOORS[i]))
-        return new String[] {"主驾车门", "副驾车门", "左后车门", "右后车门"}[i];
-    return key;
-  }
-
-  private String signalValue(String key, String value) {
-    if (key.equals("autohold")) {
-      if (value.equals("holding")) return "正在保持";
-      if (value.equals("released")) return "已释放保持";
-      return "未校准或无效";
-    }
-    if (key.equals("lock")) {
-      if (value.equals("locked")) return "已闭锁";
-      if (value.equals("unlocked")) return "已解锁";
-      return "未校准或无效";
-    }
-    if (key.equals("gear")) {
-      int n = (int) Protocol.number(value);
-      return n >= 1 && n <= 5 ? new String[] {"P 挡", "R 挡", "N 挡", "D 挡", "M 挡"}[n - 1] : value;
-    }
-    if (key.equals("speed"))
-      return String.format(Locale.CHINA, "%.1f km/h", Protocol.number(value));
-    if (value.equals("0")) return "关闭";
-    if (value.equals("1")) return "开启";
-    return value;
-  }
-
   private void update() {
     if (service == null) return;
     Diagnostics d = service.diagnostics;
+    if (engineSettings != null) engineSettings.update(d);
     if (monitorSwitch != null) {
       updatingSwitch = true;
       monitorSwitch.setChecked(d.monitoring);
       updatingSwitch = false;
     }
     if (page != 1 || diagStatus == null) return;
-    diagStatus.setText(
-        "原生音效模式 · 日志权限不影响原生订阅"
-            + "\n"
-            + d.nativeStatus
-            + "\n"
-            + d.logStatus
-            + "\n"
-            + store.lockReadiness()
-            + "\n"
-            + d.lockTriggerStatus
-            + "\n"
-            + d.lockOutputStatus
-            + "\nAutoHold："
-            + d.autoHoldTriggerStatus
-            + "\n"
-            + d.recordingStatus());
-    if (diagnosticLogButton != null)
-      diagnosticLogButton.setText(service.diagnosticLogs() ? "关闭日志辅助采集" : "开启日志辅助采集");
-    if (nativeDetails != null) nativeDetails.setText(d.nativeSummary());
-    captureButton.setText(d.scanning ? "结束扩展检测" : "开始扩展检测");
-    StringBuilder live = new StringBuilder();
-    for (Map.Entry<String, Diagnostics.Live> e : d.live().entrySet()) {
-      Diagnostics.Live v = e.getValue();
-      live.append(signalName(v.key))
-          .append("   ")
-          .append(signalValue(v.key, v.value))
-          .append("    · ")
-          .append(v.source)
-          .append("\n");
+    diagStatus.setText("ICC接口\n" + d.iccVehicleSourceSummary() + "\n\n授权日志\n" + d.logStatus);
+    if (logSourceButton != null) logSourceButton.setText(service.logsEnabled() ? "接口 + 授权日志" : "接口 + 日志未启用");
+    captureButton.setText(service.running() ? "停止监听" : "开始监听");
+    if (stateDashboard != null) stateDashboard.update(d, store, service.running(), System.currentTimeMillis());
+    if (calibrationButton != null) calibrationButton.setText(d.calibrating ? "完成校准" : "统一校准");
+    if (calibrationStatus != null) {
+      calibrationStatus.setText(d.calibrating
+          ? "校准中：自动音效暂停；点击各卡片依次校准，完成后重新建立基线。"
+          : "接口六项与日志补充分开；日志仅负责门、尾门和AutoHold，ES预设仅用于日志。");
+      calibrationStatus.setTextColor(d.calibrating ? theme.warning : MUTED);
     }
-    signals.setText(live.length() == 0 ? "暂无实车数据。首次状态只建立基线，不触发音效。" : live.toString().trim());
-    String f = filter == null ? "" : filter.getText().toString();
-    String all = d.lines(f);
+    if (rawLog == null) return;
+    String all = d.lines("");
     String[] logLines = all.split("\n");
     StringBuilder tail = new StringBuilder();
-    for (int i = Math.max(0, logLines.length - 35); i < logLines.length; i++)
+    for (int i = Math.max(0, logLines.length - 12); i < logLines.length; i++)
       tail.append(logLines[i]).append('\n');
-    rawLog.setText(tail.length() > 1 ? tail.toString() : "暂无匹配日志");
-    if (lastRevision == d.revision) return;
-    lastRevision = d.revision;
-    candidateList.removeAllViews();
-    List<Diagnostics.Candidate> list = d.candidates();
-    Collections.sort(list, (a, b) -> Long.compare(b.sample.time, a.sample.time));
-    if (list.isEmpty()) {
-      candidateList.addView(text("尚未发现信号。请先查看原生接口状态；被拒绝时可用ADB只读诊断采集原因。", 13, MUTED));
-      return;
-    }
-    for (int i = 0; i < Math.min(40, list.size()); i++) {
-      Diagnostics.Candidate c = list.get(i);
-      LinearLayout line = col();
-      line.setPadding(dp(12), dp(11), dp(12), dp(11));
-      line.setBackground(shape(c.sample.key == null ? 0xfff6f8fc : 0xffedf6ff, 0, 10));
-      TextView title =
-          bold(c.sample.key == null ? c.sample.topic : signalName(c.sample.key), 14, INK);
-      title.setMaxLines(2);
-      line.addView(title);
-      gap(line, 5);
-      TextView detail =
-          text(
-              c.sample.raw
-                  + "  ·  "
-                  + c.sample.source
-                  + "  ·  变化 "
-                  + c.changes
-                  + " 次"
-                  + (c.sample.key == null ? "  ·  未映射" : "  ·  已知事件"),
-              11,
-              MUTED);
-      detail.setMaxLines(2);
-      line.addView(detail);
-      line.setOnClickListener(v -> candidate(c));
-      margin(candidateList, line, -2, 7);
-    }
+    rawLog.setText(tail.length() > 1 ? tail.toString() : "暂无日志");
   }
 
   private final Runnable ticker =
@@ -1596,9 +1546,12 @@ public final class MainActivity extends Activity {
         String duration = meta.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
         if (duration == null || Long.parseLong(duration) <= 0)
           throw new IllegalArgumentException("系统无法识别该音频");
+        if (spec.group.equals("engine") && Long.parseLong(duration) > 30000)
+          throw new IllegalArgumentException("请为声浪选择30秒以内的循环素材");
       } finally {
         meta.release();
       }
+      if (spec.group.equals("engine")) EngineDecoder.decode(this, "file:" + file.getAbsolutePath(), () -> isDestroyed());
       store.file(spec, file, name);
       runOnUiThread(
           () -> {

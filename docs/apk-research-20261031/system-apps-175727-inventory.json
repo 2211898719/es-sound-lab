@@ -1,0 +1,1737 @@
+{
+  "analysisDate": "2026-10-31",
+  "sourceDirectory": "/Users/hongjunlong/Downloads/ES-系统APK-20261031-175727",
+  "collectionId": 1793440593249,
+  "extractionInfoSha256": "5bd982a590210d604d3a43830e0deb5945f4f56d8429b4b3f066a079cf44bfd1",
+  "totalApkBytes": 486554269,
+  "runtimeValidation": "not performed; offline static analysis only",
+  "packages": [
+    {
+      "package": "com.iflytek.autofly.systemserver",
+      "file": "/Users/hongjunlong/Downloads/ES-系统APK-20261031-175727/packages/com.iflytek.autofly.systemserver.apk",
+      "remotePath": "/system/app/RockyIflytekXSystemServer/RockyIflytekXSystemServer.apk",
+      "bytes": 13770814,
+      "sha256": "388dc7017c57fe15379d91ecefcfedddb4b45cb7923e4a1086a720c83c554e46",
+      "matchesExtractionManifest": true,
+      "versionName": "8155_BitechE0X8295_3.0.25102221",
+      "versionCode": "25102221",
+      "sharedUserIdDeclared": "android.uid.system",
+      "sdk": {
+        "minSdkVersion": "21",
+        "targetSdkVersion": "30"
+      },
+      "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+      "applicationPermission": null,
+      "declaredPermissions": {
+        "com.iflytek.autofly.systemserver.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION": "signature"
+      },
+      "components": [
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.iflytek.autofly.systemserver.XSystemService",
+            "exported": "true"
+          },
+          "actions": [
+            "com.iflytek.autofly.systemserver.START"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "com.iflytek.autofly.systemserver.BootReceiver",
+            "exported": "true"
+          },
+          "actions": [
+            "android.intent.action.BOOT_COMPLETED",
+            "com.iflytek.autofly.START"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.iflytek.autofly.noticeservice.receive.NoticeReceiveService"
+          },
+          "actions": [
+            "iflytek.autofly.action.NOTICE_RECEIVE"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.iflytek.autofly.noticeservice.send.NoticeSendService"
+          },
+          "actions": [
+            "iflytek.autofly.action.NOTICE_SEND"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "com.iflytek.autofly.noticeservice.NoticeReceiver",
+            "exported": "true"
+          },
+          "actions": [
+            "iflytek.autofly.action.NOTICE_RECEIVER"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.iflytek.xiot.client.service.SendHeartBeatAlarmService",
+            "exported": "true"
+          },
+          "actions": []
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "androidx.startup.InitializationProvider",
+            "exported": "false",
+            "authorities": "com.iflytek.autofly.systemserver.androidx-startup"
+          },
+          "actions": []
+        }
+      ],
+      "dex": [
+        {
+          "name": "classes.dex",
+          "bytes": 9467180,
+          "sha256": "12a27d06bdc774b7e409913df499ee3270a2bd459fcb72278a8d480309ebd929",
+          "classDefinitions": 6771
+        },
+        {
+          "name": "classes2.dex",
+          "bytes": 408568,
+          "sha256": "419d66cc9ae08564238a54180b20b6ad18c59de0af5503e899076fe702acb424",
+          "classDefinitions": 349
+        }
+      ],
+      "nativeLibraries": [
+        "lib/arm64-v8a/libsign.so",
+        "lib/armeabi-v7a/libsign.so",
+        "lib/x86/libsign.so",
+        "lib/x86_64/libsign.so"
+      ],
+      "targetDexStringCounts": {
+        "onGetVehicleState": 0,
+        "notifyVehicleStateChanged": 0,
+        "CustomSystem": 0,
+        "getVehicleState": 0,
+        "onGetCarProperty": 0,
+        "mega/car/": 0,
+        "DrivingInfo/Gear": 0,
+        "ID_DRV_INFO_GEAR_POSITION": 0,
+        "ID_DOOR_CENTRAL_LOCK": 0,
+        "ID_AUTO_HOLD": 0
+      },
+      "decompiler": {
+        "tool": "JADX 1.5.3",
+        "analysisDirectory": "/Users/hongjunlong/Documents/workspace/es-sound-lab/build/system-apps-20261031-175727/com.iflytek.autofly.systemserver/decompiled",
+        "reportedErrors": 13
+      }
+    },
+    {
+      "package": "com.mega.owl",
+      "file": "/Users/hongjunlong/Downloads/ES-系统APK-20261031-175727/packages/com.mega.owl.apk",
+      "remotePath": "/system/priv-app/RockyOwl/RockyOwl.apk",
+      "bytes": 9426139,
+      "sha256": "a7538e9bd65b9ee4c5954aa72694c1ba49d3a3551266f329fbb9ce0f15fc069f",
+      "matchesExtractionManifest": true,
+      "versionName": "1.0.1.20260304233720-release/rocky_hqx.4.5.5_20251024",
+      "versionCode": "10000001",
+      "sharedUserIdDeclared": "android.uid.system",
+      "sdk": {
+        "minSdkVersion": "25",
+        "targetSdkVersion": "30"
+      },
+      "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+      "applicationPermission": null,
+      "declaredPermissions": {
+        "mega.permission.NOTIFY_REBOOT": "normal"
+      },
+      "components": [
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "androidx.work.impl.WorkManagerInitializer",
+            "exported": "false",
+            "multiprocess": "true",
+            "authorities": "com.mega.owl.workmanager-init",
+            "singleUser": "true",
+            "directBootAware": "false"
+          },
+          "actions": []
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.owl.task.apm.RecordTraceInfoService",
+            "singleUser": "true"
+          },
+          "actions": [
+            "com.mega.action.APM_TRACE",
+            "com.mega.action.APM_REPORT",
+            "com.mega.action.DUMP_MEMORY_INFO"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "mega.owl.inject.ProcessLifecycleInitializer",
+            "exported": "false",
+            "multiprocess": "true",
+            "authorities": "com.mega.owl.owl-lifecycle"
+          },
+          "actions": []
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.owl.log.ReportLogcatService",
+            "singleUser": "true"
+          },
+          "actions": [
+            "com.mega.action.REPORT_LOG",
+            "com.mega.action.OWL_STARTED"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.owl.PushService",
+            "singleUser": "true"
+          },
+          "actions": [
+            "com.mega.satellite.RECEIVE_PUSH_EVENT"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "mega.car.MegaCarPropertyInitializer",
+            "exported": "false",
+            "authorities": "com.mega.owl.mega.car.propertyInitializer"
+          },
+          "actions": []
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "androidx.work.impl.background.systemalarm.SystemAlarmService",
+            "enabled": "@bool/enable_system_alarm_service_default",
+            "exported": "false",
+            "directBootAware": "false"
+          },
+          "actions": []
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "androidx.work.impl.background.systemjob.SystemJobService",
+            "permission": "android.permission.BIND_JOB_SERVICE",
+            "enabled": "@bool/enable_system_job_service_default",
+            "exported": "true",
+            "directBootAware": "false"
+          },
+          "actions": []
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "androidx.work.impl.utils.ForceStopRunnable.BroadcastReceiver",
+            "enabled": "true",
+            "exported": "false",
+            "directBootAware": "false"
+          },
+          "actions": []
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "androidx.work.impl.background.systemalarm.ConstraintProxy.BatteryChargingProxy",
+            "enabled": "false",
+            "exported": "false",
+            "directBootAware": "false"
+          },
+          "actions": [
+            "android.intent.action.ACTION_POWER_CONNECTED",
+            "android.intent.action.ACTION_POWER_DISCONNECTED"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "androidx.work.impl.background.systemalarm.ConstraintProxy.BatteryNotLowProxy",
+            "enabled": "false",
+            "exported": "false",
+            "directBootAware": "false"
+          },
+          "actions": [
+            "android.intent.action.BATTERY_OKAY",
+            "android.intent.action.BATTERY_LOW"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "androidx.work.impl.background.systemalarm.ConstraintProxy.StorageNotLowProxy",
+            "enabled": "false",
+            "exported": "false",
+            "directBootAware": "false"
+          },
+          "actions": [
+            "android.intent.action.DEVICE_STORAGE_LOW",
+            "android.intent.action.DEVICE_STORAGE_OK"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "androidx.work.impl.background.systemalarm.ConstraintProxy.NetworkStateProxy",
+            "enabled": "false",
+            "exported": "false",
+            "directBootAware": "false"
+          },
+          "actions": [
+            "android.net.conn.CONNECTIVITY_CHANGE"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "androidx.work.impl.background.systemalarm.RescheduleReceiver",
+            "enabled": "false",
+            "exported": "false",
+            "directBootAware": "false"
+          },
+          "actions": [
+            "android.intent.action.BOOT_COMPLETED",
+            "android.intent.action.TIME_SET",
+            "android.intent.action.TIMEZONE_CHANGED"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "androidx.work.impl.background.systemalarm.ConstraintProxyUpdateReceiver",
+            "enabled": "@bool/enable_system_alarm_service_default",
+            "exported": "false",
+            "directBootAware": "false"
+          },
+          "actions": [
+            "androidx.work.impl.background.systemalarm.UpdateProxies"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "androidx.room.MultiInstanceInvalidationService",
+            "exported": "false",
+            "directBootAware": "true"
+          },
+          "actions": []
+        }
+      ],
+      "dex": [
+        {
+          "name": "classes.dex",
+          "bytes": 7230132,
+          "sha256": "4ea5cf69290c74ae0e8bd070cdaac376ec7db2e8b4ac0a5f8654e451b9035868",
+          "classDefinitions": 5294
+        },
+        {
+          "name": "classes2.dex",
+          "bytes": 2055588,
+          "sha256": "28fd954c2a7f1c46d1c647e624fb7a8ee062079c60b4ea45924a78e7269f2089",
+          "classDefinitions": 1562
+        }
+      ],
+      "nativeLibraries": [],
+      "targetDexStringCounts": {
+        "onGetVehicleState": 0,
+        "notifyVehicleStateChanged": 0,
+        "CustomSystem": 0,
+        "getVehicleState": 1,
+        "onGetCarProperty": 0,
+        "mega/car/": 128,
+        "DrivingInfo/Gear": 0,
+        "ID_DRV_INFO_GEAR_POSITION": 0,
+        "ID_DOOR_CENTRAL_LOCK": 0,
+        "ID_AUTO_HOLD": 0
+      },
+      "decompiler": {
+        "tool": "JADX 1.5.3",
+        "analysisDirectory": "/Users/hongjunlong/Documents/workspace/es-sound-lab/build/system-apps-20261031-175727/com.mega.owl/decompiled",
+        "reportedErrors": 0
+      }
+    },
+    {
+      "package": "com.mega.carsettings",
+      "file": "/Users/hongjunlong/Downloads/ES-系统APK-20261031-175727/packages/com.mega.carsettings.apk",
+      "remotePath": "/system/priv-app/RockyCarSettings/RockyCarSettings.apk",
+      "bytes": 463357316,
+      "sha256": "56b9474d9834083412b9cf35c2baf73e6add2651326351275ccad52fb34cd1e4",
+      "matchesExtractionManifest": true,
+      "versionName": "1.0.10.20260304233723-release/rocky_hqx.4.5.5_20251024",
+      "versionCode": "10000010",
+      "sharedUserIdDeclared": "android.uid.system",
+      "sdk": {
+        "minSdkVersion": "30",
+        "targetSdkVersion": "30"
+      },
+      "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+      "applicationPermission": null,
+      "declaredPermissions": {
+        "com.mega.carsettings.export.permission.PrivacyDetailActivity": "signature",
+        "com.mega.carsettings.export.permission.TestActivity": "signature",
+        "com.mega.carsettings.export.permission.UnityPlayerActivity": "signature",
+        "com.mega.carsettings.export.permission.CockpitControlActivity": "signature",
+        "com.mega.carsettings.export.permission.ConsoleVoiceNameActivity": "signature",
+        "com.mega.carsettings.export.permission.BootCompletedReceiver": "signature",
+        "com.mega.carsettings.export.permission.ShowDialogReceiver": "signature",
+        "com.mega.carsettings.export.permission.IflyOpenPrivacyReceiver": "signature",
+        "com.mega.carsettings.export.permission.IflyOpenPermissionListReceiver": "signature",
+        "com.mega.carsettings.export.permission.BehindChangeBriReceiver": "signature",
+        "com.mega.carsettings.export.permission.CarLockWidgetView": "signature",
+        "com.mega.carsettings.export.permission.CarLockE0YWidgetView": "signature",
+        "com.mega.carsettings.export.permission.CarLockKirWidgetView": "signature",
+        "com.mega.carsettings.export.permission.CarLockE0YKirWidgetView": "signature",
+        "com.mega.carsettings.export.permission.WakeupFreeWordsReceiver": "signature",
+        "com.mega.carsettings.export.permission.RedwoodGloveBoxSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodSeatAdjustSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodAutoParkSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodPowerOffSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodAutoHoldSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodEPBSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodRadarWorkNoticeSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodTrunkSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodRebootSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodAssistWarningSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodConsoleAdjustSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodStartStopSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodSmartParkSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodMemoryParkSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodCleanScreenSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodLockScreenSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodScreenSaverSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodChildLockSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodCentralLockSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodHDCSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodESPSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodWirelessChargeSlice": "signature",
+        "com.mega.carsettings.export.permission.SequoiaBluetoothSliceProvider": "signature",
+        "com.mega.carsettings.export.permission.SequoiaBrightnessSliceProvider": "signature",
+        "com.mega.carsettings.export.permission.SequoiaVolumeSliceProvider": "signature",
+        "com.mega.carsettings.export.permission.RedwoodHighBeamSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodSteeringSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodBackMirrorSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodExtremePowerSaving": "signature",
+        "com.mega.carsettings.export.permission.RedwoodDriveModeSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodVehicleColorSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodOilDoorSlice": "signature",
+        "com.mega.carsettings.export.permission.SliceReceiver": "signature",
+        "com.mega.carsettings.export.permission.AssistantService": "signature",
+        "com.mega.carsettings.export.permission.VoiceService": "signature",
+        "com.mega.carsettings.export.permission.CarSettingVoiceService": "signature",
+        "com.mega.carsettings.export.permission.IflyVoiceSystemSettingService": "signature",
+        "com.mega.carsettings.export.permission.CarSettingService": "signature",
+        "com.mega.carsettings.export.permission.AssociateMusicFreqService": "signature",
+        "com.mega.carsettings.export.permission.AccountUploadService": "signature",
+        "com.mega.carsettings.export.permission.CommonService": "signature",
+        "com.mega.carsettings.export.permission.RedwoodExportedService": "signature",
+        "com.mega.carsettings.export.permission.ActionClientService": "signature",
+        "com.mega.carsettings.export.permission.CarSettingsWidgetService": "signature",
+        "com.mega.carsettings.export.permission.SettingsActionService": "signature",
+        "com.mega.carsettings.export.permission.VisionDetectService": "signature",
+        "com.mega.carsettings.export.permission.RedwoodAGSSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodHUDSlice": "signature",
+        "mega.mega.permission.MEGA_VOICE_LIB_PERMISSION": "signature",
+        "com.mega.carsettings.export.permission.RedwoodTopSunshadeSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodAssistPassSlice": "signature",
+        "com.mega.carsettings.export.permission.CooperationBusinessReceiver": "signature",
+        "com.mega.carsettings.export.permission.CarContentProvider": "signature",
+        "com.mega.carsettings.export.permission.RedwoodSeatBeltBeepSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodTBDSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodISLISoundSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodELKSlice": "signature",
+        "com.mega.carsettings.export.permission.RedwoodLDWSoundSlice": "signature",
+        "com.mega.carsettings.export.permission.Slice": "signature",
+        "com.mega.carsettings.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION": "signature"
+      },
+      "components": [
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.platform.PlatformService",
+            "permission": "com.mega.carsettings.export.permission.platform.service",
+            "enabled": "true",
+            "exported": "true"
+          },
+          "actions": [
+            "com.mega.platform.ACTION"
+          ]
+        },
+        {
+          "tag": "activity",
+          "attributes": {
+            "name": "com.mega.carsettings.CarSettingActivity",
+            "exported": "true",
+            "launchMode": "singleInstance",
+            "configChanges": "smallestScreenSize|screenSize|screenLayout|orientation|keyboardHidden",
+            "extractNativeLibs": "true",
+            "showForAllUsers": "true"
+          },
+          "actions": [
+            "android.intent.action.MAIN",
+            "com.mega.settings.ACTION_BLUETOOTH_VIEW",
+            "com.mega.settings.ACTION_TETHER_VIEW",
+            "com.mega.settings.ACTION_WIFI_VIEW",
+            "com.mega.settings.VOLUME_EFFECT_ADJUST",
+            "com.mega.settings.ACTION_BLUETOOTH_VIEW",
+            "com.mega.action.privacy.permission",
+            "android.settings.APPLICATION_DETAILS_SETTINGS"
+          ]
+        },
+        {
+          "tag": "activity",
+          "attributes": {
+            "theme": "@style/CarActivityTheme",
+            "name": "com.mega.carsettings.PrivacyDetailActivity",
+            "permission": "com.mega.carsettings.export.permission.PrivacyDetailActivity",
+            "exported": "true",
+            "launchMode": "singleTop",
+            "configChanges": "screenSize|orientation|keyboardHidden",
+            "extractNativeLibs": "true",
+            "showForAllUsers": "true"
+          },
+          "actions": []
+        },
+        {
+          "tag": "activity",
+          "attributes": {
+            "theme": "@style/CarActivityTheme",
+            "name": "com.mega.carsettings.test.TestActivity",
+            "permission": "com.mega.carsettings.export.permission.TestActivity",
+            "exported": "true",
+            "launchMode": "singleInstance",
+            "configChanges": "smallestScreenSize|screenSize|screenLayout|orientation|keyboardHidden",
+            "extractNativeLibs": "true",
+            "showForAllUsers": "true"
+          },
+          "actions": []
+        },
+        {
+          "tag": "activity",
+          "attributes": {
+            "name": "com.unity3d.player.UnityPlayerActivity",
+            "permission": "com.mega.carsettings.export.permission.UnityPlayerActivity",
+            "exported": "true"
+          },
+          "actions": []
+        },
+        {
+          "tag": "activity",
+          "attributes": {
+            "theme": "@style/CarActivityTheme",
+            "name": "com.mega.carsettings.ConsoleVoiceNameActivity",
+            "permission": "com.mega.carsettings.export.permission.ConsoleVoiceNameActivity",
+            "exported": "true",
+            "launchMode": "singleTop",
+            "configChanges": "smallestScreenSize|screenSize|screenLayout|orientation|keyboardHidden",
+            "extractNativeLibs": "true",
+            "showForAllUsers": "true"
+          },
+          "actions": []
+        },
+        {
+          "tag": "activity",
+          "attributes": {
+            "name": "com.mega.carsettings.CockpitControlActivity",
+            "permission": "com.mega.carsettings.export.permission.CockpitControlActivity",
+            "exported": "true",
+            "launchMode": "singleTop",
+            "configChanges": "screenSize|orientation|keyboardHidden",
+            "extractNativeLibs": "true",
+            "showForAllUsers": "true"
+          },
+          "actions": []
+        },
+        {
+          "tag": "activity",
+          "attributes": {
+            "theme": "@style/ShortcutPopDialog",
+            "name": "com.mega.carsettings.ShortcutSettingActivity",
+            "excludeFromRecents": "true",
+            "launchMode": "singleInstance",
+            "windowSoftInputMode": "adjustResize|stateHidden"
+          },
+          "actions": []
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "com.mega.carsettings.receiver.BootCompletedReceiver",
+            "permission": "com.mega.carsettings.export.permission.BootCompletedReceiver",
+            "exported": "true"
+          },
+          "actions": [
+            "android.intent.action.BOOT_COMPLETED"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "com.mega.carsettings.receiver.ShowDialogReceiver",
+            "permission": "com.mega.carsettings.export.permission.ShowDialogReceiver",
+            "exported": "true"
+          },
+          "actions": [
+            "com.mega.settings.bluetooth",
+            "com.mega.settings.wifi",
+            "com.mega.settings.tether",
+            "com.mega.settings.screen.clear",
+            "com.mega.settings.weather",
+            "com.mega.settings.privacy.show",
+            "com.mega.settings.all_connect",
+            "com.mega.settings.volume_effect",
+            "com.mega.settings.bluetooth",
+            "com.mega.settings.wifi",
+            "com.mega.settings.tether",
+            "com.mega.settings.screen.clear",
+            "com.mega.settings.weather",
+            "com.mega.settings.force_revise_hotspot",
+            "com.mega.settings.all_connect",
+            "com.mega.settings.volume_effect"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "com.mega.carsettings.receiver.BluetoothPairingReceiver",
+            "exported": "true"
+          },
+          "actions": [
+            "android.bluetooth.device.action.PAIRING_REQUEST"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "com.mega.carsettings.receiver.IflyOpenPrivacyReceiver",
+            "permission": "com.mega.carsettings.export.permission.IflyOpenPrivacyReceiver",
+            "exported": "true"
+          },
+          "actions": [
+            "com.mega.settings.open_privacy"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "com.mega.carsettings.receiver.IflyOpenPermissionListReceiver",
+            "permission": "com.mega.carsettings.export.permission.IflyOpenPermissionListReceiver",
+            "exported": "true"
+          },
+          "actions": [
+            "com.mega.settings.open_permission"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "com.mega.carsettings.receiver.BehindChangeBriReceiver",
+            "permission": "com.mega.carsettings.export.permission.BehindChangeBriReceiver",
+            "exported": "true"
+          },
+          "actions": [
+            "com.mega.redwoodhvac.change.brightness"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "label": "@string/car_settings_label",
+            "name": "com.mega.carsettings.provider.CarLockWidgetView",
+            "permission": "com.mega.carsettings.export.permission.CarLockWidgetView",
+            "exported": "true"
+          },
+          "actions": [
+            "android.appwidget.action.APPWIDGET_UPDATE",
+            "com.mega.carsettings.action.APPWIDGET_UPDATE",
+            "android.appwidget.action.APPWIDGET_ENABLED"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "label": "@string/car_settings_label",
+            "name": "com.mega.carsettings.provider.CarLockE0YWidgetView",
+            "permission": "com.mega.carsettings.export.permission.CarLockE0YWidgetView",
+            "exported": "true"
+          },
+          "actions": [
+            "android.appwidget.action.APPWIDGET_UPDATE",
+            "com.mega.carsettings.action.APPWIDGET_UPDATE_E0Y",
+            "android.appwidget.action.APPWIDGET_ENABLED"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "label": "@string/car_settings_label",
+            "name": "com.mega.carsettings.provider.CarLockKirWidgetView",
+            "permission": "com.mega.carsettings.export.permission.CarLockKirWidgetView",
+            "exported": "true"
+          },
+          "actions": [
+            "android.appwidget.action.APPWIDGET_UPDATE",
+            "com.mega.carsettings.action.APPWIDGET_UPDATE_KIR",
+            "android.appwidget.action.APPWIDGET_ENABLED"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "label": "@string/car_settings_label",
+            "name": "com.mega.carsettings.provider.CarLockE0YKirWidgetView",
+            "permission": "com.mega.carsettings.export.permission.CarLockE0YKirWidgetView",
+            "exported": "true"
+          },
+          "actions": [
+            "android.appwidget.action.APPWIDGET_UPDATE",
+            "com.mega.carsettings.action.APPWIDGET_UPDATE_E0Y_KIR",
+            "android.appwidget.action.APPWIDGET_ENABLED"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodRadarWorkNoticeSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodRadarWorkNoticeSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.radar_sound.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodTrunkSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodTrunkSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.trunk.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodRebootSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodRebootSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.reboot.function",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodAutoHoldSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodAutoHoldSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.auto_hold.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodPowerOffSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodPowerOffSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.power.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodGloveBoxSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodGloveBoxSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.glovebox.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodAssistWarningSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodAssistWarningSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.ldws.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodAssistPassSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodAssistPassSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.assist.pass.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodSeatAdjustSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodSeatAdjustSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.seat.jump",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodConsoleAdjustSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodConsoleAdjustSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.console_open.function",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodStartStopSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodStartStopSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.ass.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodAutoParkSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodAutoParkSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.aps.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodSmartParkSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodSmartParkSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.smart_parking.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodMemoryParkSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodMemoryParkSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.memory_parking.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodEPBSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodEPBSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.epb.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodCleanScreenSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodCleanScreenSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.clean_screen.function",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodLockScreenSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodLockScreenSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.lock_screen.function",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodScreenSaverSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodScreenSaverSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.screensaver.jump",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodChildLockSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodChildLockSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.child_mode.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodCentralLockSlice",
+            "permission": "android.permission.BIND_QUICK_SETTINGS_TILE",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.central.lock",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodHDCSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodHDCSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.hdc.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodESPSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodESPSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.esp.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodWirelessChargeSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodWirelessChargeSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.wireless_charge.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.SequoiaBluetoothSliceProvider",
+            "permission": "com.mega.carsettings.export.permission.SequoiaBluetoothSliceProvider",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.bluetooth.jump",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.SequoiaBrightnessSliceProvider",
+            "permission": "com.mega.carsettings.export.permission.SequoiaBrightnessSliceProvider",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.brightness.seekbar",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.SequoiaVolumeSliceProvider",
+            "permission": "com.mega.carsettings.export.permission.SequoiaVolumeSliceProvider",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.sound.seekbar",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodHighBeamSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodHighBeamSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.high.beam",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodSteeringSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodSteeringSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.steering.jump",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodBackMirrorSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodBackMirrorSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.back_mirror.jump",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodExtremePowerSaving",
+            "permission": "com.mega.carsettings.export.permission.RedwoodExtremePowerSaving",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.extreme_power_saving.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodDriveModeSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodDriveModeSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.driving_mode.jump",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodVehicleColorSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodVehicleColorSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.car_color.jump",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodOilDoorSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodOilDoorSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.oil_door.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodAGSSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodAGSSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.ags.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodHUDSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodHUDSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.hud.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodEnergyModeSlice",
+            "permission": "android.permission.BIND_QUICK_SETTINGS_TILE",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.energy_mode.function",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodParkingPowerSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodESPSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.parking.power.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "com.mega.carsettings.receiver.SliceReceiver",
+            "permission": "com.mega.carsettings.export.permission.SliceReceiver",
+            "exported": "true"
+          },
+          "actions": [
+            "com.mega.carsettings.provider.slice.panel.hud_steering_wheel_combine"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.carsettings.service.AssistantService",
+            "permission": "com.mega.carsettings.export.permission.AssistantService",
+            "exported": "true"
+          },
+          "actions": [
+            "com.mega.setttings.SettingResult"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.carsettings.service.VoiceService",
+            "permission": "com.mega.carsettings.export.permission.VoiceService",
+            "exported": "true"
+          },
+          "actions": [
+            "com.mega.assist.action.POST"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.carsettings.service.IflyVoiceSystemSettingService",
+            "permission": "com.mega.carsettings.export.permission.IflyVoiceSystemSettingService",
+            "enabled": "true",
+            "exported": "true"
+          },
+          "actions": [
+            "com.mega.carsettings.IflyVoiceSystemSettingService"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.carsettings.assistant.CarSettingVoiceService",
+            "permission": "com.mega.carsettings.export.permission.CarSettingVoiceService",
+            "exported": "true"
+          },
+          "actions": [
+            "com.mega.assist.action.POST"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.carsettings.service.CarSettingService",
+            "permission": "com.mega.carsettings.export.permission.CarSettingService",
+            "exported": "true"
+          },
+          "actions": []
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.carsettings.service.AssociateMusicFreqService",
+            "permission": "com.mega.carsettings.export.permission.AssociateMusicFreqService",
+            "exported": "true"
+          },
+          "actions": []
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.carsettings.service.AccountUploadService",
+            "permission": "com.mega.carsettings.export.permission.AccountUploadService",
+            "exported": "true"
+          },
+          "actions": []
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.carsettings.service.CommonService",
+            "permission": "com.mega.carsettings.export.permission.CommonService",
+            "exported": "true"
+          },
+          "actions": [
+            "com.mega.carsettings.service.CommonService"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.carsettings.service.RedwoodExportedService",
+            "exported": "false",
+            "configChanges": "uiMode"
+          },
+          "actions": []
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "mega.assistant.action.ActionClientService",
+            "permission": "com.mega.carsettings.export.permission.ActionClientService",
+            "exported": "true"
+          },
+          "actions": [
+            "com.mega.assist.action.CLIENT",
+            "com.mega.assist.action.POST"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.carsettings.service.CarSettingsWidgetService",
+            "permission": "com.mega.carsettings.export.permission.CarSettingsWidgetService",
+            "exported": "true"
+          },
+          "actions": [
+            "com.mega.carsettings.widget.service"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.carsettings.assistant.SettingsActionService",
+            "permission": "com.mega.carsettings.export.permission.SettingsActionService",
+            "exported": "true"
+          },
+          "actions": [
+            "com.mega.assist.action.POST"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.mega.carsettings.service.VisionDetectService",
+            "permission": "com.mega.carsettings.export.permission.VisionDetectService",
+            "enabled": "true",
+            "exported": "false"
+          },
+          "actions": []
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "com.mega.carsettings.controller.WakeupFreeWordsReceiver",
+            "permission": "com.mega.carsettings.export.permission.WakeupFreeWordsReceiver",
+            "exported": "true"
+          },
+          "actions": [
+            "com.mega.carsettings.WAKEUP_FREE_WORDS"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "mega.assistant.action.slice.RemoteCallbackReceiver",
+            "exported": "false"
+          },
+          "actions": []
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.voice.CarSettingProvider",
+            "permission": "MEGA_VOICE_LIB_PERMISSION",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.voicelib",
+            "grantUriPermissions": "true"
+          },
+          "actions": []
+        },
+        {
+          "tag": "activity",
+          "attributes": {
+            "name": "com.mega.carsettings.room.TestRoomActivity",
+            "exported": "false"
+          },
+          "actions": []
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "com.mega.carsettings.receiver.CooperationBusinessReceiver",
+            "permission": "com.mega.carsettings.export.permission.CooperationBusinessReceiver",
+            "exported": "true"
+          },
+          "actions": [
+            "mega.action.CLEAR_NAVI_LOCATION",
+            "mega.action.OPEN_TAILGATE",
+            "mega.action.CLOSE_TAILGATE"
+          ]
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "label": "@string/quick_control_name",
+            "name": "com.mega.carsettings.provider.CarQuickControlWidget",
+            "permission": "com.mega.carsettings.export.permission.CarQuickControlWidget",
+            "exported": "true"
+          },
+          "actions": [
+            "android.appwidget.action.APPWIDGET_UPDATE",
+            "android.appwidget.action.APPWIDGET_ENABLED"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodTopSunshadeSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodTopSunshadeSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.top.sunshade",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.KirkwoodDistractionSlice",
+            "permission": "com.mega.carsettings.export.permission.KirkwoodDistractionSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.distraction_detect.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.KirkwoodTiredSlice",
+            "permission": "com.mega.carsettings.export.permission.KirkwoodTiredSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.tired_detect.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodSeatBeltBeepSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodSeatBeltBeepSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.rear.seat.belt.beep.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodTBDSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodTBDSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.tbd.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodISLISoundSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodISLISoundSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.isli.sound.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodELKSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodELKSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.elk.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodLDWSoundSlice",
+            "permission": "com.mega.carsettings.export.permission.RedwoodLDWSoundSlice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.ldw.sound.switch",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodBackMirrorCombineSlice",
+            "permission": "com.mega.carsettings.export.permission.Slice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.back_mirror_combine",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodHUDWheelRearMirrorCombineSlice",
+            "permission": "com.mega.carsettings.export.permission.Slice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.hud_steering_wheel_combine",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodEnergyModeCombineSlice",
+            "permission": "com.mega.carsettings.export.permission.Slice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.energy_mode_combine",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodDisplayModeSlice",
+            "permission": "com.mega.carsettings.export.permission.Slice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.display_mode",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.RedwoodSeatMemorySlice",
+            "permission": "com.mega.carsettings.export.permission.Slice",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.slice.panel.seat_memorize",
+            "grantUriPermissions": "true"
+          },
+          "actions": [
+            "mega.intent.action.VIEW"
+          ]
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.mega.carsettings.provider.CarPrivacyContentProvider",
+            "permission": "com.mega.carsettings.export.permission.CarContentProvider",
+            "exported": "true",
+            "authorities": "com.mega.carsettings.provider.car.call.content",
+            "grantUriPermissions": "true"
+          },
+          "actions": []
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "com.carota.data.receiver.HistoryReceiver",
+            "permission": "com.carota.permission.HISTORY",
+            "enabled": "true",
+            "exported": "true"
+          },
+          "actions": [
+            "ota.intent.action.History"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.carota.sdk.service.OtaService",
+            "enabled": "true",
+            "exported": "false"
+          },
+          "actions": []
+        },
+        {
+          "tag": "activity",
+          "attributes": {
+            "name": "androidx.slice.compat.SlicePermissionActivity",
+            "excludeFromRecents": "true"
+          },
+          "actions": []
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "androidx.startup.InitializationProvider",
+            "exported": "false",
+            "authorities": "com.mega.carsettings.androidx-startup"
+          },
+          "actions": []
+        },
+        {
+          "tag": "activity",
+          "attributes": {
+            "theme": "@style/ActivityTranslucent",
+            "name": "com.blankj.utilcode.util.UtilsTransActivity4MainProcess",
+            "configChanges": "screenSize|orientation|keyboardHidden",
+            "windowSoftInputMode": "stateAlwaysHidden"
+          },
+          "actions": []
+        },
+        {
+          "tag": "activity",
+          "attributes": {
+            "theme": "@style/ActivityTranslucent",
+            "name": "com.blankj.utilcode.util.UtilsTransActivity",
+            "multiprocess": "true",
+            "configChanges": "screenSize|orientation|keyboardHidden",
+            "windowSoftInputMode": "stateAlwaysHidden"
+          },
+          "actions": []
+        },
+        {
+          "tag": "provider",
+          "attributes": {
+            "name": "com.blankj.utilcode.util.UtilsFileProvider",
+            "exported": "false",
+            "authorities": "com.mega.carsettings.utilcode.fileprovider",
+            "grantUriPermissions": "true"
+          },
+          "actions": []
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "com.blankj.utilcode.util.MessengerUtils.ServerService",
+            "exported": "false"
+          },
+          "actions": [
+            "com.mega.carsettings.messenger"
+          ]
+        },
+        {
+          "tag": "service",
+          "attributes": {
+            "name": "androidx.room.MultiInstanceInvalidationService",
+            "exported": "false",
+            "directBootAware": "true"
+          },
+          "actions": []
+        },
+        {
+          "tag": "receiver",
+          "attributes": {
+            "name": "androidx.profileinstaller.ProfileInstallReceiver",
+            "permission": "android.permission.DUMP",
+            "enabled": "true",
+            "exported": "true",
+            "directBootAware": "false"
+          },
+          "actions": [
+            "androidx.profileinstaller.action.INSTALL_PROFILE",
+            "androidx.profileinstaller.action.SKIP_FILE",
+            "androidx.profileinstaller.action.SAVE_PROFILE",
+            "androidx.profileinstaller.action.BENCHMARK_OPERATION"
+          ]
+        }
+      ],
+      "dex": [
+        {
+          "name": "classes.dex",
+          "bytes": 9698164,
+          "sha256": "209f7bb7b4195a2da9229f0614ab6cdd1cac0100e7ba79b97813b768aab91c91",
+          "classDefinitions": 7383
+        },
+        {
+          "name": "classes2.dex",
+          "bytes": 8164420,
+          "sha256": "013a712971eaa5e59741d5163000aa7862f6b68d1a616bc32e9ff297264fb14a",
+          "classDefinitions": 6690
+        },
+        {
+          "name": "classes3.dex",
+          "bytes": 8984440,
+          "sha256": "d3cd9c8099c737fcdb6d03613515283cba1a6d23dc2c093682c806471acce6e4",
+          "classDefinitions": 6285
+        },
+        {
+          "name": "classes4.dex",
+          "bytes": 2738412,
+          "sha256": "de695dcf89b5c5bc8041314523e9e823f4a0ad9740e919eac31eec5b91aec2e9",
+          "classDefinitions": 2245
+        }
+      ],
+      "nativeLibraries": [
+        "lib/arm64-v8a/libffavc.so",
+        "lib/arm64-v8a/libmmkv.so",
+        "lib/arm64-v8a/libpag.so",
+        "lib/armeabi-v7a/libffavc.so",
+        "lib/armeabi-v7a/libmmkv.so",
+        "lib/armeabi-v7a/libpag.so"
+      ],
+      "targetDexStringCounts": {
+        "onGetVehicleState": 0,
+        "notifyVehicleStateChanged": 0,
+        "CustomSystem": 0,
+        "getVehicleState": 0,
+        "onGetCarProperty": 0,
+        "mega/car/": 577,
+        "DrivingInfo/Gear": 4,
+        "ID_DRV_INFO_GEAR_POSITION": 6,
+        "ID_DOOR_CENTRAL_LOCK": 4,
+        "ID_AUTO_HOLD": 5
+      },
+      "decompiler": {
+        "tool": "JADX 1.5.3",
+        "analysisDirectory": "/Users/hongjunlong/Documents/workspace/es-sound-lab/build/system-apps-20261031-175727/com.mega.carsettings/decompiled",
+        "reportedErrors": 99
+      }
+    }
+  ]
+}

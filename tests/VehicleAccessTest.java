@@ -172,6 +172,39 @@ public final class VehicleAccessTest {
   }
 
   @Test
+  public void knownSignaturePermissionDenialSkipsSdkConnectionAndPolling() throws Exception {
+    for (String domain : new String[] {"ENTRY_LOCK", "CAR_DRIVING", "VEHICLE_CONTROL", "SEQUOIA"}) {
+      android.content.pm.PermissionInfo permission = new android.content.pm.PermissionInfo();
+      permission.name = "mega.car.permission." + domain;
+      permission.protectionLevel = android.content.pm.PermissionInfo.PROTECTION_SIGNATURE
+          | android.content.pm.PermissionInfo.PROTECTION_FLAG_PRIVILEGED;
+      shadowOf(RuntimeEnvironment.getApplication().getPackageManager()).addPermissionInfo(permission);
+    }
+    start();
+    assertNull(MegaCar.latest);
+    assertEquals(0, manager.reads.size());
+    assertEquals(0, manager.callbacks.size());
+    assertTrue(diagnostics.nativeStatus.contains("权限未授予"));
+    shadowOf(Looper.getMainLooper()).idleFor(31000, TimeUnit.MILLISECONDS);
+    assertNull(MegaCar.latest);
+    assertEquals(0, manager.reads.size());
+  }
+
+  @Test
+  public void oneKnownDeniedDomainDoesNotBlockOtherNativeProperties() throws Exception {
+    android.content.pm.PermissionInfo permission = new android.content.pm.PermissionInfo();
+    permission.name = "mega.car.permission.VEHICLE_CONTROL";
+    permission.protectionLevel = android.content.pm.PermissionInfo.PROTECTION_SIGNATURE;
+    shadowOf(RuntimeEnvironment.getApplication().getPackageManager()).addPermissionInfo(permission);
+    start();
+    assertEquals(8, manager.callbacks.size());
+    assertFalse(manager.reads.containsKey(Protocol.CENTRAL_LOCK));
+    assertTrue(manager.reads.containsKey(Protocol.AUTO_HOLD));
+    shadowOf(Looper.getMainLooper()).idleFor(3100, TimeUnit.MILLISECONDS);
+    assertFalse(manager.reads.containsKey(Protocol.CENTRAL_LOCK));
+  }
+
+  @Test
   public void missingAndPartialCatalogStillRegistersAllNineEssentialProperties() {
     manager.configs.add(new ConfigValue(100663340, 16));
     start();
@@ -259,7 +292,7 @@ public final class VehicleAccessTest {
     assertNull(error.value);
     manager.emit(Protocol.AUTO_HOLD, 0, 0, 2, SystemClock.uptimeMillis() + 1);
     org.json.JSONObject report = new org.json.JSONObject(diagnostics.export(false, store));
-    assertEquals("Mega native property subscription", report.getString("eventBackend"));
+    assertEquals("icc", report.getString("eventBackend"));
     assertEquals("es-observed", report.getString("megaGearEncoding"));
     assertTrue(report.getJSONArray("nativeSubscriptions").toString().contains("callbackCount"));
   }

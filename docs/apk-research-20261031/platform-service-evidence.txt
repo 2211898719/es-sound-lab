@@ -1,0 +1,26 @@
+Source APK SHA-256: bd1bb28896dd63484d536370f5d489ed20bd35b7f43d1c8c4bd1d964faf7182e
+classes.dex SHA-256: 8223236135e61fbcd4912ee179b3f7a8bfa99f77d10f701206aea1f544ac75cb
+Tool: Android dexdump -d; excerpts omit register/address columns except DEX code-unit offsets.
+
+com.iflytek.autofly.platformservice.a.v.getVehicleState:(Ljava/lang/String;)I
+0000 invoke-direct {v4}, Lcom/iflytek/autofly/platformservice/a/v;.b:()Lcom/iflytek/autofly/customservice/a/r;
+0006 const/16 v2, #int -1003
+0011 invoke-virtual {v0, v5}, Lcom/iflytek/autofly/customservice/a/r;.b:(Ljava/lang/String;)I
+0015 if-ne v0, v2, 001d
+0017 iget-object v2, v4, Lcom/iflytek/autofly/platformservice/a/v;.h:Landroid/content/SharedPreferences;
+0019 invoke-interface {v2, v5, v0}, Landroid/content/SharedPreferences;.getInt:(Ljava/lang/String;I)I
+003e return v0
+
+com.iflytek.autofly.platformservice.a.v.registerListener:(Landroid/os/IBinder;)I
+001d if-nez v7, 0023
+001f const/16 v0, #int -1002
+0028 invoke-virtual {v2, v7}, Ljava/util/concurrent/CopyOnWriteArrayList;.contains:(Ljava/lang/Object;)Z
+0030 invoke-virtual {v2, v7}, Ljava/util/concurrent/CopyOnWriteArrayList;.add:(Ljava/lang/Object;)Z
+0039 invoke-interface {v7, v3, v0}, Landroid/os/IBinder;.linkToDeath:(Landroid/os/IBinder$DeathRecipient;I)V
+009e iget-boolean v2, v6, Lcom/iflytek/autofly/platformservice/a/v;.g:Z
+00a0 if-eqz v2, 00de
+00af invoke-interface {v2}, Lcom/iflytek/autofly/systemservice/aidl/ISystemServiceAIDLListener;.onServiceReady:()V
+00df return v0
+
+The readiness branch is g=true. JADX's recovered !g source is not used as evidence.
+This file records implementation, not authorization, runtime binding, or fresh vehicle data.

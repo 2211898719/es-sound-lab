@@ -86,15 +86,19 @@ def main():
         "--manifest", source / "AndroidManifest.xml", "--java", BUILD / "generated",
         "-A", source / "assets", "-0", "mp3", "-0", "wav", BUILD / "resources.zip")
     sources = sorted((source / "java").rglob("*.java")) + sorted((BUILD / "generated").rglob("*.java"))
+    stubs = BUILD / "hidl-stubs"
+    stubs.mkdir()
+    run("javac", "--release", "8", "-classpath", jar, "-d", stubs,
+        *sorted((ROOT / "tools/hidl-stubs/android").rglob("*.java")))
     argfile = BUILD / "sources.txt"
     argfile.write_text("\n".join('"' + str(p).replace("\\", "\\\\").replace('"', '\\"') + '"' for p in sources))
     run("javac", "-encoding", "UTF-8", "--release", "8",
-        "-classpath", jar, "-d", BUILD / "classes", "@" + str(argfile))
+        "-classpath", str(jar) + os.pathsep + str(stubs), "-d", BUILD / "classes", "@" + str(argfile))
     with zipfile.ZipFile(BUILD / "classes.jar", "w", zipfile.ZIP_DEFLATED) as z:
         for p in (BUILD / "classes").rglob("*.class"):
             z.write(p, str(p.relative_to(BUILD / "classes")))
     run("java", "-cp", bt / "lib/d8.jar", "com.android.tools.r8.D8", "--min-api", "26",
-        "--lib", jar, "--output", BUILD / "dex", BUILD / "classes.jar")
+        "--lib", jar, "--classpath", stubs, "--output", BUILD / "dex", BUILD / "classes.jar")
     if args.compile_only:
         print("Resources, Java and DEX compiled successfully; no APK signed or published.")
         return
@@ -108,7 +112,7 @@ def main():
         run("keytool", "-genkeypair", "-keystore", key, "-alias", "androiddebugkey",
             "-storepass", "android", "-keypass", "android", "-dname", "CN=ES Sound Lab Debug,O=Local,C=CN",
             "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000", "-storetype", "JKS")
-    apk = DIST / "es-sound-lab-0.3.1-debug.apk"
+    apk = DIST / "es-sound-lab-0.3.34-debug.apk"
     signer = bt / "lib/apksigner.jar"
     run("java", "-jar", signer, "sign", "--ks", key, "--ks-key-alias", "androiddebugkey",
         "--ks-pass", "pass:android", "--key-pass", "pass:android", "--out", apk, BUILD / "aligned.apk")
@@ -116,7 +120,7 @@ def main():
     run(bt / "zipalign", "-c", "4", apk)
     metadata = {"file": apk.name, "bytes": apk.stat().st_size,
                 "sha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
-                "package": "cn.es.soundlab", "version": "0.3.1", "minSdk": 26,
+                "package": "cn.es.soundlab", "version": "0.3.34", "versionCode": 40, "minSdk": 26,
                 "targetSdk": 28, "compileSdk": 35, "signing": "local debug certificate"}
     (DIST / "build-info.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
     print(json.dumps(metadata, ensure_ascii=False, indent=2))

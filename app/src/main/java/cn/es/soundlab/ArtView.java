@@ -15,10 +15,12 @@ import android.view.View;
 public final class ArtView extends View {
   private final String type;
   private final int accent;
+  private final UiTheme theme;
   private final Paint p = new Paint(3);
 
   public ArtView(Context c, String t, int a) {
     super(c);
+    theme = new UiTheme(c);
     type = t;
     accent = a;
     setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
@@ -133,7 +135,7 @@ public final class ArtView extends View {
     body.lineTo(x, y + h * .85f);
     body.close();
     c.drawPath(body, p);
-    fill(Color.WHITE);
+    fill(theme.color(Color.WHITE, 0xffb5cbe1));
     path(
         c,
         x + w * .24f,
@@ -149,7 +151,7 @@ public final class ArtView extends View {
     fill(Color.rgb(37, 61, 91));
     c.drawCircle(x + w * .21f, y + h * .87f, h * .19f, p);
     c.drawCircle(x + w * .8f, y + h * .87f, h * .19f, p);
-    fill(Color.WHITE);
+    fill(theme.color(Color.WHITE, 0xffb5cbe1));
     c.drawCircle(x + w * .21f, y + h * .87f, h * .08f, p);
     c.drawCircle(x + w * .8f, y + h * .87f, h * .08f, p);
   }
@@ -160,14 +162,15 @@ public final class ArtView extends View {
         h = getHeight() / density;
     c.save();
     c.scale(density, density);
-    fill(0xffe6f3ff);
+    fill(theme.color(0xffe6f3ff, 0xff182c46));
     p.setShader(
         new LinearGradient(
             0,
             0,
             w,
             h,
-            new int[] {0xffedf7ff, 0xffddf1fb, 0xffe1f4ee},
+            theme.dark ? new int[] {0xff182c46, 0xff1b3441, 0xff193d37}
+                : new int[] {0xffedf7ff, 0xffddf1fb, 0xffe1f4ee},
             null,
             Shader.TileMode.CLAMP));
     round(c, 0, 0, w, h, 22);
@@ -180,33 +183,33 @@ public final class ArtView extends View {
     path(
         c, w * .4f, h, w * .6f, h * .47f, w * .7f, h * .78f, w * .9f, h * .38f, w, h * .65f, w, h,
         w * .4f, h);
-    fill(0x55ffffff);
+    fill(theme.color(0x55ffffff, 0x183b6b8e));
     c.drawOval(new RectF(w * .38f, h * .66f, w * 1.15f, h * 1.3f), p);
     if (w > 680) {
       fill(0x18172c4c);
       c.drawOval(new RectF(w - 288, h - 36, w - 64, h - 18), p);
-      car(c, w - 280, h - 105, 205, 72, 0xff537b9c);
+      car(c, w - 280, h - 105, 205, 72, theme.color(0xff537b9c, 0xff6f94ba));
       stroke(0xff8db7bc, 2);
       path(c, w - 55, h - 24, w - 55, h - 75);
-      fill(0xffa9d2c4);
+      fill(theme.color(0xffa9d2c4, 0xff438b82));
       c.drawOval(new RectF(w - 71, h - 92, w - 39, h - 57), p);
     }
-    stroke(0xff377afa, 6);
+    stroke(theme.color(0xff377afa, theme.accent), 6);
     for (int i = 0; i < 5; i++) {
       float bar = new float[] {13, 27, 43, 27, 13}[i];
       c.drawLine(30 + i * 9, 41 - bar / 2, 30 + i * 9, 41 + bar / 2, p);
     }
-    fill(0xff1b365e);
+    fill(theme.color(0xff1b365e, theme.text));
     p.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
     p.setTextSize(30);
     c.drawText("音效设置", 90, 51, p);
     p.setTextSize(10);
     p.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
     c.drawText("E S   S O U N D   L A B", 28, 89, p);
-    fill(0xff61758e);
+    fill(theme.color(0xff61758e, theme.secondaryText));
     p.setTextSize(w < 500 ? 13 : 16);
     c.drawText("让每一次出发，都有你的声音", 28, 115, p);
-    fill(0xff467a9b);
+    fill(theme.color(0xff467a9b, theme.muted));
     p.setTextSize(11);
     c.drawText("星纪元 ES · 专属音效与车辆事件", 28, h - 18, p);
     c.restore();

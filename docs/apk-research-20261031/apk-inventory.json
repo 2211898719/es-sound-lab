@@ -1,0 +1,1701 @@
+{
+  "analysisDate": "2026-10-31",
+  "collectionId": 1793377386182,
+  "sourceDirectory": "/Users/hongjunlong/Downloads/ES-系统APK-20261031-002355",
+  "sourceZip": "/Users/hongjunlong/Downloads/ES-系统APK-20261031-002355.zip",
+  "zipSha256": "4f9061a19771d7b57c3b51963cf423fc1a690bd1debd1350e3b222031ceb659a",
+  "totalApkBytes": 340814803,
+  "runtimeValidation": "not performed",
+  "packages": [
+    {
+      "package": "com.mega.ecology",
+      "file": "RockyEcologyCenter.apk",
+      "remotePath": "/system/priv-app/RockyEcologyCenter/RockyEcologyCenter.apk",
+      "bytes": 27711605,
+      "sha256": "34db93347741ed9ef40089ed03197b92cde3e9d3faf3b3226829db9b2e298bd8",
+      "matchesExtractionManifest": true,
+      "matchesOriginalZip": true,
+      "versionCode": "1",
+      "versionName": "1.0.20260304233723-release/rocky_hqx.4.5.5_20251024",
+      "sharedUserIdDeclared": "android.uid.system",
+      "sdk": {
+        "minSdkVersion": "30",
+        "targetSdkVersion": "30"
+      },
+      "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+      "permissionsDeclared": [
+        {
+          "name": "com.mega.ecology.export.permission.MockActivity",
+          "protectionLevel": "0x00000002"
+        },
+        {
+          "name": "com.mega.ecology.export.permission.MainActivity",
+          "protectionLevel": "0x00000002"
+        },
+        {
+          "name": "com.mega.ecology.export.permission.MediaService",
+          "protectionLevel": "0x00000002"
+        },
+        {
+          "name": "com.mega.ecology.export.permission.NaviService",
+          "protectionLevel": "0x00000002"
+        },
+        {
+          "name": "com.mega.ecology.export.permission.PhoneCallService",
+          "protectionLevel": "0x00000002"
+        },
+        {
+          "name": "com.mega.ecology.export.permission.BootReceiver",
+          "protectionLevel": "0x00000002"
+        },
+        {
+          "name": "com.mega.ecology.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+          "protectionLevel": "0x00000002"
+        }
+      ],
+      "usesPermissions": [
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.INTERNET",
+        "mega.car.permission.NET",
+        "com.liontech.autonavi.permission.NAVI",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.MANAGE_EXTERNAL_STORAGE",
+        "android.permission.MEDIA_CONTENT_CONTROL",
+        "com.huawei.ohos.carmediaui.CARMEDIAUI_PERMISSION",
+        "android.permission.READ_PHONE_STATE",
+        "com.mega.ecology.export.permission.MediaService",
+        "com.mega.ecology.export.permission.NaviService",
+        "com.mega.ecology.export.permission.PhoneCallService",
+        "android.permission.BLUETOOTH_ADMIN",
+        "com.mega.carsettings.export.permission.ShowDialogReceiver",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "com.mega.ecology.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+      ],
+      "applicationPermission": null,
+      "components": [
+        {
+          "tag": "activity",
+          "line": 87,
+          "attributes": {
+            "theme": "@0x7f11026e",
+            "name": "com.mega.ecology.ui.MainActivity",
+            "permission": "com.mega.ecology.export.permission.MainActivity",
+            "exported": "true"
+          },
+          "children": []
+        },
+        {
+          "tag": "activity",
+          "line": 106,
+          "attributes": {
+            "label": "@0x7f10007f",
+            "name": "com.mega.mock.activity.MockActivity",
+            "permission": "com.mega.ecology.export.permission.MockActivity",
+            "exported": "true",
+            "process": ":mock_ecology"
+          },
+          "children": []
+        },
+        {
+          "tag": "activity",
+          "line": 118,
+          "attributes": {
+            "label": "@0x7f10007f",
+            "name": "com.mega.mock.activity.PhoneCallMockActivity",
+            "exported": "true",
+            "process": ":mock_ecology"
+          },
+          "children": []
+        },
+        {
+          "tag": "service",
+          "line": 132,
+          "attributes": {
+            "name": "com.mega.ecology.service.EcologyMediaService",
+            "permission": "com.mega.ecology.export.permission.MediaService",
+            "enabled": "true",
+            "exported": "true"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 137,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 138,
+                  "attributes": {
+                    "name": "com.mega.ecology.media.BIND_MEDIA"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 140,
+                  "attributes": {
+                    "name": "android.intent.category.DEFAULT"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "service",
+          "line": 143,
+          "attributes": {
+            "name": "com.mega.ecology.service.NaviService",
+            "permission": "com.mega.ecology.export.permission.NaviService",
+            "enabled": "true",
+            "exported": "true"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 148,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 149,
+                  "attributes": {
+                    "name": "com.mega.ecology.media.BIND_NAVI"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 151,
+                  "attributes": {
+                    "name": "android.intent.category.DEFAULT"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "service",
+          "line": 154,
+          "attributes": {
+            "name": "com.mega.ecology.service.PhoneCallService",
+            "permission": "com.mega.ecology.export.permission.PhoneCallService",
+            "enabled": "true",
+            "exported": "true"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 159,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 160,
+                  "attributes": {
+                    "name": "com.mega.ecology.call.BIND_CALL"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 162,
+                  "attributes": {
+                    "name": "android.intent.category.DEFAULT"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "receiver",
+          "line": 166,
+          "attributes": {
+            "name": "com.mega.ecology.receiver.BootReceiver",
+            "permission": "com.mega.ecology.export.permission.BootReceiver",
+            "enabled": "true",
+            "exported": "true"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 171,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 172,
+                  "attributes": {
+                    "name": "android.intent.action.BOOT_COMPLETED_DELAY1"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 174,
+                  "attributes": {
+                    "name": "android.intent.category.DEFAULT"
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "intent-filter",
+              "line": 176,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 177,
+                  "attributes": {
+                    "name": "android.intent.action.BOOT_COMPLETED"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 179,
+                  "attributes": {
+                    "name": "android.intent.category.DEFAULT"
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "intent-filter",
+              "line": 181,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 182,
+                  "attributes": {
+                    "name": "com.mega.ecoloy.BOOT_COMPLETED"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 184,
+                  "attributes": {
+                    "name": "android.intent.category.DEFAULT"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "service",
+          "line": 188,
+          "attributes": {
+            "name": "com.liontech.radio.client.AliveService",
+            "enabled": "true",
+            "exported": "false"
+          },
+          "children": []
+        },
+        {
+          "tag": "service",
+          "line": 192,
+          "attributes": {
+            "name": "com.liontech.radio.client.RadioClientService",
+            "enabled": "true",
+            "exported": "true"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 196,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 197,
+                  "attributes": {
+                    "name": "com.liontech.radio.client.RadioClientService"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "provider",
+          "line": 201,
+          "attributes": {
+            "name": "androidx.startup.InitializationProvider",
+            "exported": "false",
+            "authorities": "com.mega.ecology.androidx-startup"
+          },
+          "children": [
+            {
+              "tag": "meta-data",
+              "line": 205,
+              "attributes": {
+                "name": "androidx.emoji2.text.EmojiCompatInitializer",
+                "value": "androidx.startup"
+              },
+              "children": []
+            },
+            {
+              "tag": "meta-data",
+              "line": 208,
+              "attributes": {
+                "name": "androidx.lifecycle.ProcessLifecycleInitializer",
+                "value": "androidx.startup"
+              },
+              "children": []
+            }
+          ]
+        }
+      ],
+      "dex": [
+        {
+          "name": "classes.dex",
+          "bytes": 9211040,
+          "sha256": "d7d57e1800a5dd1a5869fd5e8e86ff1ea67f1a3abdbf91737a6ccbc21d6b7d8a"
+        },
+        {
+          "name": "classes2.dex",
+          "bytes": 8597352,
+          "sha256": "77ad530a81a502d6c718fb1a1cff93eb1a8ce4f24e6a0222a8e92f721432a93b"
+        },
+        {
+          "name": "classes3.dex",
+          "bytes": 7154972,
+          "sha256": "b2308ba15e3be5120721e3c3b7fe3a4cdb8b5bbd179111ac0e94c9cae3a53200"
+        }
+      ],
+      "jadxReportedErrors": 9,
+      "analysisDirectory": "/Users/hongjunlong/Documents/workspace/es-sound-lab/build/open-event-interfaces-20261031/RockyEcologyCenter"
+    },
+    {
+      "package": "com.iflytek.autofly.sceneengine",
+      "file": "RockySceneEngine.apk",
+      "remotePath": "/system/priv-app/RockySceneEngine/RockySceneEngine.apk",
+      "bytes": 131639358,
+      "sha256": "370b2653b561e032ceab1f78c1213e3da1dccc14ec7c11375364826f4a2ed190",
+      "matchesExtractionManifest": true,
+      "matchesOriginalZip": true,
+      "versionCode": "25102221",
+      "versionName": "8155_BitechT18P_3.0.25102221_1",
+      "sharedUserIdDeclared": "android.uid.system",
+      "sdk": {
+        "minSdkVersion": "28",
+        "targetSdkVersion": "30"
+      },
+      "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+      "permissionsDeclared": [
+        {
+          "name": "com.iflytek.autofly.sceneengine.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+          "protectionLevel": "0x00000002"
+        }
+      ],
+      "usesPermissions": [
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.ACCESS_WIFI_STATE",
+        "android.permission.CHANGE_NETWORK_STATE",
+        "android.permission.INTERNET",
+        "android.permission.READ_PHONE_STATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.INTERNAL_SYSTEM_WINDOW",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.SYSTEM_OVERLAY_WINDOW",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.WRITE_SETTINGS",
+        "android.permission.WRITE_SECURE_SETTINGS",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.INTERACT_ACROSS_USERS",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_FRAME_BUFFER",
+        "com.iflytek.autofly.sceneengine.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+        "android.permission.INTERACT_ACROSS_USERS_FULL"
+      ],
+      "applicationPermission": null,
+      "components": [
+        {
+          "tag": "activity",
+          "line": 55,
+          "attributes": {
+            "theme": "@0x7f1202c8",
+            "name": "com.iflytek.autofly.sceneengine.view.actionremind.ActionRemindActivity",
+            "launchMode": "2"
+          },
+          "children": []
+        },
+        {
+          "tag": "activity",
+          "line": 60,
+          "attributes": {
+            "name": "com.iflytek.autofly.sceneengine.view.activecare.ActiveCareActivity",
+            "launchMode": "2"
+          },
+          "children": []
+        },
+        {
+          "tag": "activity",
+          "line": 64,
+          "attributes": {
+            "theme": "@0x7f1202c8",
+            "name": "com.iflytek.autofly.sceneengine.view.tiredremind.DmsRemindActivity",
+            "launchMode": "2"
+          },
+          "children": []
+        },
+        {
+          "tag": "activity",
+          "line": 68,
+          "attributes": {
+            "name": "com.iflytek.autofly.sceneengine.view.TestActivity"
+          },
+          "children": []
+        },
+        {
+          "tag": "receiver",
+          "line": 77,
+          "attributes": {
+            "name": "com.iflytek.autofly.sceneengine.receiver.MyBroadcastReceiver",
+            "permission": "android.permission.RECEIVE_BOOT_COMPLETED",
+            "enabled": "true",
+            "exported": "true"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 82,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 85,
+                  "attributes": {
+                    "name": "com.iflytek.autofly.sceneengine.bindtts"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "action",
+                  "line": 87,
+                  "attributes": {
+                    "name": "com.desaysv.action.boot.completed"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "action",
+                  "line": 89,
+                  "attributes": {
+                    "name": "android.intent.action.BOOT_COMPLETED"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "action",
+                  "line": 91,
+                  "attributes": {
+                    "name": "com.mega.action.WELCOME_WORDS"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "receiver",
+          "line": 96,
+          "attributes": {
+            "name": "com.iflytek.autofly.datacenter.collection.xpush.XPushMessageReceiver"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 97,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 98,
+                  "attributes": {
+                    "name": "com.iflytek.autofly.PENETRATE"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "receiver",
+          "line": 101,
+          "attributes": {
+            "name": "com.iflytek.autofly.sceneengine.receiver.WakeUpReceiver"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 102,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 103,
+                  "attributes": {
+                    "name": "com.iflytek.autofly.wakeup"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "receiver",
+          "line": 106,
+          "attributes": {
+            "name": "com.iflytek.autofly.sceneengine.receiver.TestReceiver"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 107,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 108,
+                  "attributes": {
+                    "name": "com.iflytek.autofly.test"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "provider",
+          "line": 112,
+          "attributes": {
+            "name": "com.iflytek.autofly.datacenter.provider.StateContentProvider",
+            "exported": "true",
+            "authorities": "com.ifltyek.autofly.appstate"
+          },
+          "children": []
+        },
+        {
+          "tag": "service",
+          "line": 117,
+          "attributes": {
+            "name": "com.iflytek.autofly.sceneengine.VpaDataService"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 118,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 119,
+                  "attributes": {
+                    "name": "com.iflytek.autofly.sceneengine.DATAUPLOAD"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "service",
+          "line": 122,
+          "attributes": {
+            "name": "com.iflytek.autofly.sceneengine.VpaService"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 123,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 124,
+                  "attributes": {
+                    "name": "com.iflytek.autofly.sceneengine.VPADATA"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "service",
+          "line": 127,
+          "attributes": {
+            "name": "com.iflytek.autofly.sceneengine.SkillsService"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 128,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 129,
+                  "attributes": {
+                    "name": "com.iflytek.autofly.sceneengine.SKILLS"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "service",
+          "line": 132,
+          "attributes": {
+            "name": "com.iflytek.autofly.sceneengine.ActiveCareService"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 133,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 134,
+                  "attributes": {
+                    "name": "com.iflytek.autofly.sceneengine.ACTIVE_CARE"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "service",
+          "line": 139,
+          "attributes": {
+            "name": "com.iflytek.autofly.sceneengine.service.AvatarIndexService",
+            "exported": "true"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 142,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 143,
+                  "attributes": {
+                    "name": "com.iflytek.autofly.sceneengine.AVATARINDEX"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "service",
+          "line": 156,
+          "attributes": {
+            "name": "com.iflytek.autofly.sceneengine.VpaTestDataService"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 157,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 158,
+                  "attributes": {
+                    "name": "com.iflytek.autofly.sceneengine.TESTDATAUPLOAD"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "service",
+          "line": 161,
+          "attributes": {
+            "name": "com.iflytek.autofly.sceneengine.service.AvatarService",
+            "exported": "true"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 164,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 165,
+                  "attributes": {
+                    "name": "com.iflytek.autofly.AVATARDECISION"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "service",
+          "line": 168,
+          "attributes": {
+            "name": "com.iflytek.autofly.lib_liteavatar.AvatarService",
+            "enabled": "true",
+            "exported": "true"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 172,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 173,
+                  "attributes": {
+                    "name": "com.iflytek.autofly.PixieService"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "service",
+          "line": 176,
+          "attributes": {
+            "name": "com.iflytek.autofly.lib_baseavatar.aidl.OperatorMallAidl",
+            "enabled": "true",
+            "exported": "true"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 180,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 181,
+                  "attributes": {
+                    "name": "com.iflytek.autofly.lib_baseavatar.aidl.OperatorMallAidl"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "service",
+          "line": 184,
+          "attributes": {
+            "name": "com.iflytek.autofly.lib_baseavatar.external.InstructionService",
+            "enabled": "true",
+            "exported": "true"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 188,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 189,
+                  "attributes": {
+                    "name": "com.iflytek.autofly.lib_baseavatar.external.InstructionService"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "provider",
+          "line": 193,
+          "attributes": {
+            "name": "leakcanary.internal.AppWatcherInstaller$MainProcess",
+            "exported": "false",
+            "authorities": "com.iflytek.autofly.sceneengine.leakcanary-installer"
+          },
+          "children": []
+        },
+        {
+          "tag": "provider",
+          "line": 197,
+          "attributes": {
+            "name": "androidx.startup.InitializationProvider",
+            "exported": "false",
+            "authorities": "com.iflytek.autofly.sceneengine.androidx-startup"
+          },
+          "children": [
+            {
+              "tag": "meta-data",
+              "line": 201,
+              "attributes": {
+                "name": "androidx.emoji2.text.EmojiCompatInitializer",
+                "value": "androidx.startup"
+              },
+              "children": []
+            },
+            {
+              "tag": "meta-data",
+              "line": 204,
+              "attributes": {
+                "name": "androidx.lifecycle.ProcessLifecycleInitializer",
+                "value": "androidx.startup"
+              },
+              "children": []
+            }
+          ]
+        }
+      ],
+      "dex": [
+        {
+          "name": "classes.dex",
+          "bytes": 8943828,
+          "sha256": "226995cc2663bde23c1aa80e8cd367f0f23e6131a62f5b66829e5bd1e4fb3c8e"
+        },
+        {
+          "name": "classes2.dex",
+          "bytes": 10272484,
+          "sha256": "03f0c877c5cc4e22965b80b172d8c8ca7f83845e97f07017c9f00ca167976632"
+        },
+        {
+          "name": "classes3.dex",
+          "bytes": 2471732,
+          "sha256": "3dc601471ebc960635206ec73d1b70b9542db3b6a34f21380be7bb88502ab564"
+        }
+      ],
+      "jadxReportedErrors": 15,
+      "analysisDirectory": "/Users/hongjunlong/Documents/workspace/es-sound-lab/build/open-event-interfaces-20261031/RockySceneEngine"
+    },
+    {
+      "package": "com.android.launcher3",
+      "file": "RockyLauncher.apk",
+      "remotePath": "/system/priv-app/RockyLauncher/RockyLauncher.apk",
+      "bytes": 162946695,
+      "sha256": "d86c2d94b3066ba45c71fee012cfd1a3ec9d851df1242a5a660d9e5982f0862c",
+      "matchesExtractionManifest": true,
+      "matchesOriginalZip": true,
+      "versionCode": "30",
+      "versionName": "1.0.20260304233724-release/rocky_hqx.4.5.5_20251024",
+      "sharedUserIdDeclared": "android.uid.system",
+      "sdk": {
+        "minSdkVersion": "30",
+        "targetSdkVersion": "30"
+      },
+      "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+      "permissionsDeclared": [
+        {
+          "label": "@0x7f100231",
+          "name": "com.android.launcher.permission.INSTALL_SHORTCUT",
+          "protectionLevel": "0x00000001",
+          "permissionGroup": "android.permission-group.SYSTEM_TOOLS",
+          "description": "@0x7f10022e"
+        },
+        {
+          "name": "com.android.launcher3.permission.READ_WALLPAPER"
+        },
+        {
+          "label": "@0x7f100232",
+          "name": "com.android.launcher3.permission.READ_SETTINGS",
+          "protectionLevel": "0x00000003",
+          "permissionGroup": "android.permission-group.SYSTEM_TOOLS",
+          "description": "@0x7f10022f"
+        },
+        {
+          "label": "@0x7f100233",
+          "name": "com.android.launcher3.permission.WRITE_SETTINGS",
+          "protectionLevel": "0x00000003",
+          "permissionGroup": "android.permission-group.SYSTEM_TOOLS",
+          "description": "@0x7f100230"
+        }
+      ],
+      "usesPermissions": [
+        "android.permission.CALL_PHONE",
+        "android.permission.INTERACT_ACROSS_USERS",
+        "android.permission.SET_WALLPAPER",
+        "android.permission.SET_WALLPAPER_HINTS",
+        "android.permission.BIND_APPWIDGET",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.REQUEST_DELETE_PACKAGES",
+        "android.permission.READ_DEVICE_CONFIG",
+        "android.permission.QUERY_ALL_PACKAGES",
+        "android.permission.WRITE_SECURE_SETTINGS",
+        "mega.car.permission.SEQUOIA",
+        "mega.car.permission.VEHICLE_BODY",
+        "mega.car.permission.ECU",
+        "android.permission.READ_FRAME_BUFFER",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.SYSTEM_OVERLAY_WINDOW",
+        "android.permission.INTERNAL_SYSTEM_WINDOW",
+        "android.permission.REORDER_TASKS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.CHANGE_COMPONENT_ENABLED_STATE",
+        "android.permission.MANAGE_EXTERNAL_STORAGE",
+        "com.android.launcher3.permission.READ_SETTINGS",
+        "com.android.launcher3.permission.WRITE_SETTINGS",
+        "android.permission.BIND_WALLPAPER",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "com.mega.carsettings.export.permission.ShowDialogReceiver",
+        "mega.permission.voicerelayservice.SERVICE"
+      ],
+      "applicationPermission": null,
+      "components": [
+        {
+          "tag": "activity",
+          "line": 118,
+          "attributes": {
+            "name": "com.android.launcher3.Launcher",
+            "enabled": "true",
+            "taskAffinity": "",
+            "clearTaskOnLaunch": "true",
+            "stateNotNeeded": "true",
+            "launchMode": "2",
+            "screenOrientation": "0",
+            "configChanges": "0x00000df3",
+            "windowSoftInputMode": "0x00000020",
+            "resumeWhilePausing": "true",
+            "resizeableActivity": "true"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 130,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 131,
+                  "attributes": {
+                    "name": "android.intent.action.MAIN"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 133,
+                  "attributes": {
+                    "name": "android.intent.category.HOME"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 134,
+                  "attributes": {
+                    "name": "android.intent.category.DEFAULT"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 135,
+                  "attributes": {
+                    "name": "android.intent.category.MONKEY"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 136,
+                  "attributes": {
+                    "name": "android.intent.category.LAUNCHER_APP"
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "intent-filter",
+              "line": 138,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 139,
+                  "attributes": {
+                    "name": "android.intent.action.MAIN"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 141,
+                  "attributes": {
+                    "name": "android.intent.category.LAUNCHER"
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "intent-filter",
+              "line": 143,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 144,
+                  "attributes": {
+                    "name": "com.android.launcher3.intent.action.CONTROL"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 146,
+                  "attributes": {
+                    "name": "android.intent.category.DEFAULT"
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "meta-data",
+              "line": 149,
+              "attributes": {
+                "name": "com.android.launcher3.grid.control",
+                "value": "com.android.launcher3.grid_control"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "tag": "activity",
+          "line": 153,
+          "attributes": {
+            "name": "com.android.launcher3.activity.EmptyActivity",
+            "exported": "false"
+          },
+          "children": []
+        },
+        {
+          "tag": "service",
+          "line": 157,
+          "attributes": {
+            "name": "com.mega.redwoodavatar.service.VpaCommandService",
+            "process": ":VpaAvatar"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 160,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 161,
+                  "attributes": {
+                    "name": "com.mega.redwoodavatar.do_action"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 163,
+                  "attributes": {
+                    "name": "android.intent.category.DEFAULT"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "receiver",
+          "line": 211,
+          "attributes": {
+            "name": "com.android.launcher3.InstallShortcutReceiver",
+            "permission": "com.android.launcher.permission.INSTALL_SHORTCUT",
+            "enabled": "@0x7f050007"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 215,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 216,
+                  "attributes": {
+                    "name": "com.android.launcher.action.INSTALL_SHORTCUT"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "receiver",
+          "line": 219,
+          "attributes": {
+            "name": "com.android.launcher3.SessionCommitReceiver"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 220,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 221,
+                  "attributes": {
+                    "name": "android.content.pm.action.SESSION_COMMITTED"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "receiver",
+          "line": 224,
+          "attributes": {
+            "name": "com.android.launcher3.AppWidgetsRestoredReceiver"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 225,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 226,
+                  "attributes": {
+                    "name": "android.appwidget.action.APPWIDGET_HOST_RESTORED"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "service",
+          "line": 230,
+          "attributes": {
+            "name": "com.android.launcher3.uioverrides.dynamicui.WallpaperManagerCompatVL$ColorExtractionService",
+            "permission": "android.permission.BIND_JOB_SERVICE",
+            "exported": "false",
+            "process": ":wallpaper_chooser"
+          },
+          "children": []
+        },
+        {
+          "tag": "service",
+          "line": 235,
+          "attributes": {
+            "label": "@0x7f100221",
+            "name": "com.android.launcher3.notification.NotificationListener",
+            "permission": "android.permission.BIND_NOTIFICATION_LISTENER_SERVICE",
+            "enabled": "@0x7f05000a"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 240,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 241,
+                  "attributes": {
+                    "name": "android.service.notification.NotificationListenerService"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "provider",
+          "line": 249,
+          "attributes": {
+            "name": "com.android.launcher3.LauncherProvider",
+            "readPermission": "com.android.launcher3.permission.READ_SETTINGS",
+            "writePermission": "com.android.launcher3.permission.WRITE_SETTINGS",
+            "exported": "true",
+            "authorities": "com.android.launcher3.settings"
+          },
+          "children": []
+        },
+        {
+          "tag": "activity",
+          "line": 256,
+          "attributes": {
+            "theme": "@0x7f11000d",
+            "name": "com.android.launcher3.activity.AppListActivity",
+            "exported": "true",
+            "launchMode": "2",
+            "configChanges": "0x4000359b"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 262,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 263,
+                  "attributes": {
+                    "name": "android.intent.action.APP_LIST"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 265,
+                  "attributes": {
+                    "name": "android.intent.category.DEFAULT"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "activity",
+          "line": 268,
+          "attributes": {
+            "theme": "@0x7f11000d",
+            "name": "com.android.launcher3.activity.EmptyFL30Activity2",
+            "exported": "false",
+            "configChanges": "0x4000359b"
+          },
+          "children": []
+        },
+        {
+          "tag": "service",
+          "line": 274,
+          "attributes": {
+            "name": "com.mega.launcher.wallpaper.service.WallpaperService",
+            "enabled": "true",
+            "exported": "true"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 278,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 279,
+                  "attributes": {
+                    "name": "com.mega.launcher.wallpaper.BIND_WALLPAPER"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 281,
+                  "attributes": {
+                    "name": "android.intent.category.DEFAULT"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "provider",
+          "line": 285,
+          "attributes": {
+            "name": "com.mega.launcher.wallpaper.provider.WallpapersProvider",
+            "permission": "com.android.launcher3.permission.READ_WALLPAPER",
+            "exported": "true",
+            "authorities": "com.android.launcher3.wallpaperprovider"
+          },
+          "children": [
+            {
+              "tag": "meta-data",
+              "line": 290,
+              "attributes": {
+                "name": "android.support.FILE_PROVIDER_PATHS",
+                "resource": "@0x7f13000e"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "tag": "activity",
+          "line": 295,
+          "attributes": {
+            "name": "com.mega.launcher.wallpaper.activity.WallpaperMockActivity",
+            "exported": "false",
+            "process": ":wallpapermock",
+            "launchMode": "3"
+          },
+          "children": []
+        },
+        {
+          "tag": "service",
+          "line": 305,
+          "attributes": {
+            "name": "androidx.room.MultiInstanceInvalidationService",
+            "exported": "false",
+            "directBootAware": "true"
+          },
+          "children": []
+        }
+      ],
+      "dex": [
+        {
+          "name": "classes.dex",
+          "bytes": 10127484,
+          "sha256": "8a3e6c870aa48090e4c5f715edd82594ba05753f3e07c024299a002d96941971"
+        },
+        {
+          "name": "classes2.dex",
+          "bytes": 8960352,
+          "sha256": "b375064fda65884cdc6b61b94bded923137d31a99e01159c9e363ff683748120"
+        },
+        {
+          "name": "classes3.dex",
+          "bytes": 817376,
+          "sha256": "bd6f60229ee3282bf88ff06aebbc56c6bc354dd47fb38185044b1092f81fb5d4"
+        }
+      ],
+      "jadxReportedErrors": 100,
+      "analysisDirectory": "/Users/hongjunlong/Documents/workspace/es-sound-lab/build/open-event-interfaces-20261031/RockyLauncher"
+    },
+    {
+      "package": "com.lion.scenemode",
+      "file": "RockyLionSceneModeService.apk",
+      "remotePath": "/system/app/RockyLionSceneModeService/RockyLionSceneModeService.apk",
+      "bytes": 18517145,
+      "sha256": "3850f1a4c5e48fc3e6f556ba47b49d6d443d8a8b99207e97e26051e40d35249a",
+      "matchesExtractionManifest": true,
+      "matchesOriginalZip": true,
+      "versionCode": "260115",
+      "versionName": "E0X_SOP_260115_56",
+      "sharedUserIdDeclared": "android.uid.system",
+      "sdk": {
+        "minSdkVersion": "30",
+        "targetSdkVersion": "30"
+      },
+      "certificateSha256": "83c557731f16f11ad8fb1c83024771e176d6902acbd9e0fc4c0ab97fecb78c3d",
+      "permissionsDeclared": [],
+      "usesPermissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.INJECT_EVENTS",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_PHONE_STATE",
+        "android.permission.READ_PRIVILEGED_PHONE_STATE",
+        "android.permission.QUERY_ALL_PACKAGES",
+        "android.permission.INTERACT_ACROSS_PROFILES",
+        "mega.car.permission.KeyInput",
+        "mega.car.permission.VEHICLE_MOTION",
+        "mega.car.permission.VEHICLE_BODY",
+        "mega.car.permission.CAR_DRIVING",
+        "mega.car.permission.CAR_WARNING",
+        "mega.car.permission.ELEC_POWER",
+        "mega.car.permission.ENTRY_LOCK",
+        "mega.car.permission.INFOTAINMENT",
+        "mega.car.permission.LOCAL_EVENT",
+        "mega.car.permission.DMS",
+        "mega.car.permission.CARCABIN",
+        "mega.car.permission.CLIMATE",
+        "mega.car.permission.ECU",
+        "mega.car.permission.LIGHTING",
+        "mega.car.permission.COMFORTS_SETTINGS",
+        "mega.car.permission.CAR_WINDOWS",
+        "mega.car.permission.EXTRA",
+        "mega.car.permission.CAR_POWER",
+        "android.car.permission.CAR_POWER",
+        "mega.car.permission.SETTINGS",
+        "mega.car.permission.SEQUOIA",
+        "android.permission.INTERNET",
+        "android.permission.MOUNT_UNMOUNT_FILESYSTEMS",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.car.permission.CAR_CONTROL_AUDIO_VOLUME",
+        "com.mega.carsettings.export.permission.CooperationBusinessReceiver",
+        "com.mega.sentinel.export.permission.SliceReceiver",
+        "com.mega.sceneblock.permission.SceneModeReceiver",
+        "com.mega.carsettings.export.permission.Slice",
+        "com.mega.sentinel.export.permission.RedwoodSentinelSlice",
+        "com.mega.sentinel.export.permission.SliceReceiver",
+        "com.mega.carsettings.export.permission.SliceReceiver",
+        "mega.car.permission.VEHICLE_CONTROL"
+      ],
+      "applicationPermission": null,
+      "components": [
+        {
+          "tag": "activity",
+          "line": 75,
+          "attributes": {
+            "name": "com.lion.scenemode.test.TestActivity",
+            "exported": "true"
+          },
+          "children": []
+        },
+        {
+          "tag": "activity",
+          "line": 78,
+          "attributes": {
+            "name": "com.lion.scenemode.test.ActionTestActivity"
+          },
+          "children": []
+        },
+        {
+          "tag": "service",
+          "line": 80,
+          "attributes": {
+            "name": "com.lion.scenemode.server.CoreService",
+            "enabled": "true",
+            "exported": "true"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 84,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 85,
+                  "attributes": {
+                    "name": "com.lion.scenemode.service"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 87,
+                  "attributes": {
+                    "name": "android.intent.category.DEFAULT"
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "intent-filter",
+              "line": 89,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 90,
+                  "attributes": {
+                    "name": "com.lion.scenemode.service.ACTIVE_SCENE"
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "tag": "intent-filter",
+              "line": 92,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 93,
+                  "attributes": {
+                    "name": "com.lion.scenemode.service.OMS_SCENE"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "service",
+          "line": 96,
+          "attributes": {
+            "name": "com.lion.scenemode.server.api.SceneModeApiService",
+            "enabled": "true",
+            "exported": "true"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 100,
+              "attributes": {},
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 101,
+                  "attributes": {
+                    "name": "com.lion.scenemode.service.api"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "receiver",
+          "line": 105,
+          "attributes": {
+            "name": "com.lion.scenemode.server.BootReceiver"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 106,
+              "attributes": {
+                "priority": "1000"
+              },
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 107,
+                  "attributes": {
+                    "name": "android.intent.action.BOOT_COMPLETED_DELAY3"
+                  },
+                  "children": []
+                },
+                {
+                  "tag": "category",
+                  "line": 109,
+                  "attributes": {
+                    "name": "android.intent.category.DEFAULT"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "receiver",
+          "line": 112,
+          "attributes": {
+            "name": "com.lion.scenemode.server.VoiceReceiver"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 113,
+              "attributes": {
+                "priority": "999"
+              },
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 114,
+                  "attributes": {
+                    "name": "com.iflytek.autofly.ACTION_AUTOFLY_STATE"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "receiver",
+          "line": 117,
+          "attributes": {
+            "name": "com.lion.scenemode.server.StrRestoreReceiver"
+          },
+          "children": [
+            {
+              "tag": "intent-filter",
+              "line": 118,
+              "attributes": {
+                "priority": "999"
+              },
+              "children": [
+                {
+                  "tag": "action",
+                  "line": 119,
+                  "attributes": {
+                    "name": "com.mega.chery.restartThirdApp"
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "tag": "activity",
+          "line": 123,
+          "attributes": {
+            "name": "androidx.slice.compat.SlicePermissionActivity",
+            "excludeFromRecents": "true"
+          },
+          "children": []
+        }
+      ],
+      "dex": [
+        {
+          "name": "classes.dex",
+          "bytes": 7775264,
+          "sha256": "0d9158ec3d8d3d9e30ea8b75cb224801ecb30a4dbab086c15c5ad8743dc47964"
+        },
+        {
+          "name": "classes2.dex",
+          "bytes": 7862728,
+          "sha256": "957bece457dcc28bae976c4021c3d45eb2cecb058bd0b37733ac596fed2f3094"
+        }
+      ],
+      "jadxReportedErrors": 7,
+      "analysisDirectory": "/Users/hongjunlong/Documents/workspace/es-sound-lab/build/open-event-interfaces-20261031/RockyLionSceneModeService"
+    }
+  ]
+}

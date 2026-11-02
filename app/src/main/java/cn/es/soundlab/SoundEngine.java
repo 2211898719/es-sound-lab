@@ -26,8 +26,18 @@ public final class SoundEngine {
   private EventSpec shotSpec;
   private String loopId, desiredLoop;
   private float loopRate = 1;
+  private float engineGain = 1;
+  private boolean engineBlocked;
+  private boolean engineDemo;
+  private EngineVoice engineVoice;
+  private boolean enginePreview;
+  private float engineLoad;
+  EngineVoice.Factory engineFactory = PcmEnginePlayer::new;
+  private boolean loopPrepared;
   private AudioFocusRequest focus;
-  private boolean focused, closed, focusBlocked;
+  private boolean focused, closed, focusBlocked, shotPreview;
+  private int focusUsage = -1;
+  private java.util.function.BooleanSupplier lockPlaybackAllowed = () -> false;
   private int lockTarget = -1;
   private float lockVolume;
   private long lockDeadline;
@@ -56,6 +66,17 @@ public final class SoundEngine {
     audio = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
   }
 
+  public void lockPlaybackAllowed(java.util.function.BooleanSupplier allowed) {
+    lockPlaybackAllowed = allowed;
+  }
+
+  public void limitEnginePreview() {
+    final EngineVoice preview = engineVoice;
+    main.postDelayed(() -> {
+      if (engineVoice == preview && enginePreview) next();
+    }, 8000);
+  }
+
   public void play(String id, boolean preview) {
     EventSpec spec = EventSpec.find(id);
     if (spec != null && spec.group.equals("lock"))
@@ -63,6 +84,15 @@ public final class SoundEngine {
           + (closed ? " · 播放器已关闭" : !preview && !store.enabled("lock") ? " · 开关关闭，跳过" : " · 请求播放"));
     if (!playable(spec, preview)) return;
     focusBlocked = false;
+    if (spec.group.equals("engine") && preview) {
+      engineBlocked = false;
+      queue.clear();
+      releaseShot();
+      releaseLoop();
+      if (!requestFocus(false, true)) return;
+      startEngineVoice(true);
+      return;
+    }
     Job j = new Job(spec, preview);
     for (Iterator<Job> it = queue.iterator(); it.hasNext(); )
       if (it.next().spec.id.equals(id)) it.remove();
@@ -89,11 +119,20 @@ public final class SoundEngine {
 
   private boolean playable(EventSpec spec, boolean preview) {
     if (spec == null || closed || (!preview && !store.enabled(spec.group))) return false;
+    if (!preview && spec.group.equals("charge")
+        && !store.iccTriggerConfirmed(spec.group)) return false;
+    if (!preview && spec.group.equals("lock") && !lockPlaybackAllowed.getAsBoolean()) {
+      diag.lockDecision("未处于新鲜P挡，取消自动解闭锁音效，不补播");
+      return false;
+    }
     try {
       if (store.volume(spec.group) == 0) throw new IllegalStateException("音量为 0");
-      if (spec.group.equals("lock") && (selectedLockDevice() == null
-          || (!preview && !store.prefs.getBoolean("lock.output.confirmed", false)))) {
-        diag.lockOutputStatus = "未选择可用且满足确认要求的车外设备，已阻止解闭锁播放";
+      if (spec.group.equals("engine") && store.engineSynth()) {
+        EngineTuning.source(store.engineSource());
+        return true;
+      }
+      if (spec.group.equals("lock") && selectedLockDevice() == null) {
+        diag.lockOutputStatus = "未找到原厂车外总线，已阻止解闭锁播放，不回退车内";
         throw new IllegalStateException(diag.lockOutputStatus);
       }
       String source = store.source(spec);
@@ -125,9 +164,11 @@ public final class SoundEngine {
       return;
     }
     releaseLoop();
-    if (!requestFocus()) {
+    if (!requestFocus(j.spec.group.equals("lock"), j.spec.group.equals("engine"))) {
       diag.line("播放", "未获得音频焦点");
-      if (j.spec.group.equals("lock")) diag.line("车外播放", "未获得音频焦点，取消 · " + j.spec.id);
+      if (j.spec.group.equals("lock")) {
+        diag.line("车外播放", "未获得音频焦点，取消 · " + j.spec.id + " · " + diag.lockFocusResult);
+      }
       queue.clear();
       return;
     }
@@ -136,15 +177,17 @@ public final class SoundEngine {
       final MediaPlayer p = create(job.spec, job.preview);
       shot = p;
       shotSpec = job.spec;
+      shotPreview = job.preview;
       p.setOnPreparedListener(
           m -> {
             if (shot != m || closed) return;
             try {
-              rate(m, store.speed(job.spec.id));
+              rate(m, job.spec.group.equals("engine") ? 1 : store.speed(job.spec.id));
               if (job.spec.group.equals("lock")) {
                 AudioDeviceInfo device = selectedLockDevice();
-                if (device == null || (!job.preview && !store.prefs.getBoolean("lock.output.confirmed", false)))
-                  throw new IllegalStateException("车外通道已失效或未确认，取消解闭锁音效");
+                if (device == null)
+                  throw new IllegalStateException("原厂车外通道已失效，取消解闭锁音效");
+                requireParkedLock();
                 lockTarget = device.getId();
                 lockVolume = store.volume("lock") / 100f;
                 lockDeadline = android.os.SystemClock.uptimeMillis() + 1500;
@@ -184,16 +227,15 @@ public final class SoundEngine {
   private MediaPlayer create(EventSpec s, boolean preview) throws Exception {
     boolean external = s.group.equals("lock");
     AudioDeviceInfo device = external ? selectedLockDevice() : selectedDevice();
-    if (external && (device == null || (!preview && !store.prefs.getBoolean("lock.output.confirmed", false)))) {
-      diag.lockOutputStatus = "解闭锁已阻止：未选择或未确认车外设备，不回退普通输出";
+    if (external && device == null) {
+      diag.lockOutputStatus = "解闭锁已阻止：原厂车外通道不可用，不回退普通输出";
       throw new IllegalStateException(diag.lockOutputStatus);
     }
     MediaPlayer p = new MediaPlayer();
     try {
-      p.setAudioAttributes(
-          new AudioAttributes.Builder()
-              .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-              .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+      p.setAudioAttributes(external ? ExteriorAudio.attributes() : new AudioAttributes.Builder()
+              .setUsage(s.group.equals("engine") ? AudioAttributes.USAGE_MEDIA : AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+              .setContentType(s.group.equals("engine") ? AudioAttributes.CONTENT_TYPE_MUSIC : AudioAttributes.CONTENT_TYPE_SPEECH)
               .build());
       String path = store.source(s);
       if (path.startsWith("file:")) {
@@ -206,6 +248,7 @@ public final class SoundEngine {
         }
       }
       float volume = external ? 0 : store.volume(s.group) / 100f;
+      if (s.group.equals("engine") && !preview) volume *= engineGain;
       p.setVolume(volume, volume);
       if (device != null && !p.setPreferredDevice(device)) {
         if (external) {
@@ -225,6 +268,7 @@ public final class SoundEngine {
     main.removeCallbacks(lockRouteCheck);
     if (shot == null || lockTarget < 0) return;
     try {
+      requireParkedLock();
       AudioDeviceInfo selected = selectedLockDevice(), routed = shot.getRoutedDevice();
       if (selected == null || selected.getId() != lockTarget)
         throw new IllegalStateException("车外设备已断开或改变，停止解闭锁音效");
@@ -248,6 +292,7 @@ public final class SoundEngine {
   private void finishLockSeek(MediaPlayer player) {
     if (shot != player || lockTarget < 0 || closed) return;
     try {
+      requireParkedLock();
       if (android.os.SystemClock.uptimeMillis() >= lockDeadline)
         throw new IllegalStateException("车外音频定位超时，取消放音");
       player.setOnSeekCompleteListener(null);
@@ -278,14 +323,54 @@ public final class SoundEngine {
   }
 
   public void loop(String id, float rate) {
+    if (id == null) engineBlocked = false;
     desiredLoop = id;
     loopRate = rate;
     if (shot == null) applyLoop();
   }
 
+  public void engine(float pitch, float gain) {
+    engine(pitch, gain, 0);
+  }
+
+  public void engine(float pitch, float gain, float load) {
+    engineLoad = load;
+    engineGain = Math.max(0, Math.min(1, gain));
+    if (engineBlocked) return;
+    loop("engine.loop", pitch);
+  }
+
+  void beginEngineDemo() {
+    stop();
+    focusBlocked = false;
+    engineBlocked = false;
+    engineDemo = true;
+  }
+
+  boolean engineDemoActive() { return engineDemo && !closed && !engineBlocked && !focusBlocked; }
+
+  void endEngineDemo() {
+    if (!engineDemo) return;
+    engineDemo = false;
+    desiredLoop = null;
+    releaseLoop();
+    if (shot == null) abandon();
+  }
+
+  String engineStatus() {
+    if (engineBlocked) return "音频请求或播放失败；安全驻车后重新启用 / 更换音源";
+    if (focusBlocked) return "音频焦点被系统接管，声浪已暂停";
+    if (engineVoice != null) return engineVoice.status();
+    if (shot != null) return shotSpec != null && shotSpec.group.equals("engine")
+        ? "原音试听中" : "短音效播放中，声浪让行";
+    if ("engine.loop".equals(loopId)) return loopPrepared ? "已提交循环播放（未验证物理输出）" : "准备音频中";
+    return "声浪未播放";
+  }
+
   private void applyLoop() {
     if (closed) return;
     if (focusBlocked) return;
+    if (enginePreview) return;
     if (desiredLoop == null) {
       releaseLoop();
       diag.playing = "待命";
@@ -293,21 +378,39 @@ public final class SoundEngine {
       return;
     }
     EventSpec s = EventSpec.find(desiredLoop);
-    if (s == null || !store.enabled(s.group)) {
+    if (s == null || !store.enabled(s.group) && !(engineDemo && s.group.equals("engine"))) {
       releaseLoop();
       diag.playing = "待命";
       abandon();
       return;
     }
+    if (s.group.equals("engine")) {
+      if (engineVoice != null) {
+        engineVoice.target(loopRate, engineGain * store.volume("engine") / 100f, engineLoad);
+        return;
+      }
+      releaseLoop();
+      if (!requestFocus(false, true)) { engineBlocked = true; return; }
+      startEngineVoice(false);
+      return;
+    }
     if (loop != null && desiredLoop.equals(loopId)) {
+      if (!loopPrepared) return;
       try {
-        rate(loop, loopRate * store.speed(s.id));
-      } catch (Exception ignored) {
+        loopParameters(loop, s);
+      } catch (Exception error) {
+        engineBlocked = s.group.equals("engine");
+        fail(error);
+        releaseLoop();
+        abandon();
       }
       return;
     }
     releaseLoop();
-    if (!requestFocus()) return;
+    if (!requestFocus(false, s.group.equals("engine"))) {
+      engineBlocked = s.group.equals("engine");
+      return;
+    }
     try {
       final MediaPlayer p = create(s, false);
       loop = p;
@@ -317,10 +420,12 @@ public final class SoundEngine {
           m -> {
             if (loop == m && !closed)
               try {
-                rate(m, loopRate * store.speed(s.id));
+                loopPrepared = true;
+                loopParameters(m, s);
                 m.start();
                 diag.playing = s.title;
               } catch (Exception e) {
+                engineBlocked = s.group.equals("engine");
                 fail(e);
                 releaseLoop();
                 abandon();
@@ -329,6 +434,7 @@ public final class SoundEngine {
       p.setOnErrorListener(
           (m, a, b) -> {
             if (loop == m) {
+              engineBlocked = s.group.equals("engine");
               fail(new IllegalStateException("循环音频错误 " + a + "/" + b));
               releaseLoop();
               abandon();
@@ -337,8 +443,46 @@ public final class SoundEngine {
           });
       p.prepareAsync();
     } catch (Exception e) {
+      engineBlocked = s.group.equals("engine");
       fail(e);
       releaseLoop();
+      abandon();
+    }
+  }
+
+  private void loopParameters(MediaPlayer player, EventSpec spec) {
+    rate(player, loopRate * store.speed(spec.id));
+  }
+
+  private void startEngineVoice(boolean preview) {
+    enginePreview = preview;
+    final EngineVoice[] expected = new EngineVoice[1];
+    try {
+      EngineVoice created = engineFactory.create(context, store.engineSource(), preview,
+          selectedDevice(), new EngineVoice.Listener() {
+            @Override public void finished() {
+              if (engineVoice != expected[0] || closed) return;
+              if (enginePreview) next();
+              else { engineBlocked = true; releaseLoop(); abandon(); }
+            }
+            @Override public void failed(Exception error) {
+              if (engineVoice != expected[0] || closed) return;
+              engineBlocked = true;
+              fail(error);
+              if (enginePreview) { releaseShot(); abandon(); }
+              else { releaseLoop(); abandon(); }
+            }
+          });
+      expected[0] = created;
+      engineVoice = created;
+      if (!preview) loopId = "engine.loop";
+      created.target(preview ? 1 : loopRate, (preview ? 1 : engineGain) * store.volume("engine") / 100f,
+          preview ? store.engineSynth() ? .5f : 0 : engineLoad);
+      diag.playing = preview ? "声浪PCM原音试听" : "声浪PCM连续播放";
+    } catch (Exception error) {
+      enginePreview = false;
+      engineBlocked = true;
+      fail(error);
       abandon();
     }
   }
@@ -347,17 +491,41 @@ public final class SoundEngine {
     p.setPlaybackParams(p.getPlaybackParams().setSpeed(Math.max(.5f, Math.min(2f, v))).setPitch(1));
   }
 
-  private boolean requestFocus() {
+  private boolean requestFocus(boolean external) {
+    return requestFocus(external, false);
+  }
+
+  private boolean requestFocus(boolean external, boolean continuous) {
     if (audio == null) return true;
+    int usage = external ? ExteriorAudio.USAGE : continuous ? AudioAttributes.USAGE_MEDIA
+        : AudioAttributes.USAGE_ASSISTANCE_SONIFICATION;
+    AudioAttributes attributes;
+    try {
+      attributes = external ? ExteriorAudio.attributes() : new AudioAttributes.Builder().setUsage(usage).build();
+    } catch (Exception error) {
+      diag.lockOutputStatus = error.getMessage();
+      if (external) {
+        diag.lockFocusAt = System.currentTimeMillis();
+        diag.lockFocusResult = "attributes-unsupported";
+      }
+      fail(error);
+      return false;
+    }
+    if (focusUsage != usage) {
+      abandon();
+      focus = null;
+      focusUsage = usage;
+    }
     if (focused) return true;
     if (focus == null)
       focus =
-          new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-              .setAudioAttributes(new AudioAttributes.Builder().setUsage(13).build())
+          new AudioFocusRequest.Builder(continuous ? AudioManager.AUDIOFOCUS_GAIN : AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+              .setAudioAttributes(attributes)
               .setOnAudioFocusChangeListener(
                   change -> {
                     if (change == AudioManager.AUDIOFOCUS_LOSS
-                        || change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+                        || change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT
+                        || continuous && change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
                       stop();
                       focusBlocked = true;
                       diag.line("播放", "音频焦点被其他应用接管");
@@ -368,7 +536,25 @@ public final class SoundEngine {
                   },
                   main)
               .build();
-    focused = audio.requestAudioFocus(focus) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+    try {
+      int result = audio.requestAudioFocus(focus);
+      focused = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+      if (external) {
+        diag.lockFocusAt = System.currentTimeMillis();
+        diag.lockFocusResult = "result=" + result + (focused ? "（已授予）" : "（未授予）");
+        if (!focused) diag.lockOutputStatus = "系统未授予usage2007音频焦点；已取消，不强播、不回退车内";
+        diag.line("车外播放", "音频焦点 " + diag.lockFocusResult + " · usage=" + usage
+            + " · gain=" + AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
+      }
+    } catch (RuntimeException error) {
+      focused = false;
+      if (external) {
+        diag.lockFocusAt = System.currentTimeMillis();
+        diag.lockFocusResult = "request-exception:" + error.getClass().getSimpleName();
+        diag.lockOutputStatus = "系统焦点申请异常，取消车外放音，不回退车内";
+      }
+      diag.line("音频焦点", "系统拒绝usage=" + usage + "，取消放音，不回退其他通道");
+    }
     return focused;
   }
 
@@ -383,6 +569,11 @@ public final class SoundEngine {
   }
 
   private void releaseShot() {
+    if (enginePreview) {
+      enginePreview = false;
+      if (engineVoice != null) engineVoice.close();
+      engineVoice = null;
+    }
     main.removeCallbacks(lockRouteCheck);
     if (shot != null) {
       MediaPlayer p = shot;
@@ -405,6 +596,20 @@ public final class SoundEngine {
     lockAudible = false;
     lockSeeking = false;
     shotSpec = null;
+    shotPreview = false;
+  }
+
+  private void requireParkedLock() {
+    if (!shotPreview && !lockPlaybackAllowed.getAsBoolean())
+      throw new IllegalStateException("自动解闭锁放音前P挡已失效，取消音效，不补播");
+  }
+
+  public void cancelAutomaticLock() {
+    for (Iterator<Job> jobs = queue.iterator(); jobs.hasNext(); ) {
+      Job job = jobs.next();
+      if (job.spec.group.equals("lock") && !job.preview) jobs.remove();
+    }
+    if (shotSpec != null && shotSpec.group.equals("lock") && !shotPreview) next();
   }
 
   public void cancelLock() {
@@ -425,7 +630,24 @@ public final class SoundEngine {
     if (shotSpec != null && shotSpec.group.equals("autohold")) next();
   }
 
+  public void chargeChanged(String event) {
+    cancelCharge();
+    play(event, false);
+  }
+
+  public void cancelCharge() {
+    for (Iterator<Job> jobs = queue.iterator(); jobs.hasNext(); )
+      if (jobs.next().spec.group.equals("charge")) jobs.remove();
+    if (shotSpec != null && shotSpec.group.equals("charge")) next();
+  }
+
   private void releaseLoop() {
+    if (!enginePreview && engineVoice != null) {
+      engineVoice.close();
+      engineVoice = null;
+      loopId = null;
+    }
+    loopPrepared = false;
     if (loop != null) {
       MediaPlayer p = loop;
       loop = null;
@@ -440,6 +662,7 @@ public final class SoundEngine {
   }
 
   public void stop() {
+    engineDemo = false;
     queue.clear();
     desiredLoop = null;
     releaseShot();
@@ -449,6 +672,12 @@ public final class SoundEngine {
   }
 
   public void refresh(String key) {
+    if (key.equals("engine.simulation.enabled") && store.enabled("engine")) focusBlocked = false;
+    if (key.equals("audio.engine.loop") || key.equals("engine.profile") || key.equals("output") || key.startsWith("engine.synth.")) {
+      engineBlocked = false;
+      if (enginePreview && !key.equals("engine.profile")) { releaseShot(); abandon(); }
+      if ("engine.loop".equals(loopId)) releaseLoop();
+    }
     if (key.startsWith("autohold.")) {
       cancelAutoHold();
       return;
@@ -485,8 +714,12 @@ public final class SoundEngine {
     if (key.startsWith("volume.") && loopId != null
         && EventSpec.find(loopId).group.equals(key.substring(7))) {
       float volume = store.volume(EventSpec.find(loopId).group) / 100f;
-      loop.setVolume(volume, volume);
+      if (loopId.equals("engine.loop")) volume *= engineGain;
+      if (engineVoice != null) engineVoice.target(loopRate, volume, engineLoad);
+      else if (loop != null) loop.setVolume(volume, volume);
     }
+    if (key.equals("volume.engine") && enginePreview && engineVoice != null)
+      engineVoice.target(1, store.volume("engine") / 100f, store.engineSynth() ? .5f : 0);
   }
 
   public void close() {

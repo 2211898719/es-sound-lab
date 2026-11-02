@@ -1,0 +1,19 @@
+ES Sound Lab bundled engine audio
+
+Work: Racing car engine sound loops, loop_0.wav
+Author: domasx2
+Source: https://opengameart.org/content/racing-car-engine-sound-loops
+Original download: https://opengameart.org/sites/default/files/loop_0.wav
+License: Creative Commons CC0 1.0 Universal
+License text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+Original SHA-256: 69d74b106509037ce547429e4c3f9ae906b0fffe88d0bb8b3b5a8b0cfc239048
+
+The author's updated description identifies a public-domain source recording
+from pdsounds, "start up car with seat belt warning beep". The author states
+the files differ only in pitch; these are not separately recorded RPM/load layers.
+
+ES Sound Lab changes: converted to 48 kHz mono PCM16, removed DC offset,
+normalized peak to 0.55. Runtime adds a raised-cosine correlated-loop splice,
+interpolated continuous resampling, onset/release envelopes for previews,
+and a derived filtered coast/load timbre. No OEM or real-vehicle RPM is claimed.
+Reproduction: python3 tools/prepare_engine_audio.py

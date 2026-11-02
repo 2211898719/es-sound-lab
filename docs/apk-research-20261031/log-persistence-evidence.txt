@@ -1,0 +1,75 @@
+Offline inspection 2026-10-31; no device connection or service invocation.
+
+[Owl LogcatConstant.java]
+public static final String ANDROID_LOGCAT_PATH = "/log/android";
+public static final String LOGCAT_FILE_NAME = "logcat.log";
+public static final String DEFAULT_LOG_PATHS = "/log/android,/qlog/dltlogs,/log/btsnoop";
+public static final String MEGA_ANDROID_LOGCAT_GZ_REG = "logcat.log.\\d{3}_(\\d{4}_\\d{2}_\\d{2}_\\d{2}_\\d{2}_\\d{2}).*";
+
+[Owl AndroidLogHandler.java: branch and current file]
+if (absPath.equals(LogcatConstant.ANDROID_LOGCAT_PATH)) {
+    addLogcatFile(handledResult, file);
+    addMegaAndroidLogcatGzFiles(handledResult, file, command);
+}
+String[] childFileNames = logFileDir.list();
+Matcher matcher = LogcatConstant.MEGA_ANDROID_LOGCAT_GZ_PATTERN.matcher(childFileName);
+
+addLogcatFile calls androidLogcatDir.list(FilenameFilter).
+Filter implementation:
+return Intrinsics.areEqual(name, LogcatConstant.LOGCAT_FILE_NAME);
+Target cache transform:
+return new File(LogcatFileUtil.getCacheDir(), file.getName() + TimeUtil.getCurrentFormattedTime() + LogcatConstant.LOGCAT_GZ_SUFFIX);
+
+[Owl LogcatFileUtil.java]
+public static File getCacheDir() {
+    return Env.INSTANCE.getApplicationContext().getCacheDir();
+}
+computeCompressFile calls FileUtil.compressSingleFile(origin, dst).
+
+[Owl FileUtil.compressSingleFile]
+FileInputStream fileInputStream = new FileInputStream(inFile);
+FileOutputStream fileOutputStream = new FileOutputStream(outFile);
+GZIPOutputStream gZIPOutputStream = new GZIPOutputStream(fileOutputStream);
+Reads inFile and writes compressed bytes to outFile.
+
+[Engineering com.mega.logger.MegaLoggerNative.java, classes2.dex]
+static { System.loadLibrary("MegaLogger"); }
+public native boolean clearLog(int i2);
+public native boolean saveLogToPath(String str, int i2);
+APK native-library inventory: only lib/arm64-v8a/libengineeringmodeso.so (280632 bytes).
+No packaged libMegaLogger.so; runtime native library not supplied by this APK.
+
+[Engineering LogExportActivity]
+saveLogToPath called on MegaLoggerNative for external-volume export.
+No invocation performed. clearLog and export/upload methods must not be used as a read probe.
+
+[DEX disassembly cross-check]
+owl classes.dex field values: "/log/android", "logcat.log", "/log/android,/qlog/dltlogs,/log/btsnoop".
+owl AndroidLogHandler invoke path compares "/log/android" (instruction address 0x379e34).
+owl current-name filter compares "logcat.log" (instruction address 0x379c9e).
+engineering classes2.dex const-string "MegaLogger" (instruction address 0x094724).
+engineering export invokes Lcom/mega/logger/MegaLoggerNative;.saveLogToPath:(Ljava/lang/String;I)Z.
+
+[RedwoodCarService MessageProperty]
+MLog.i(TAG, "receive " + str + ", value : " + carPropertyValueDeserialize);
+Printing is conditional on property log filtering and payload size.
+mega.log.LogImpl INFO branch calls android.util.Log.i(str, str2).
+No direct logcat.log writer is established by this code.
+
+[Owl QLogHandler / PlatformInfoUtil]
+QLogHandler.onPrepare calls PlatformInfoUtil.mountQLog().
+mountQLog checks vendor.nfs.qlog.mounted and otherwise sets vendor.sys.fs_qlog=1.
+This is not a read-only handler; not invoked.
+
+[ES-ADB诊断-20261031-174857.json -> commands]
+binder-services:
+1 MegaLoggerService: []
+hidl-vintf-vendor declares vendor.mega.loggerhal@1.0 ILoggerBridge/default and ILoggerRxCallback/default.
+hidl-registered-services:
+Warning: Skipping "vendor.mega.loggerhal@1.0::ILoggerBridge/default": cannot be fetched from service manager (null)
+vehicle-permission-logs:
+10-31 17:48:33.532 445 445 E SELinux : avc: denied { find } for interface=vendor.mega.loggerhal::ILoggerBridge sid=u:r:shell:s0 pid=4804 scontext=u:r:shell:s0 tcontext=u:object_r:megaloggervendor_hwservice:s0 tclass=hwservice_manager permissive=0
+
+Not supplied by existing reports: file ls/stat/open result, file owner/mode/SELinux type,
+growth/rotation timings, actual writer process/init definition, log-buffer/tag coverage.
+HIDL find denial is NOT a test of ordinary file-read permission.

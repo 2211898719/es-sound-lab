@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
@@ -14,10 +15,17 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import javax.crypto.Cipher;
 
 /** Minimal authenticated legacy TCP ADB transport. Exposes a single bounded shell stream. */
 public final class AdbClient implements Closeable {
+  public static final class TransferLimitException extends IOException {
+    TransferLimitException(long limit, long transferred) {
+      super("ADB文件超过本次读取上限：" + limit + "字节，已读取" + transferred + "字节");
+    }
+  }
+
   public static final class ShellException extends IOException {
     public final String partialOutput;
 
@@ -38,11 +46,14 @@ public final class AdbClient implements Closeable {
   private DataInputStream input;
   private OutputStream output;
   private int localId;
+  private final LinkedHashMap<Integer, Integer> closedStreams = new LinkedHashMap<>();
   private volatile boolean cancelled;
 
   public interface Progress {
     void message(String message);
   }
+
+  boolean isCancelled() { return cancelled; }
 
   public static final class Result {
     public final String text;
@@ -103,13 +114,9 @@ public final class AdbClient implements Closeable {
     send(OPEN, local, 0, ("shell:" + command + "\0").getBytes(StandardCharsets.UTF_8));
     try {
       while (true) {
-        long remaining = deadline - System.nanoTime();
-        if (remaining <= 0) throw new IOException("ADB 命令超过20秒");
-        socket.setSoTimeout((int) Math.max(1, Math.min(15000, remaining / 1000000)));
-        Packet packet = receive();
-        if (packet.arg1 != local) throw new IOException("ADB stream ID 不匹配");
+        Packet packet = receiveStream(local, remote, deadline);
         if (packet.command == OKAY) {
-          if (remote != 0 && packet.arg0 != remote) throw new IOException("ADB remote ID 不匹配");
+          if (packet.arg0 == 0) throw streamError("ADB remote ID 无效", packet, local, remote);
           remote = packet.arg0;
         } else if (packet.command == WRTE && remote != 0 && packet.arg0 == remote) {
           int room = limit - bytes.size();
@@ -117,25 +124,161 @@ public final class AdbClient implements Closeable {
           send(OKAY, local, remote, new byte[0]);
           if (packet.data.length > room) {
             send(CLSE, local, remote, new byte[0]);
-            // Consume only this stream's close before starting the next command.
-            for (int i = 0; i < 16; i++) {
-              Packet trailing = receive();
-              if (trailing.arg1 != local) throw new IOException("ADB stream close 不匹配");
-              if (trailing.command == CLSE)
+            for (int attempt = 0; attempt < 16; attempt++) {
+              Packet trailing = receiveStream(local, remote, deadline);
+              if (trailing.command == CLSE) {
+                rememberClosed(local, remote);
                 return new Result(new String(bytes.toByteArray(), StandardCharsets.UTF_8), true);
+              }
               if (trailing.command == WRTE) send(OKAY, local, remote, new byte[0]);
-              else throw new IOException("ADB stream close 未完成");
+              else throw streamError("ADB stream close 未完成", trailing, local, remote);
             }
             throw new IOException("ADB 截断流无法正常关闭");
           }
         } else if (packet.command == CLSE) {
+          if (remote == 0)
+            throw streamError("ADB shell 服务拒绝打开", packet, local, remote);
+          rememberClosed(local, remote);
           send(CLSE, local, packet.arg0, new byte[0]);
           return new Result(new String(bytes.toByteArray(), StandardCharsets.UTF_8), false);
-        } else throw new IOException("ADB shell 流协议不匹配");
+        } else throw streamError("ADB shell 流协议不匹配", packet, local, remote);
       }
     } catch (IOException error) {
       throw new ShellException(error, new String(bytes.toByteArray(), StandardCharsets.UTF_8));
     }
+  }
+
+  public long pull(String path, OutputStream destination, long limit, Progress progress)
+      throws IOException {
+    if (cancelled) throw new IOException("采集已取消");
+    byte[] name = path.getBytes(StandardCharsets.UTF_8);
+    if (!path.startsWith("/") || path.indexOf('\0') >= 0 || name.length > 1024 || limit <= 0)
+      throw new IOException("无效的ADB文件读取请求");
+    int local = ++localId;
+    long deadline = System.nanoTime() + 1800000000000L;
+    send(OPEN, local, 0, "sync:\0".getBytes(StandardCharsets.UTF_8));
+    Packet opened = receiveStream(local, 0, deadline);
+    if (opened.command != OKAY || opened.arg0 == 0)
+      throw streamError("ADB sync 服务未打开", opened, local, 0);
+    int remote = opened.arg0;
+    ByteBuffer request = ByteBuffer.allocate(8 + name.length).order(ByteOrder.LITTLE_ENDIAN);
+    request.putInt(command("RECV")).putInt(name.length).put(name);
+    send(WRTE, local, remote, request.array());
+    DataInputStream stream = new DataInputStream(new InputStream() {
+      private byte[] data = new byte[0];
+      private int offset;
+
+      @Override
+      public int read() throws IOException {
+        byte[] single = new byte[1];
+        return read(single, 0, 1) < 0 ? -1 : single[0] & 255;
+      }
+
+      @Override
+      public int read(byte[] buffer, int start, int length) throws IOException {
+        if (length == 0) return 0;
+        while (offset == data.length) {
+          Packet packet = receiveStream(local, remote, deadline);
+          if (packet.command == OKAY) continue;
+          if (packet.command != WRTE)
+            throw streamError("ADB 文件传输提前结束", packet, local, remote);
+          data = packet.data;
+          offset = 0;
+          send(OKAY, local, remote, new byte[0]);
+        }
+        int count = Math.min(length, data.length - offset);
+        System.arraycopy(data, offset, buffer, start, count);
+        offset += count;
+        return count;
+      }
+    });
+    long total = 0, reported = 0;
+    byte[] buffer = new byte[16384];
+    while (true) {
+      int type = Integer.reverseBytes(stream.readInt());
+      int length = Integer.reverseBytes(stream.readInt());
+      if (type == command("DONE")) break;
+      if (length < 0 || length > 65536) throw new IOException("ADB sync 数据块无效");
+      if (type == command("FAIL")) {
+        byte[] reason = new byte[length];
+        stream.readFully(reason);
+        throw new IOException("ADB 文件读取被拒绝：" + new String(reason, StandardCharsets.UTF_8));
+      }
+      if (type != command("DATA")) throw new IOException("ADB sync 响应无效");
+      if (length > limit - total)
+        throw new TransferLimitException(limit, total);
+      for (int remaining = length; remaining > 0; ) {
+        int count = Math.min(remaining, buffer.length);
+        stream.readFully(buffer, 0, count);
+        destination.write(buffer, 0, count);
+        total += count;
+        remaining -= count;
+      }
+      if (total - reported >= 1024 * 1024) {
+        reported = total;
+        progress.message("已读取 " + total / (1024 * 1024) + " MiB");
+      }
+    }
+    send(CLSE, local, remote, new byte[0]);
+    for (int attempt = 0; attempt < 16; attempt++) {
+      Packet packet = receiveStream(local, remote, deadline);
+      if (packet.command == CLSE) {
+        rememberClosed(local, remote);
+        return total;
+      }
+      if (packet.command == WRTE) send(OKAY, local, remote, new byte[0]);
+      else if (packet.command != OKAY)
+        throw streamError("ADB sync 关闭失败", packet, local, remote);
+    }
+    throw new IOException("ADB sync 关闭超出报文上限");
+  }
+
+  private Packet receiveStream(int local, int remote, long deadline) throws IOException {
+    for (int attempt = 0; attempt < 64; attempt++) {
+      if (cancelled) throw new IOException("采集已取消");
+      long remaining = deadline - System.nanoTime();
+      if (remaining <= 0) throw new IOException("ADB 操作超过时限");
+      socket.setSoTimeout((int) Math.max(1, Math.min(15000, remaining / 1000000)));
+      Packet packet = receive();
+      if (packet.arg1 == local) {
+        if (remote != 0
+            && packet.arg0 != remote
+            && !(packet.command == CLSE && packet.arg0 == 0))
+          throw streamError("ADB remote ID 不匹配", packet, local, remote);
+        return packet;
+      }
+      Integer closedRemote = closedStreams.get(packet.arg1);
+      if (closedRemote != null
+          && (packet.arg0 == closedRemote
+              || (packet.command == CLSE && packet.arg0 == 0))) {
+        if (packet.command == CLSE || packet.command == OKAY) continue;
+        if (packet.command == WRTE) {
+          send(CLSE, packet.arg1, packet.arg0, new byte[0]);
+          continue;
+        }
+      }
+      throw streamError("ADB stream ID 不匹配", packet, local, remote);
+    }
+    throw new IOException("ADB 旧流报文过多；已停止采集");
+  }
+
+  private void rememberClosed(int local, int remote) {
+    closedStreams.put(local, remote);
+    if (closedStreams.size() > 64) closedStreams.remove(closedStreams.keySet().iterator().next());
+  }
+
+  private static IOException streamError(String message, Packet packet, int local, int remote) {
+    String name =
+        new String(
+            ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(packet.command).array(),
+            StandardCharsets.US_ASCII);
+    return new IOException(
+        message
+            + " [command=" + name
+            + ", expectedLocal=" + local
+            + ", actualLocal=" + packet.arg1
+            + ", expectedRemote=" + remote
+            + ", actualRemote=" + packet.arg0 + "]");
   }
 
   private static int command(String name) {

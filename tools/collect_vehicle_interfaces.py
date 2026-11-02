@@ -84,7 +84,7 @@ def main():
                 "desktop", "systemui", "aiot", "engineeringmode", "carcontroladapter")
     targets = {p for p in installed if any(word in p.lower() for word in keywords)}
     targets.update(args.package)
-    targets.update({"com.mega.car", "com.android.car", "com.mega.systemui",
+    targets.update({"com.mega.car", "com.android.car", "com.android.systemui", "com.android.shell",
                     "com.mega.carsettings", "com.chery.aiot", "cn.es.soundlab"})
     for line in home.splitlines():
         component = re.fullmatch(r"([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+)/[A-Za-z0-9_.$]+", line.strip())

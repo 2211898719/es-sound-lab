@@ -190,7 +190,9 @@ public final class Protocol {
             || (topic.equals("AVM/DrivingInfo/Gear") && id == 1728053436L)) {
           key = "gear";
           value =
-              topic.equals("AVM/DrivingInfo/Gear") && (n < 1 || n > 4) ? null : gearLog((int) n);
+              !area.equals("0x0") || n != Math.rint(n)
+                  || (topic.equals("AVM/DrivingInfo/Gear") && (n < 1 || n > 4))
+                  ? null : gearLog((int) n);
         }
         if ((topic.equals("VehicleDoor/Door/Back") && id == 100663345L)
             || (topic.equals("VehicleDoor/TrunkSts") && id == 150995050L)) {
@@ -212,7 +214,8 @@ public final class Protocol {
       if (key == null) {
         for (int i = 0; i < 4; i++)
           if (topic.equals(TOPICS[i]) && id == DOOR_IDS[i]) key = "door." + DOORS[i];
-        if (topic.equals("DrivingInfo/Gear") && id == 67108874L) key = "gear";
+        if ((topic.equals("DrivingInfo/Gear") && id == 67108874L)
+            || (topic.equals("AVM/DrivingInfo/Gear") && id == 1728053436L)) key = "gear";
         if (topic.equals("DrivingInfo/Speed") && id == 67108875L) key = "speed";
         if ((topic.equals("VehicleDoor/Door/Back") && id == 100663345L)
             || (topic.equals("VehicleDoor/TrunkSts") && id == 150995050L)) key = "tailgate";
@@ -370,6 +373,8 @@ public final class Protocol {
 
   public static String event(String key, String value) {
     if (value == null) return null;
+    if (key.equals("charge")) return value.equals("charging") ? "charge.start"
+        : value.equals("inactive") ? "charge.stop" : null;
     if (key.equals("autohold")) {
       if (value.equals("holding")) return "autohold.holding";
       return value.equals("released") ? "autohold.released" : null;

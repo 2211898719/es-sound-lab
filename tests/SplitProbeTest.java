@@ -226,10 +226,8 @@ public final class SplitProbeTest {
     try (ActivityController<MainActivity> lifecycle =
         Robolectric.buildActivity(MainActivity.class).setup()) {
       MainActivity main = lifecycle.get();
-      click(main.findViewById(android.R.id.content), "分屏探测");
-      assertEquals(
-          SplitProbeActivity.class.getName(),
-          shadowOf(main).getNextStartedActivity().getComponent().getClassName());
+      assertNull(find(main.findViewById(android.R.id.content), "分屏探测"));
+      assertNull(shadowOf(main).getNextStartedActivity());
     }
   }
 

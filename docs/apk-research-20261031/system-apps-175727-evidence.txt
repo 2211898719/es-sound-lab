@@ -1,0 +1,118 @@
+[com.iflytek.autofly.systemserver] sources/com/iflytek/autofly/systemserver/XSystemService.java:22-25
+22:     @Override // android.app.Service
+23:     public IBinder onBind(Intent intent) {
+24:         return null;
+25:     }
+
+[com.iflytek.autofly.systemserver] sources/com/iflytek/autofly/systemserver/SystemServer.java:26-34
+26:         Log.i(getClass().getSimpleName(), "init(context = [" + context + "])");
+27:         NoticeSendManager.getInstance().init(context);
+28:         LinkManager.startLink$default(LinkManager.INSTANCE, false, 20, 500L, 1, null);
+29:         registerReceiver(new TransmissionReceiver(), new IntentFilter("com.iflytek.autofly.PENETRATE"));
+30:     }
+31: }
+
+[com.mega.owl] sources/mega/owl/IOwlService.java:11-28
+11: public interface IOwlService extends IInterface {
+12:
+13:     public static class Default implements IOwlService {
+14:         @Override // android.os.IInterface
+15:         public IBinder asBinder() {
+16:             return null;
+17:         }
+18:
+19:         @Override // mega.owl.IOwlService
+20:         public void sendEvent(EventWrapper eventWrapper) throws RemoteException {
+21:         }
+22:     }
+23:
+24:     void sendEvent(EventWrapper eventWrapper) throws RemoteException;
+25:
+26:     public static abstract class Stub extends Binder implements IOwlService {
+27:         private static final String DESCRIPTOR = "mega.owl.IOwlService";
+28:         static final int TRANSACTION_sendEvent = 1;
+
+[com.mega.owl] sources/com/mega/owl/OwlService.java:129-151
+129:     @Override // mega.owl.IOwlService
+130:     public void sendEvent(EventWrapper wrapper) {
+131:         final T t = wrapper.event;
+132:         final String str = TextUtils.isEmpty(wrapper.packageName) ? "unknown package" : wrapper.packageName;
+133:         if (t == 0) {
+134:             MLog.d(TAG, "event is null return");
+135:         } else {
+136:             this.mExecutor.execute(new Runnable() { // from class: com.mega.owl.OwlService$$ExternalSyntheticLambda0
+137:                 @Override // java.lang.Runnable
+138:                 public final void run() {
+139:                     OwlService.lambda$sendEvent$0(t, str);
+140:                 }
+141:             });
+142:         }
+143:     }
+144:
+145:     static /* synthetic */ void lambda$sendEvent$0(Event event, String str) {
+146:         EventEntity eventEntity = new EventEntity();
+147:         eventEntity.event = event;
+148:         eventEntity.posted = 0;
+149:         eventEntity.packageName = str;
+150:         OwlDatabase.get().eventDao().insertEvent(eventEntity);
+151:     }
+
+[com.mega.carsettings] sources/com/mega/carsettings/provider/BaseSliceProvider.java:64-73
+64:     @Override // androidx.slice.SliceProvider
+65:     public boolean onCreateSliceProvider() {
+66:         CarSettingsFactory.init(getContext());
+67:         grantSlicePermission();
+68:         return false;
+69:     }
+70:
+71:     private void grantSlicePermission() {
+72:         SliceManager.getInstance(getContext()).grantSlicePermission("com.android.systemui", this.mUri);
+73:     }
+
+[com.mega.carsettings] sources/com/mega/carsettings/provider/RedwoodAutoHoldSlice.java:83-95
+83:     public Slice getDefaultSlice(Uri sliceUri) {
+84:         Intent intent = new Intent(BROADCAST_ACTION_AUTO_HOLD);
+85:         intent.setClass(getContext(), SliceReceiver.class);
+86:         Log.d(TAG, "getDefaultSlice isAutoHoldEnable=" + isOn());
+87:         return new ListBuilder(getContext(), sliceUri, 0L).addRow(new ListBuilder.RowBuilder().setTitle(getContext().getString(R.string.slice_auto_hold)).setPrimaryAction(SliceAction.createToggle(PendingIntent.getBroadcast(getContext(), 0, intent, 0), IconCompat.createWithResource(getContext(), R.drawable.qs_auto_hold), SequoiaConstants.PRIMARY_ACTION_NAME, isOn()))).build();
+88:     }
+89:
+90:     private boolean isOn() {
+91:         if (!Commons.IS_REEV) {
+92:             return CUR_VALUE.get() == 1;
+93:         }
+94:         AtomicInteger atomicInteger = CUR_VALUE;
+95:         return atomicInteger.get() == 1 || atomicInteger.get() == 2;
+
+[com.mega.carsettings] sources/com/mega/carsettings/service/CommonService.java:1831-1840
+1831:         switch (carPropertyValue.getPropertyId()) {
+1832:             case ElecPower.ID_HV_PERCENT /* 83886109 */:
+1833:                 MLog.i(TAG, "mBatteryLevel:" + iIntValue);
+1834:                 sendWidgetBroadcast();
+1835:                 break;
+1836:             case Signal.ID_DOOR_CENTRAL_LOCK /* 1728053398 */:
+1837:                 MLog.i(TAG, "ID_DOOR_CENTRAL_LOCK value:" + iIntValue);
+1838:                 MMKV.defaultMMKV().encode(VehSettings.ID_DOOR_CENTRAL_LOCK.getName(), iIntValue);
+1839:                 sendWidgetBroadcast();
+1840:                 break;
+
+[com.mega.carsettings] sources/com/mega/carsettings/service/CommonService.java:2089-2102
+2089:     private void sendWidgetBroadcast() {
+2090:         if (MonkeyTestUtil.isUserAMonkey()) {
+2091:             MLog.i(TAG, "not sendWidgetBroadcast because isUserAMonkey == true");
+2092:             return;
+2093:         }
+2094:         String str = Commons.IS_E0Y ? "com.mega.carsettings.action.APPWIDGET_UPDATE_E0Y" : Constants.CARSETTINGS_APPWIDGET_UPDATE_ACTION;
+2095:         if (PropertyConfigManager.isKirkwood()) {
+2096:             str = str + "_KIR";
+2097:         }
+2098:         Intent intent = new Intent(str);
+2099:         intent.setPackage(getPackageName());
+2100:         intent.setFlags(MegaPackageManager.MATCH_DEBUG_TRIAGED_MISSING);
+2101:         sendBroadcast(intent);
+2102:     }
+
+[com.mega.carsettings] sources/com/tencent/mmkv/MMKV.java:180-182
+180:     public static String initialize(Context context) {
+181:         return initialize(context, context.getFilesDir().getAbsolutePath() + "/mmkv", null, MMKVLogLevel.LevelInfo);
+182:     }

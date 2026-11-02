@@ -15,12 +15,14 @@ for aar in deps.glob("*.aar"):
         (deps / (aar.stem + "-classes.jar")).write_bytes(z.read("classes.jar"))
 out = root / "tools/ui-check/classes"
 out.mkdir(exist_ok=True)
-cp = os.pathsep.join([str(root / "build/classes"), str(root / "tools/android/android-35/android.jar")]
+extra_tests = ["HidlDiagnosticsTest", "StandardCarProbeTest", "StandardCarTransportTest", "FileLogReaderTest", "LogFormatTest", "StateCalibrationTest", "StateDashboardTest", "CarotaLogTest", "CarotaTimingTest", "IccVehicleWireTest", "IccVehicleTransportTest", "IccVehicleProbeTest", "IccVehicleSourceTest", "IccVehicleStateTest", "IccHubWireTest", "IccHubTransportTest", "IccHubProbeTest", "IccHubUiTest", "IccHubFailureTest", "DarkThemeTest", "IccSpeedCandidatesTest", "IccSpeedReadingTest"]
+extra_tests += ["EngineMotionTest", "EngineUiTest", "EngineDemoTest", "EnginePcmTest", "EngineSynthTest"]
+cp = os.pathsep.join([str(root / "build/classes"), str(root / "tools/android/android-35/android.jar"), str(root / "build/hidl-stubs")]
                      + [str(p) for p in deps.glob("*.jar")])
 java_root = Path(os.environ.get("ES_SOUNDLAB_JAVA_HOME", str(Path.home() / ".sdkman/candidates/java/21.0.6-amzn"))) / "bin"
 javac = str(java_root / "javac") if java_root.exists() else "javac"
 java = str(java_root / "java") if java_root.exists() else "java"
-subprocess.run([javac, "--release", "11", "-encoding", "UTF-8", "-cp", cp, "-d", str(out), str(root / "tests/UiTest.java"), str(root / "tests/PlaybackTest.java"), str(root / "tests/LogReaderTest.java"), str(root / "tests/SplitProbeTest.java"), str(root / "tests/VehicleAccessTest.java"), str(root / "tests/AdbDiagnosticsTest.java")] + [str(p) for p in sorted((root / "tests/fixtures").rglob("*.java"))], cwd=root, check=True)
+subprocess.run([javac, "--release", "11", "-encoding", "UTF-8", "-cp", cp, "-d", str(out), str(root / "tests/UiTest.java"), str(root / "tests/PlaybackTest.java"), str(root / "tests/LogReaderTest.java"), str(root / "tests/SplitProbeTest.java"), str(root / "tests/VehicleAccessTest.java"), str(root / "tests/AdbDiagnosticsTest.java"), str(root / "tests/AdbExtrasTest.java"), str(root / "tests/AdbProbeTest.java"), str(root / "tests/PlatformVehicleProbeTest.java"), str(root / "tests/MessageCenterProbeTest.java"), str(root / "tests/MessageCenterTransportTest.java")] + [str(root / "tests" / (name + ".java")) for name in extra_tests] + [str(p) for p in sorted((root / "tests/fixtures").rglob("*.java"))], cwd=root, check=True)
 subprocess.run([java, "--add-opens=java.base/java.lang=ALL-UNNAMED", "--add-opens=java.base/java.util=ALL-UNNAMED",
                 "-Drobolectric.dependency.repo.url=https://repo.maven.apache.org/maven2",
-                "-cp", str(out) + os.pathsep + cp, "org.junit.runner.JUnitCore", "cn.es.soundlab.UiTest", "cn.es.soundlab.PlaybackTest", "cn.es.soundlab.LogReaderTest", "cn.es.soundlab.SplitProbeTest", "cn.es.soundlab.VehicleAccessTest", "cn.es.soundlab.AdbDiagnosticsTest"], cwd=root, check=True)
+                "-cp", str(out) + os.pathsep + cp, "org.junit.runner.JUnitCore", "cn.es.soundlab.UiTest", "cn.es.soundlab.PlaybackTest", "cn.es.soundlab.LogReaderTest", "cn.es.soundlab.SplitProbeTest", "cn.es.soundlab.VehicleAccessTest", "cn.es.soundlab.AdbDiagnosticsTest", "cn.es.soundlab.AdbExtrasTest", "cn.es.soundlab.AdbProbeTest", "cn.es.soundlab.PlatformVehicleProbeTest", "cn.es.soundlab.MessageCenterProbeTest", "cn.es.soundlab.MessageCenterTransportTest"] + ["cn.es.soundlab." + name for name in extra_tests], cwd=root, check=True)

@@ -1,0 +1,63 @@
+MegaEngineeringMode_13.apk：开关对照少量DEX证据
+日期2026-10-31；完整厂商代码不入库。
+SHA-256 ad47bcc7be6ece6c538efec46a2851501acc5d06c71c635cd8b4131e834b1847
+与docs/apk-research-20261030/apk-inventory.json原样本一致。
+
+classes6.dex / AdvancedOptionsActivity.onClick
+003d: const-string v1, "vendor.adbd.disable_tcp"
+003f: const-string v2, "false"
+0041: invoke-static {v1,v2}, android.os.SystemProperties.set(String,String)
+0044: goto 0060
+对应资源按钮enable_tcp_adbd。
+
+classes6.dex / DebugActivity.d():boolean
+insns size: 2
+0000: const/4 v0, #int 0
+0001: return v0
+
+classes6.dex / DebugActivity$a.onClick(View)
+0000: iget-object v0, v0, DebugActivity$a.b:DebugActivity
+0002: invoke-static {v0}, DebugActivity.c(DebugActivity):void
+0005: return-void
+
+classes6.dex / DebugActivity.c(DebugActivity)
+0000: invoke-direct {v0}, DebugActivity.o():void
+0003: return-void
+
+classes6.dex / DebugActivity.o()
+调用d():boolean，依据结果选择0x7f110055或0x7f110054，
+再调用TextView.setText(int)；未写属性或调用车辆服务。
+资源0x7f110054=不缓存，0x7f110055=缓存。
+资源debug_carservice_cacheinvalid=CarService缓存第一次无效值(重启后生效)。
+
+classes6.dex / EngineerModeCommandService.onBind(Intent)
+0000: const/4 v0, #int 0
+0001: return-object v0
+onStartCommand恢复结果为DDR数据清理，不是通用属性或车辆读取入口，未调用。
+
+对ZIP各条目解压后查完整ASCII键：
+persist.mega.car.userdebug -> 无命中
+vendor.adbd.disable_tcp -> classes6.dex
+此项不是证明不存在动态构造或外部实现。
+
+JADX1.5.3最终报告20处错误，以上关键分支另用原始DEX核对。
+
+补充：“关闭鉴权”原始DEX核对（用户指出后复查）
+资源：close_auth=关闭鉴权，open_auth=打开鉴权，switch_auth=0x7f090247。
+InfoActivity.B():boolean
+0000: const-string v1, "persist.mega.need_auth"
+0002: const/4 v0, #int 1
+0003: invoke-static {v1,v0}, h.c.b(String,boolean):boolean
+h.c.b委托android.os.SystemProperties.getBoolean。
+
+InfoActivity$b$a.onClick(View)
+0004: invoke-static ..., InfoActivity.x(InfoActivity):boolean
+0008: xor-int/lit8 v2,v2,#int 1
+000a: invoke-static {v2}, String.valueOf(boolean):String
+000e: const-string v0, "persist.mega.need_auth"
+0010: invoke-static {v0,v2}, h.c.c(String,String):void
+h.c.c委托android.os.SystemProperties.set。
+InfoActivity.H读取B()，true时按钮文字close_auth，false时open_auth。
+
+对照Redwood CarImpl.assertPermission仍读取persist.mega.car.userdebug，
+不能把两种开关等同。need_auth具体消费者与系统级间接关联未确认。

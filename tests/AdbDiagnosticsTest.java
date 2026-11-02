@@ -234,6 +234,161 @@ public final class AdbDiagnosticsTest {
   }
 
   @Test
+  public void lateClosedStreamPacketsDoNotInterruptNextCommand() throws Exception {
+    FakeSocket socket =
+        new FakeSocket(
+            joined(
+                packet("CNXN", 0x01000000, 4096, "device::\0"),
+                packet("OKAY", 7, 1, ""),
+                packet("WRTE", 7, 1, "uid=2000(shell)"),
+                packet("CLSE", 7, 1, ""),
+                packet("CLSE", 0, 1, ""),
+                packet("OKAY", 7, 1, ""),
+                packet("WRTE", 7, 1, "old output"),
+                packet("OKAY", 8, 2, ""),
+                packet("CLSE", 7, 1, ""),
+                packet("WRTE", 8, 2, "Enforcing"),
+                packet("CLSE", 8, 2, "")));
+    try (AdbClient client = new AdbClient(socket)) {
+      client.connect("127.0.0.1", 5555, fixtureKey, message -> {});
+      assertEquals("uid=2000(shell)", client.shell("id", 1024).text);
+      assertEquals("Enforcing", client.shell("getenforce", 1024).text);
+      assertEquals(
+          Arrays.asList(
+              code("CNXN"),
+              code("OPEN"),
+              code("OKAY"),
+              code("CLSE"),
+              code("OPEN"),
+              code("CLSE"),
+              code("OKAY"),
+              code("CLSE")),
+          outgoingCommands(socket.outgoing.toByteArray()));
+    }
+  }
+
+  @Test
+  public void truncationDrainsCurrentStreamDespiteLatePreviousClose() throws Exception {
+    FakeSocket socket =
+        new FakeSocket(
+            joined(
+                packet("CNXN", 0x01000000, 4096, "device::\0"),
+                packet("OKAY", 7, 1, ""),
+                packet("CLSE", 7, 1, ""),
+                packet("OKAY", 8, 2, ""),
+                packet("WRTE", 8, 2, "abcdef"),
+                packet("CLSE", 0, 1, ""),
+                packet("WRTE", 8, 2, "discard"),
+                packet("CLSE", 8, 2, ""),
+                packet("CLSE", 0, 2, ""),
+                packet("OKAY", 9, 3, ""),
+                packet("WRTE", 9, 3, "Enforcing"),
+                packet("CLSE", 9, 3, "")));
+    try (AdbClient client = new AdbClient(socket)) {
+      client.connect("127.0.0.1", 5555, fixtureKey, message -> {});
+      assertEquals("", client.shell("id", 1024).text);
+      AdbClient.Result result = client.shell("pm list libraries", 3);
+      assertEquals("abc", result.text);
+      assertTrue(result.truncated);
+      assertEquals("Enforcing", client.shell("getenforce", 1024).text);
+    }
+  }
+
+  @Test
+  public void unexpectedLocalIdPreservesOutputAndReportsPacketIds() throws Exception {
+    assertStreamFailure(
+        joined(
+            packet("OKAY", 7, 1, ""),
+            packet("WRTE", 7, 1, "partial"),
+            packet("CLSE", 9, 3, "")),
+        "partial", "CLSE", "expectedLocal=1", "actualLocal=3", "actualRemote=9");
+  }
+
+  @Test
+  public void wrongRemoteCloseCannotCompleteCurrentCommand() throws Exception {
+    assertStreamFailure(
+        joined(packet("OKAY", 7, 1, ""), packet("CLSE", 9, 1, "")),
+        "", "expectedRemote=7", "actualRemote=9");
+  }
+
+  @Test
+  public void zeroRemoteCloseAfterOpeningCompletesCurrentStream() throws Exception {
+    FakeSocket socket =
+        new FakeSocket(
+            joined(
+                packet("CNXN", 0x01000000, 4096, "device::\0"),
+                packet("OKAY", 7, 1, ""),
+                packet("WRTE", 7, 1, "ok"),
+                packet("CLSE", 0, 1, "")));
+    try (AdbClient client = new AdbClient(socket)) {
+      client.connect("127.0.0.1", 5555, fixtureKey, message -> {});
+      assertEquals("ok", client.shell("id", 1024).text);
+    }
+  }
+
+  @Test
+  public void closedLocalIdWithWrongRemoteIsNotIgnored() throws Exception {
+    FakeSocket socket =
+        new FakeSocket(
+            joined(
+                packet("CNXN", 0x01000000, 4096, "device::\0"),
+                packet("OKAY", 7, 1, ""),
+                packet("CLSE", 7, 1, ""),
+                packet("CLSE", 99, 1, "")));
+    try (AdbClient client = new AdbClient(socket)) {
+      client.connect("127.0.0.1", 5555, fixtureKey, message -> {});
+      client.shell("id", 1024);
+      try {
+        client.shell("getenforce", 1024);
+        fail("must not ignore unknown remote IDs");
+      } catch (AdbClient.ShellException error) {
+        assertTrue(error.getMessage().contains("expectedLocal=2"));
+        assertTrue(error.getMessage().contains("actualRemote=99"));
+      }
+    }
+  }
+
+  @Test
+  public void excessiveLatePacketsStopRatherThanLoopForever() throws Exception {
+    ByteArrayOutputStream input = new ByteArrayOutputStream();
+    input.write(packet("CNXN", 0x01000000, 4096, "device::\0"));
+    input.write(packet("OKAY", 7, 1, ""));
+    input.write(packet("CLSE", 7, 1, ""));
+    for (int index = 0; index < 64; index++) input.write(packet("CLSE", 0, 1, ""));
+    try (AdbClient client = new AdbClient(new FakeSocket(input.toByteArray()))) {
+      client.connect("127.0.0.1", 5555, fixtureKey, message -> {});
+      client.shell("id", 1024);
+      try {
+        client.shell("getenforce", 1024);
+        fail("must bound stale packets");
+      } catch (AdbClient.ShellException error) {
+        assertTrue(error.getMessage().contains("旧流报文过多"));
+      }
+    }
+  }
+
+  @Test
+  public void rejectedShellOpenIsNotReportedAsSuccessfulEmptyOutput() throws Exception {
+    assertStreamFailure(packet("CLSE", 0, 1, ""), "", "拒绝打开");
+  }
+
+  private void assertStreamFailure(byte[] input, String partial, String... details) throws Exception {
+    FakeSocket socket =
+        new FakeSocket(joined(packet("CNXN", 0x01000000, 4096, "device::\0"), input));
+    try (AdbClient client = new AdbClient(socket)) {
+      client.connect("127.0.0.1", 5555, fixtureKey, message -> {});
+      try {
+        client.shell("id", 1024);
+        fail("must reject unexpected stream packets");
+      } catch (AdbClient.ShellException error) {
+        assertEquals(partial, error.partialOutput);
+        for (String detail : details)
+          assertTrue(error.getMessage(), error.getMessage().contains(detail));
+      }
+    }
+  }
+
+  @Test
   public void normalDisconnectPreservesPartialCommandOutput() throws Exception {
     FakeSocket socket =
         new FakeSocket(
@@ -280,7 +435,7 @@ public final class AdbDiagnosticsTest {
           command.shell.matches(
               "(?:id|getenforce|am get-current-user|pm list packages -f|cmd package"
                   + " resolve-activity .+|pm list libraries|service list|dumpsys -t 10 .+|getprop"
-                  + " .+|pm path .+|cmd appops get .+)"));
+                  + " .+|pm path .+|cmd appops get .+|ip addr show|ip route show|ss -ltn)"));
       assertFalse(command.shell.contains(";"));
       assertFalse(command.shell.contains("grant"));
       assertFalse(command.shell.contains("setprop"));
@@ -299,6 +454,14 @@ public final class AdbDiagnosticsTest {
   @Test
   public void completeCollectionDiscoversActualServicePackageAndEmbedsInDetectionExport()
       throws Exception {
+    app.getSharedPreferences("standard_car_probe", 0).edit().putString("latest",
+        new JSONObject().put("sessionId", 789).put("phase", "standard-stopped").toString()).commit();
+    app.getSharedPreferences("message_center_probe", 0).edit().putString("latest",
+        new JSONObject().put("sessionId", 456).put("source", "app-uid-message-center-read-only")
+            .put("callbackCount", 3).put("validCallbackCount", 1).put("phase", "stopped").toString()).commit();
+    app.getSharedPreferences("platform_vehicle_probe", 0).edit().putString("latest",
+        new JSONObject().put("sessionId", 123).put("source", "app-uid-platform-gear-read-only")
+            .put("gearCallbackCount", 2).put("phase", "stopped").toString()).commit();
     List<AdbDiagnosticCommands.Command> commands = AdbDiagnosticCommands.metadata();
     AdbDiagnosticCommands.addPackage(commands, "com.example.home");
     AdbDiagnosticCommands.addPackage(commands, "com.example.actualcar");
@@ -321,10 +484,16 @@ public final class AdbDiagnosticsTest {
       input.write(packet("OKAY", remote, local, ""));
       input.write(packet("WRTE", remote, local, result));
       input.write(packet("CLSE", remote, local, ""));
+      input.write(packet("CLSE", 0, local, ""));
     }
     FakeSocket socket = new FakeSocket(input.toByteArray());
     JSONObject report =
         AdbDiagnostics.collect(app, new AdbClient(socket), "127.0.0.1", 12345, message -> {});
+    assertEquals(2, report.getJSONObject("platformVehicleProbe").getInt("gearCallbackCount"));
+    assertEquals(3, report.getJSONObject("messageCenterProbe").getInt("callbackCount"));
+    assertEquals("standard-stopped", report.getJSONObject("standardCarProbe").getString("phase"));
+    assertFalse(AdbDiagnosticsActivity.summary(report).contains("App消息总线检测"));
+    assertFalse(AdbDiagnosticsActivity.summary(report).contains("App讯飞挡位检测"));
     assertTrue(report.toString(), report.getBoolean("complete"));
     assertTrue(socket.closed);
     assertEquals(commands.size() + 1, report.getJSONArray("commands").length());
@@ -340,6 +509,8 @@ public final class AdbDiagnosticsTest {
     assertEquals(
         "authenticated-adb-shell", combined.getJSONObject("adbDiagnostics").getString("source"));
     assertTrue(combined.getJSONObject("adbDiagnostics").getBoolean("complete"));
+    assertEquals(3, combined.getJSONObject("messageCenterProbe").getInt("callbackCount"));
+    assertEquals(789, combined.getJSONObject("standardCarProbe").getInt("sessionId"));
   }
 
   @Test

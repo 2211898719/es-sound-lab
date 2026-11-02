@@ -30,7 +30,7 @@ public final class VehicleAccess {
   private final Diagnostics diag;
   private final Store store;
   private final Listener listener;
-  private boolean closed, discovery;
+  private boolean closed, discovery, permissionBlocked;
   private long nextConnect;
   private int epoch, subscriptionEpoch;
   private Object car, manager, callback;
@@ -97,6 +97,21 @@ public final class VehicleAccess {
 
   private void connect() {
     nextConnect = SystemClock.uptimeMillis() + 30000;
+    boolean allDenied = true;
+    for (int id : REQUIRED) if (deniedPermission(id) == null) allDenied = false;
+    if (allDenied) {
+      diag.nativeStatus = "Mega 原生权限未授予 · 已暂停无效的直接读取/订阅，请使用ADB只读验证";
+      diag.nativeSdkStatus = "Mega SDK：权限预检阻断，未重复加载";
+      diag.nativeManagerStatus = "属性管理器：未连接（应用缺少签名/特权权限）";
+      for (int id : REQUIRED) diag.nativeSubscription(id, false, deniedPermission(id));
+      if (!permissionBlocked) {
+        listener.reset("Mega");
+        diag.line("Mega权限", diag.nativeStatus);
+      }
+      permissionBlocked = true;
+      return;
+    }
+    permissionBlocked = false;
     final int token = ++epoch;
     try {
       loader = loadSdk();
@@ -338,6 +353,11 @@ public final class VehicleAccess {
     }
     for (int id : properties.keySet()) {
       if (subscribed.contains(id)) continue;
+      String denied = deniedPermission(id);
+      if (denied != null) {
+        diag.nativeSubscription(id, false, denied);
+        continue;
+      }
       try {
         Object result;
         if (batch) {
@@ -359,6 +379,15 @@ public final class VehicleAccess {
   }
 
   private void read(Property p) {
+    String denied = deniedPermission(p.id);
+    if (denied != null) {
+      if (!p.failed) {
+        p.failed = true;
+        diag.nativePropertyError(p.id, p.area, denied);
+        listener.sample(Protocol.property(true, p.id, p.area, 1, null, System.currentTimeMillis()));
+      }
+      return;
+    }
     try {
       Object value =
           manager
@@ -376,6 +405,25 @@ public final class VehicleAccess {
       diag.nativePropertyError(p.id, p.area, cause(e));
       listener.sample(Protocol.property(true, p.id, p.area, 1, null, System.currentTimeMillis()));
     }
+  }
+
+  private String deniedPermission(int id) {
+    String domain;
+    if ((id >= 0x0600002c && id <= 0x0600002f) || id == 0x06000031) domain = "ENTRY_LOCK";
+    else if (id == 0x0400000a || id == 0x0400000b) domain = "CAR_DRIVING";
+    else if (id == Protocol.CENTRAL_LOCK) domain = "VEHICLE_CONTROL";
+    else if (id == Protocol.AUTO_HOLD) domain = "SEQUOIA";
+    else return null;
+    String permission = "mega.car.permission." + domain;
+    try {
+      android.content.pm.PermissionInfo info = context.getPackageManager().getPermissionInfo(permission, 0);
+      if ((info.protectionLevel & android.content.pm.PermissionInfo.PROTECTION_MASK_BASE)
+              == android.content.pm.PermissionInfo.PROTECTION_SIGNATURE
+          && context.checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED)
+        return permission + " 未授予（签名/特权权限），跳过重复直接访问";
+    } catch (PackageManager.NameNotFoundException ignored) {
+    }
+    return null;
   }
 
   private boolean selected(int id, int area) {
@@ -437,13 +485,16 @@ public final class VehicleAccess {
   }
 
   private void status() {
+    int blocked = 0;
+    for (int id : properties.keySet()) if (deniedPermission(id) != null) blocked++;
     diag.nativeStatus =
         "Mega 原生属性 · 已注册 "
             + subscribed.size()
             + "/"
             + properties.size()
             + " · 轮询 "
-            + (properties.size() - subscribed.size())
+            + (properties.size() - subscribed.size() - blocked)
+            + " · 权限阻断 " + blocked
             + " · 不使用日志触发";
   }
 

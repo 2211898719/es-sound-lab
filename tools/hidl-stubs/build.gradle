@@ -1,0 +1,2 @@
+plugins { id 'java-library' }
+sourceSets { main { java { srcDirs = ['.']; include 'android/**/*.java' } } }

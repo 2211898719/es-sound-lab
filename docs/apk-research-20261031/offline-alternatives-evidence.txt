@@ -1,0 +1,83 @@
+离线替代事件路径：少量关键证据，2026-10-31
+本文件只保留支撑结论所需摘录，不是完整反编译源码。
+
+输入APK SHA-256（本机重新计算）
+RockySystemUI.apk
+0143b5d7981f3efea7b8f4407756051b982d51b82c086ae6833c802d9fb44908
+RedwoodCarService.apk
+38913715358e7556ef9a750d20d693349b3863eec5dc5f632965acb1e727ec32
+RockySceneEngine.apk
+370b2653b561e032ceab1f78c1213e3da1dccc14ec7c11375364826f4a2ed190
+
+1. SceneEngine/classes.dex，DEX指令核对
+SystemStatusManager$1.onVehicleStateChanged(String,int)
+insns size: 1 16-bit code units
+0000: return-void
+
+SystemStatusManager.getGearReverse()
+0004: const-string v1, "gear"
+0006: invoke-virtual {v0, v1}, FlySystemManager.getVehicleState(String):int
+0009: move-result v0
+000a: const/16 v1, #int 1000
+000c: if-ne v1, v0, 0010
+000e: const/4 v0, #int 1
+000f: goto 0013
+0010: const/4 v0, #int 0
+0011: goto 0013
+0012: const/4 v0, #int -1
+0013: return v0
+
+2. SystemUI/classes.dex，DEX指令核对
+SharedPreferencesKt.putSpInt(Context,String,int)
+000d: const-string v0, "com.android.systemui.sp"
+000f: const/4 v1, #int 0
+0010: invoke-virtual {v2,v0,v1}, Context.getSharedPreferences(String,int)
+0014: invoke-interface ... SharedPreferences.edit()
+0018: invoke-interface ... SharedPreferences$Editor.putInt(String,int)
+001c: invoke-interface ... SharedPreferences$Editor.apply()
+
+3. SystemUI/classes3.dex，DEX调用核对
+CheryControlLock.onChanged(CarPropertyValue)
+读取VelSignal.ID_DOOR_CENTRAL_LOCK；调用SharedPreferencesKt.putSpInt；
+比较值是否为1，再调用CheryControlLock.setActivated(boolean)。
+不由此推断无障碍节点能观察activated。
+
+4. 旧JSON的定点命令定位（未保存账户、VIN或token）
+ES-ADB诊断-20261031-002358.json
+permission-definitions:
+  android.car.permission.CAR_POWERTRAIN -> prot=normal
+  android.car.permission.CONTROL_CAR_DOORS -> prot=signature|privileged
+  com.mega.permission.common.slice -> prot=signature
+  com.mega.carsettings.export.permission.RedwoodAutoHoldSlice -> prot=signature
+  com.mega.carsettings.export.permission.RedwoodCentralLockSlice -> prot=signature
+package-cn.es.soundlab:
+  android.car.permission.CAR_POWERTRAIN: granted=true
+  android.car.permission.CONTROL_CAR_DOORS: granted=false
+car-service-dump:
+  0x11400400 GEAR_SELECTION，access:0x1 changeMode:0x1
+  0x11400401 CURRENT_GEAR，access:0x1 changeMode:0x1
+  CarDrivingStateService Current Driving State: 0
+  配置目录及注册记录不能代替新鲜属性值。
+
+5. Redwood/classes.dex，CarImpl.assertPermission，原始DEX核对
+0020: const-string v0, "persist.mega.car.userdebug"
+0022: const/4 v1, #int 0
+0023: invoke-static {v0,v1}, MegaSystemProperties.getBoolean(String,boolean):boolean
+0026: move-result v0
+0027: if-eqz v0, 002a
+0029: return-void
+002a: invoke-virtual {v2,v3}, Context.checkCallingOrSelfPermission(String):int
+002d: move-result v2
+002e: if-nez v2, 0031
+0030: return-void
+0031起: 构建并抛出SecurityException("requires " + permission)
+
+同一DEX的CarPropertyService调用点：
+getProperty: 002a -> CarImpl.assertPermission(Context,String)
+registerListener: 007b -> CarImpl.assertPermission(Context,String)
+setProperty: 008e -> CarImpl.assertPermission(Context,String)
+故该调试分支并非只读或仅对本App生效，不提供开启命令或执行修改。
+尚未确认实车当前属性值、写入入口、授权方式或其他系统层限制。
+
+工具限制：SystemUI全量JADX因内存不足中断，不能声称全包审核完成。
+以上第1至3项由原始DEX交叉确认；完整临时输出位于忽略目录build。

@@ -4,17 +4,17 @@
 
 ## 目前掌握到哪一步
 
-当前依据是地图和畅听 APK 中的调用代码，以及本项目探测页的实现与本地测试。尚未完整分析目标车机的 `com.mega.systemui` APK，也没有收到探测页成功进入分屏的实车记录。
+已收到并静态分析目标车机的 `RockySystemUI.apk`，实际包名为 `com.android.systemui`。本批普通分屏入口有默认三包白名单、分屏开关及导航状态条件；Provider 需 signature 权限。没有收到本应用成功进入分屏的实车记录。[本批完整性、代码证据及限制](system-apks-analysis-20261030.md)。
 
-因此，本文将调用方代码中已确认的接口，与 SystemUI 是否接受第三方应用这件事分开描述。详细参数与原始来源见[车机分屏协议](split-screen-protocol.md)。
+早期地图和畅听调用方中的参数形态仍可参考，但不代表本批固件允许任意侧载应用进入分屏。下文探测组合为历史实现，不建议继续重复已失败组合。详细原始来源见[车机分屏协议](split-screen-protocol.md)。
 
 ## 几个名称分别是什么
 
 | 名称 | 类型 | 含义 |
 | --- | --- | --- |
-| `com.mega.systemui` | 系统应用包名 | 现有材料指向的车机 SystemUI，负责定制系统界面及分屏调度；具体内部策略待分析本体 |
+| `com.android.systemui` | 系统应用包名 | 本车 `RockySystemUI.apk` 的真实包名；`com.mega.systemui` 不是本次已安装包 |
 | `com.mega.systemui.chery.Split` | ContentProvider authority | 退出分屏调用的目标，不是另一个 APK 的文件名 |
-| `com.mega.systemui.provider` | Android 权限名 | 畅听声明的 Provider 访问权限；声明不等于侧载应用已获授权 |
+| `com.mega.systemui.provider` | Android 权限名 | 本批定义为 signature；声明不等于侧载应用已获授权 |
 | `system_split_pkg` | `Settings.Global` 的键 | 记录分屏配对的系统设置，不是 APK、应用包名或启动命令 |
 | `cn.es.soundlab` | 本应用包名 | ES 音效实验室 |
 | `com.lion.appfwk.navi` | 地图包名 | 探测页默认分屏对手 |
@@ -65,7 +65,7 @@ ADB 不是探测页的运行前提。10月30日用户已确认通过工程模式
 | flag | 仅 `Intent.FLAG_ACTIVITY_NEW_TASK` |
 | `mega.intent.extra.split.METHOD` | 字符串 `enter_split` |
 | `mega.intent.extra.split.IS_HANDLE_LEFT` | boolean，把手左 / 右 |
-| `mega.intent.extra.split.COMPONENT` | 另一侧的 `ComponentName` 对象，不能传字符串 |
+| `mega.intent.extra.split.COMPONENT` | 原地图调用方传入的 `ComponentName`；本批处理分支不据此接受任意第三方配对 |
 
 调用形态来自地图 `BaseSystemImpl.openNoa()`。原调用切换到文远智行；本项目只借用已确认的参数形态，目标使用地图或自身，不启动文远智行。
 
@@ -84,7 +84,7 @@ ADB 不是探测页的运行前提。10月30日用户已确认通过工程模式
 
 `exit_spit` 的拼写来自调用方代码，不要改成 `exit_split`。Provider 的 `pkg` 是要退出的一侧包名，探测页可选择自己、地图或当前配对另一侧。
 
-Provider 需要声明 `com.mega.systemui.provider`；其权限保护级别及侧载包实际能否获得尚待确认。`SecurityException` 表明这次 Provider 调用被拒绝，不能据此认定进入接口或 Intent 退出也必然不可用。
+Provider 访问受 `com.mega.systemui.provider` 的 signature 权限保护，普通声明不能获授。`SecurityException` 表明这次 Provider 调用被拒绝，不能据此认定所有 Intent 路径的执行结果；后者也有上述包名与状态条件。
 
 探测页也提供启动自身的 `exit_split`，以及退出时带 / 不带 `split_invalid_intent` category 的对照。它们是待车上验证的组合，不是第三方兼容性保证。该 category 不加入进入请求。
 
@@ -107,7 +107,9 @@ dp = px / density。密度约 1.5 时，870px 约 580dp，1682px 约 1121dp。�
 
 `startActivity` 无异常只说明请求已发出；系统可能忽略 extra，普通打开地图。`isInMultiWindowMode()` 仅辅助观察，不能替代上述条件。本地窄栏截图和 Robolectric 测试也不能证明车机 SystemUI 已接受本包。
 
-## 实车验证与结果解释
+## 历史实车验证步骤与结果解释
+
+以下保留探测页的原验证流程，不是针对当前已知限制继续重试的要求。本批默认列表不含本应用，Provider 权限也已确认，不再重复已失败组合。
 
 1. 从首页进入“分屏探测”，刷新并记录初始配对、窗口宽度和密度。
 2. 逐一点击四种地图进入组合。若只打开地图，返回探测页查看状态；记录操作名、配对、宽度、异常及实际画面。
@@ -115,18 +117,18 @@ dp = px / density。密度约 1.5 时，870px 约 580dp，1682px 约 1121dp。�
 4. 测试退出并核对配对与画面。Provider 被拒绝时继续测试 Intent 路径；异常不等于已经退出。
 5. 从车辆检测页导出 JSON，在 `sessionHistory` 查看 `分屏探测` 记录；系统日志标记为 `SplitProbe`。无需为了分屏开启车辆监听。
 
-若四种组合都没有改变配对和宽度，只能得出“本次车机 / 安装身份 / 运行状态下未成功接入”。白名单、签名权限、全屏进入前提或系统版本差异都是待证实的方向，不能直接定论为某一种。到此停止猜测新的 extra，优先分析 SystemUI 本体和操作时的日志。
+原先仅凭四种组合失败，不能区分接入限制。现已从本批 APK 确认默认列表、导航状态条件和 Provider 签名权限；不能再将它们列为完全未知，也不能仅靠改变 extra 消除。运行时资源是否被覆盖及实际状态仍需单独证据。
 
 诊断沿用最多160条的会话记录，长异常分段会占多条，建议测试后及时导出。未保留的旧记录不能解释为操作没有发生。
 
 ## 仍然未知的部分
 
-- 目标 SystemUI 是否有包名白名单、签名检查、预装身份检查或其他接入条件。
-- 是否接受普通侧载包从全屏发起分屏，以及四种组合中哪些有效。
-- Provider 权限的保护级别、第三方实际可用的退出路径。
+- 运行时资源覆盖是否改变 APK 的默认三包列表，以及实际导航/分屏开关状态。
+- 受支持应用和身份在真实窗口中的最终行为；当前没有本应用成功记录。
+- 是否存在公开受支持的第三方接入协议；不将系统内部接口视为通用入口。
 - 系统策略在不同年款和车机软件版本间是否一致。
 
-下一步证据应来自目标车机 `com.mega.systemui` APK 的 Manifest、处理 `enter_split` / `exit_split` 的代码、Provider 权限检查及实车日志。当前无需提高 targetSdk、修改签名 / shared UID、写入系统设置或增加未知 Mega 调用。
+本批 `com.android.systemui` 的 Manifest、分屏代码和 Provider 权限已分析，详见[本批结论](system-apks-analysis-20261030.md)。后续以受支持的接入方式及运行时事实为依据，不提高 targetSdk 来试错，不修改签名 / shared UID、系统列表或系统设置，不增加未知 Mega 调用。
 
 ## 与空调控制的边界
 

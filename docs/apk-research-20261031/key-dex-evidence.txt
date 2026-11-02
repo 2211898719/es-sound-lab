@@ -1,0 +1,488 @@
+# Key DEX evidence, 2026-10-31
+Source APK SHA-256, versions and manifest attributes: apk-inventory.json.
+Generated from local Android build-tools dexdump -d; instruction offsets are original DEX offsets.
+These excerpts establish code paths only, not permissions or runtime accessibility for our app.
+
+
+## RockyLionSceneModeService/classes2.dex.txt:345209
+208174:                                        |[208174] com.lion.scenemode.executors.SceneExecutor.notifyState:()V
+208184: 7100 6c32 0000                         |0000: invoke-static {}, Lcom/lion/scenemode/common/ProxyManager;.getNotifyAbleProxy:()Lcom/lion/scenemode/server/api/INotifyAble; // method@326c
+20818a: 0c00                                   |0003: move-result-object v0
+20818c: 3800 2600                              |0004: if-eqz v0, 002a // +0026
+208190: 2200 bc00                              |0006: new-instance v0, Landroid/os/Bundle; // type@00bc
+208194: 7010 6f02 0000                         |0008: invoke-direct {v0}, Landroid/os/Bundle;.<init>:()V // method@026f
+20819a: 5431 aa68                              |000b: iget-object v1, v3, Lcom/lion/scenemode/executors/SceneExecutor;.sceneMode:Lcom/lion/scenemode/entity/SceneMode; // field@68aa
+20819e: 6e10 c732 0100                         |000d: invoke-virtual {v1}, Lcom/lion/scenemode/entity/SceneMode;.getType:()I // method@32c7
+2081a4: 0a01                                   |0010: move-result v1
+2081a6: 1a02 9ef3                              |0011: const-string v2, "type" // string@f39e
+2081aa: 6e30 8102 2001                         |0013: invoke-virtual {v0, v2, v1}, Landroid/os/Bundle;.putInt:(Ljava/lang/String;I)V // method@0281
+2081b0: 5433 aa68                              |0016: iget-object v3, v3, Lcom/lion/scenemode/executors/SceneExecutor;.sceneMode:Lcom/lion/scenemode/entity/SceneMode; // field@68aa
+2081b4: 6e10 c632 0300                         |0018: invoke-virtual {v3}, Lcom/lion/scenemode/entity/SceneMode;.getState:()I // method@32c6
+2081ba: 0a03                                   |001b: move-result v3
+2081bc: 1a01 37ee                              |001c: const-string v1, "state" // string@ee37
+2081c0: 6e30 8102 1003                         |001e: invoke-virtual {v0, v1, v3}, Landroid/os/Bundle;.putInt:(Ljava/lang/String;I)V // method@0281
+2081c6: 7100 6c32 0000                         |0021: invoke-static {}, Lcom/lion/scenemode/common/ProxyManager;.getNotifyAbleProxy:()Lcom/lion/scenemode/server/api/INotifyAble; // method@326c
+2081cc: 0c03                                   |0024: move-result-object v3
+2081ce: 6201 7768                              |0025: sget-object v1, Lcom/lion/scenemode/entity/event/EventType;.SCENE_STATE_CHANGED:Lcom/lion/scenemode/entity/event/EventType; // field@6877
+2081d2: 7230 3735 1300                         |0027: invoke-interface {v3, v1, v0}, Lcom/lion/scenemode/server/api/INotifyAble;.notify:(Lcom/lion/scenemode/entity/event/EventType;Landroid/os/Bundle;)V // method@3537
+2081d8: 0e00                                   |002a: return-void
+
+## RockyLionSceneModeService/classes2.dex.txt:1091642
+20f424:                                        |[20f424] com.lion.scenemode.server.api.SceneModeApiService.addClientNode:(ILjava/lang/String;Lcom/lion/bus/bus/sync/IBusNotifyCallBack;)V
+20f434: 6f40 741c 2143                         |0000: invoke-super {v1, v2, v3, v4}, Lcom/lion/bus/bus/service/CommonBusService;.addClientNode:(ILjava/lang/String;Lcom/lion/bus/bus/sync/IBusNotifyCallBack;)V // method@1c74
+20f43a: 7100 2635 0000                         |0003: invoke-static {}, Lcom/lion/scenemode/server/ServiceStateHolder;.getInstance:()Lcom/lion/scenemode/server/ServiceStateHolder; // method@3526
+20f440: 0c01                                   |0006: move-result-object v1
+20f442: 6e10 2735 0100                         |0007: invoke-virtual {v1}, Lcom/lion/scenemode/server/ServiceStateHolder;.isCoreServiceReady:()Z // method@3527
+20f448: 0a01                                   |000a: move-result v1
+20f44a: 2202 6e0b                              |000b: new-instance v2, Ljava/lang/StringBuilder; // type@0b6e
+20f44e: 7010 2f4a 0200                         |000d: invoke-direct {v2}, Ljava/lang/StringBuilder;.<init>:()V // method@4a2f
+20f454: 1a03 79a8                              |0010: const-string v3, "core service is ready = " // string@a879
+20f458: 6e20 3b4a 3200                         |0012: invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@4a3b
+20f45e: 0c02                                   |0015: move-result-object v2
+20f460: 6e20 3d4a 1200                         |0016: invoke-virtual {v2, v1}, Ljava/lang/StringBuilder;.append:(Z)Ljava/lang/StringBuilder; // method@4a3d
+20f466: 0c02                                   |0019: move-result-object v2
+20f468: 6e10 4f4a 0200                         |001a: invoke-virtual {v2}, Ljava/lang/StringBuilder;.toString:()Ljava/lang/String; // method@4a4f
+20f46e: 0c02                                   |001d: move-result-object v2
+20f470: 1a03 1483                              |001e: const-string v3, "SceneModeApiService" // string@8314
+20f474: 7120 cb21 2300                         |0020: invoke-static {v3, v2}, Lcom/lion/library/utils/Logger;.i:(Ljava/lang/String;Ljava/lang/String;)V // method@21cb
+20f47a: 3801 2c00                              |0023: if-eqz v1, 004f // +002c
+20f47e: 2201 8805                              |0025: new-instance v1, Lcom/lion/bus/bus/sync/NotifyEvent; // type@0588
+20f482: 6202 7668                              |0027: sget-object v2, Lcom/lion/scenemode/entity/event/EventType;.SCENE_SERVICE_IS_READY:Lcom/lion/scenemode/entity/event/EventType; // field@6876
+20f486: 6e10 1933 0200                         |0029: invoke-virtual {v2}, Lcom/lion/scenemode/entity/event/EventType;.getType:()I // method@3319
+20f48c: 0a02                                   |002c: move-result v2
+20f48e: 1200                                   |002d: const/4 v0, #int 0 // #0
+20f490: 7030 e81c 2100                         |002e: invoke-direct {v1, v2, v0}, Lcom/lion/bus/bus/sync/NotifyEvent;.<init>:(ILandroid/os/Bundle;)V // method@1ce8
+20f496: 2202 6e0b                              |0031: new-instance v2, Ljava/lang/StringBuilder; // type@0b6e
+20f49a: 7010 2f4a 0200                         |0033: invoke-direct {v2}, Ljava/lang/StringBuilder;.<init>:()V // method@4a2f
+20f4a0: 1a00 a9ed                              |0036: const-string v0, "start dispatch core service ready event to " // string@eda9
+20f4a4: 6e20 3b4a 0200                         |0038: invoke-virtual {v2, v0}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@4a3b
+20f4aa: 0c02                                   |003b: move-result-object v2
+20f4ac: 6e20 3a4a 4200                         |003c: invoke-virtual {v2, v4}, Ljava/lang/StringBuilder;.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder; // method@4a3a
+20f4b2: 0c02                                   |003f: move-result-object v2
+20f4b4: 6e10 4f4a 0200                         |0040: invoke-virtual {v2}, Ljava/lang/StringBuilder;.toString:()Ljava/lang/String; // method@4a4f
+20f4ba: 0c02                                   |0043: move-result-object v2
+20f4bc: 7120 cb21 2300                         |0044: invoke-static {v3, v2}, Lcom/lion/library/utils/Logger;.i:(Ljava/lang/String;Ljava/lang/String;)V // method@21cb
+20f4c2: 7220 c41c 1400                         |0047: invoke-interface {v4, v1}, Lcom/lion/bus/bus/sync/IBusNotifyCallBack;.onNotify:(Lcom/lion/bus/bus/sync/NotifyEvent;)V // method@1cc4
+20f4c8: 2805                                   |004a: goto 004f // +0005
+20f4ca: 0d01                                   |004b: move-exception v1
+20f4cc: 6e10 1f03 0100                         |004c: invoke-virtual {v1}, Landroid/os/RemoteException;.printStackTrace:()V // method@031f
+20f4d2: 0e00                                   |004f: return-void
+
+## RockyLionSceneModeService/classes2.dex.txt:1100905
+2281c4:                                        |[2281c4] com.mega.ecology.chery.CarInfoControl.getDriveGear:()I
+2281d4: 5411 ef6c                              |0000: iget-object v1, v1, Lcom/mega/ecology/chery/CarInfoControl;.mCarManager:Lcom/mega/ecology/chery/MegaCarManager; // field@6cef
+2281d8: 1400 0a00 0004                         |0002: const v0, #float 1.50463e-36 // #0400000a
+2281de: 6e20 5a3e 0100                         |0005: invoke-virtual {v1, v0}, Lcom/mega/ecology/chery/MegaCarManager;.getIntProp:(I)I // method@3e5a
+2281e4: 0a01                                   |0008: move-result v1
+2281e6: 0f01                                   |0009: return v1
+
+## RockyLionSceneModeService/classes2.dex.txt:1103147
+2273d8:                                        |[2273d8] com.mega.ecology.chery.CarInfoControl.isAutoHoldOn:()Z
+2273e8: 7100 dd8b 0000                         |0000: invoke-static {}, Lmega/car/MegaCarProperty;.getInstance:()Lmega/car/MegaCarProperty; // method@8bdd
+2273ee: 0c03                                   |0003: move-result-object v3
+2273f0: 1400 2200 0050                         |0004: const v0, #float 8.58997e+09 // #50000022
+2273f6: 6e20 df8b 0300                         |0007: invoke-virtual {v3, v0}, Lmega/car/MegaCarProperty;.getIntProp:(I)I // method@8bdf
+2273fc: 0a03                                   |000a: move-result v3
+2273fe: 6300 ae6c                              |000b: sget-boolean v0, Lcom/mega/ecology/chery/CarConfigUtil;.IS_CAN:Z // field@6cae
+227402: 1201                                   |000d: const/4 v1, #int 0 // #0
+227404: 1212                                   |000e: const/4 v2, #int 1 // #1
+227406: 3800 0900                              |000f: if-eqz v0, 0018 // +0009
+22740a: 3223 0500                              |0011: if-eq v3, v2, 0016 // +0005
+22740e: 1220                                   |0013: const/4 v0, #int 2 // #2
+227410: 3303 0300                              |0014: if-ne v3, v0, 0017 // +0003
+227414: 0121                                   |0016: move v1, v2
+227416: 0f01                                   |0017: return v1
+227418: 3323 0300                              |0018: if-ne v3, v2, 001b // +0003
+22741c: 0121                                   |001a: move v1, v2
+22741e: 0f01                                   |001b: return v1
+
+## RockyLionSceneModeService/classes2.dex.txt:1103206
+227450:                                        |[227450] com.mega.ecology.chery.CarInfoControl.isCenterLockSwitchOn:()Z
+227460: 7100 dd8b 0000                         |0000: invoke-static {}, Lmega/car/MegaCarProperty;.getInstance:()Lmega/car/MegaCarProperty; // method@8bdd
+227466: 0c01                                   |0003: move-result-object v1
+227468: 1400 9600 0067                         |0004: const v0, #float 6.04474e+23 // #67000096
+22746e: 6e20 df8b 0100                         |0007: invoke-virtual {v1, v0}, Lmega/car/MegaCarProperty;.getIntProp:(I)I // method@8bdf
+227474: 0a01                                   |000a: move-result v1
+227476: 1210                                   |000b: const/4 v0, #int 1 // #1
+227478: 3201 0300                              |000c: if-eq v1, v0, 000f // +0003
+22747c: 2802                                   |000e: goto 0010 // +0002
+22747e: 1200                                   |000f: const/4 v0, #int 0 // #0
+227480: 0f00                                   |0010: return v0
+
+## RockyLionSceneModeService/classes2.dex.txt:1103323
+22756c:                                        |[22756c] com.mega.ecology.chery.CarInfoControl.isDoorOpen:(I)Z
+22757c: 5411 ef6c                              |0000: iget-object v1, v1, Lcom/mega/ecology/chery/CarInfoControl;.mCarManager:Lcom/mega/ecology/chery/MegaCarManager; // field@6cef
+227580: 1400 8d00 0067                         |0002: const v0, #float 6.04473e+23 // #6700008d
+227586: 6e30 5b3e 0102                         |0005: invoke-virtual {v1, v0, v2}, Lcom/mega/ecology/chery/MegaCarManager;.getIntProp:(II)I // method@3e5b
+22758c: 0a01                                   |0008: move-result v1
+22758e: 3d01 0400                              |0009: if-lez v1, 000d // +0004
+227592: 1211                                   |000b: const/4 v1, #int 1 // #1
+227594: 2802                                   |000c: goto 000e // +0002
+227596: 1201                                   |000d: const/4 v1, #int 0 // #0
+227598: 0f01                                   |000e: return v1
+
+## RockySceneEngine/classes.dex.txt:1089091
+50ba08:                                        |[50ba08] com.iflytek.autofly.carpropertyservice.util.CarPropertyManager.initClient:()I
+50ba18: 2200 7200                              |0000: new-instance v0, Landroid/content/Intent; // type@0072
+50ba1c: 7010 bc02 0000                         |0002: invoke-direct {v0}, Landroid/content/Intent;.<init>:()V // method@02bc
+50ba22: 1a01 d78f                              |0005: const-string v1, "com.iflytek.autofly.carpropertyservice" // string@8fd7
+50ba26: 6e20 ef02 1000                         |0007: invoke-virtual {v0, v1}, Landroid/content/Intent;.setAction:(Ljava/lang/String;)Landroid/content/Intent; // method@02ef
+50ba2c: 1a01 aae8                              |000a: const-string v1, "ro.autofly.service.carproperty" // string@e8aa
+50ba30: 1a02 1290                              |000c: const-string v2, "com.iflytek.autofly.platformservice" // string@9012
+50ba34: 7120 f508 2100                         |000e: invoke-static {v1, v2}, Landroid/os/SystemProperties;.get:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String; // method@08f5
+50ba3a: 0c01                                   |0011: move-result-object v1
+50ba3c: 6e20 f902 1000                         |0012: invoke-virtual {v0, v1}, Landroid/content/Intent;.setPackage:(Ljava/lang/String;)Landroid/content/Intent; // method@02f9
+50ba42: 6202 a2ba                              |0015: sget-object v2, Lcom/iflytek/autofly/carpropertyservice/util/CarPropertyManager;.mContext:Landroid/content/Context; // field@baa2
+50ba46: 5453 a1ba                              |0017: iget-object v3, v5, Lcom/iflytek/autofly/carpropertyservice/util/CarPropertyManager;.mConnect:Landroid/content/ServiceConnection; // field@baa1
+50ba4a: 1214                                   |0019: const/4 v4, #int 1 // #1
+50ba4c: 6e40 7102 0243                         |001a: invoke-virtual {v2, v0, v3, v4}, Landroid/content/Context;.bindService:(Landroid/content/Intent;Landroid/content/ServiceConnection;I)Z // method@0271
+50ba52: 0a00                                   |001d: move-result v0
+50ba54: 3800 0600                              |001e: if-eqz v0, 0024 // +0006
+50ba58: 1222                                   |0020: const/4 v2, #int 2 // #2
+50ba5a: 5952 a6ba                              |0021: iput v2, v5, Lcom/iflytek/autofly/carpropertyservice/util/CarPropertyManager;.mState:I // field@baa6
+50ba5e: 2803                                   |0023: goto 0026 // +0003
+50ba60: 5954 a6ba                              |0024: iput v4, v5, Lcom/iflytek/autofly/carpropertyservice/util/CarPropertyManager;.mState:I // field@baa6
+50ba64: 5252 a6ba                              |0026: iget v2, v5, Lcom/iflytek/autofly/carpropertyservice/util/CarPropertyManager;.mState:I // field@baa6
+50ba68: 7020 4deb 2500                         |0028: invoke-direct {v5, v2}, Lcom/iflytek/autofly/carpropertyservice/util/CarPropertyManager;.notifyClientServiceStatus:(I)V // method@eb4d
+50ba6e: 2202 3421                              |002b: new-instance v2, Ljava/lang/StringBuilder; // type@2134
+50ba72: 1a03 2789                              |002d: const-string v3, "bindService(" // string@8927
+50ba76: 7020 f9f9 3200                         |002f: invoke-direct {v2, v3}, Ljava/lang/StringBuilder;.<init>:(Ljava/lang/String;)V // method@f9f9
+50ba7c: 6e20 01fa 1200                         |0032: invoke-virtual {v2, v1}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@fa01
+50ba82: 0c01                                   |0035: move-result-object v1
+50ba84: 1a02 1708                              |0036: const-string v2, ") ret=" // string@0817
+50ba88: 6e20 01fa 2100                         |0038: invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@fa01
+50ba8e: 0c01                                   |003b: move-result-object v1
+50ba90: 6e20 02fa 0100                         |003c: invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;.append:(Z)Ljava/lang/StringBuilder; // method@fa02
+50ba96: 0c01                                   |003f: move-result-object v1
+50ba98: 6e10 0bfa 0100                         |0040: invoke-virtual {v1}, Ljava/lang/StringBuilder;.toString:()Ljava/lang/String; // method@fa0b
+50ba9e: 0c01                                   |0043: move-result-object v1
+50baa0: 1a02 8125                              |0044: const-string v2, "FeiYuOS-CarPropertyManager" // string@2581
+50baa4: 7120 5610 1200                         |0046: invoke-static {v2, v1}, Landroid/util/Log;.d:(Ljava/lang/String;Ljava/lang/String;)I // method@1056
+50baaa: 3800 0400                              |0049: if-eqz v0, 004d // +0004
+50baae: 1200                                   |004b: const/4 v0, #int 0 // #0
+50bab0: 2803                                   |004c: goto 004f // +0003
+50bab2: 1300 13fc                              |004d: const/16 v0, #int -1005 // #fc13
+50bab6: 0f00                                   |004f: return v0
+
+## RockySceneEngine/classes.dex.txt:1142117
+5198e0:                                        |[5198e0] com.iflytek.autofly.datacenter.platform.SystemStatusManager.getGearReverse:()I
+5198f0: 5420 e1d6                              |0000: iget-object v0, v2, Lcom/iflytek/autofly/datacenter/platform/SystemStatusManager;.mSystemManager:Lcom/iflytek/autofly/systemservice/util/FlySystemManager; // field@d6e1
+5198f4: 3800 1000                              |0002: if-eqz v0, 0012 // +0010
+5198f8: 1a01 1ca0                              |0004: const-string v1, "gear" // string@a01c
+5198fc: 6e20 7cf7 1000                         |0006: invoke-virtual {v0, v1}, Lcom/iflytek/autofly/systemservice/util/FlySystemManager;.getVehicleState:(Ljava/lang/String;)I // method@f77c
+519902: 0a00                                   |0009: move-result v0
+519904: 1301 e803                              |000a: const/16 v1, #int 1000 // #3e8
+519908: 3301 0400                              |000c: if-ne v1, v0, 0010 // +0004
+51990c: 1210                                   |000e: const/4 v0, #int 1 // #1
+51990e: 2804                                   |000f: goto 0013 // +0004
+519910: 1200                                   |0010: const/4 v0, #int 0 // #0
+519912: 2802                                   |0011: goto 0013 // +0002
+519914: 12f0                                   |0012: const/4 v0, #int -1 // #ff
+519916: 0f00                                   |0013: return v0
+
+## RockySceneEngine/classes.dex.txt:1144289
+52415c:                                        |[52415c] com.iflytek.autofly.datacenter.provider.StateContentProvider.query:(Landroid/net/Uri;[Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;)Landroid/database/Cursor;
+52416c: 07f0                                   |0000: move-object v0, v15
+52416e: 7110 81e8 0e00                         |0001: invoke-static {v14}, Lcom/iflytek/autofly/base/tools/Logs;.log:(Ljava/lang/Object;)Lcom/orhanobut/logger/Printer; // method@e881
+524174: 0c01                                   |0004: move-result-object v1
+524176: 1a02 f9e3                              |0005: const-string v2, "query()" // string@e3f9
+52417a: 7220 92f7 2100                         |0007: invoke-interface {v1, v2}, Lcom/orhanobut/logger/Printer;.d:(Ljava/lang/Object;)V // method@f792
+524180: 6e10 c607 0f00                         |000a: invoke-virtual {v15}, Landroid/net/Uri;.getPathSegments:()Ljava/util/List; // method@07c6
+524186: 0c01                                   |000d: move-result-object v1
+524188: 1202                                   |000e: const/4 v2, #int 0 // #0
+52418a: 3901 0300                              |000f: if-nez v1, 0012 // +0003
+52418e: 1102                                   |0011: return-object v2
+524190: 6e10 c607 0f00                         |0012: invoke-virtual {v15}, Landroid/net/Uri;.getPathSegments:()Ljava/util/List; // method@07c6
+524196: 0c01                                   |0015: move-result-object v1
+524198: 1203                                   |0016: const/4 v3, #int 0 // #0
+52419a: 7220 a3fc 3100                         |0017: invoke-interface {v1, v3}, Ljava/util/List;.get:(I)Ljava/lang/Object; // method@fca3
+5241a0: 0c01                                   |001a: move-result-object v1
+5241a2: 1f01 3221                              |001b: check-cast v1, Ljava/lang/String; // type@2132
+5241a6: 7110 f60f 0100                         |001d: invoke-static {v1}, Landroid/text/TextUtils;.isEmpty:(Ljava/lang/CharSequence;)Z // method@0ff6
+5241ac: 0a04                                   |0020: move-result v4
+5241ae: 3804 0300                              |0021: if-eqz v4, 0024 // +0003
+5241b2: 1102                                   |0023: return-object v2
+5241b4: 07e4                                   |0024: move-object v4, v14
+5241b6: 5445 34d8                              |0025: iget-object v5, v4, Lcom/iflytek/autofly/datacenter/provider/StateContentProvider;.mDBHelper:Lcom/iflytek/autofly/datacenter/store/sqlite/DBHelper; // field@d834
+5241ba: 6e10 e1f1 0500                         |0027: invoke-virtual {v5}, Lcom/iflytek/autofly/datacenter/store/sqlite/DBHelper;.getReadableDatabase:()Landroid/database/sqlite/SQLiteDatabase; // method@f1e1
+5241c0: 0c06                                   |002a: move-result-object v6
+5241c2: 6203 35d8                              |002b: sget-object v3, Lcom/iflytek/autofly/datacenter/provider/StateContentProvider;.mUriMatcher:Landroid/content/UriMatcher; // field@d835
+5241c6: 6e20 1503 f300                         |002d: invoke-virtual {v3, v15}, Landroid/content/UriMatcher;.match:(Landroid/net/Uri;)I // method@0315
+5241cc: 0a03                                   |0030: move-result v3
+5241ce: 1215                                   |0031: const/4 v5, #int 1 // #1
+5241d0: 1a07 a405                              |0032: const-string v7, "'" // string@05a4
+5241d4: 3253 7400                              |0034: if-eq v3, v5, 00a8 // +0074
+5241d8: 1225                                   |0036: const/4 v5, #int 2 // #2
+5241da: 3253 1a00                              |0037: if-eq v3, v5, 0051 // +001a
+5241de: 7110 81e8 0e00                         |0039: invoke-static {v14}, Lcom/iflytek/autofly/base/tools/Logs;.log:(Ljava/lang/Object;)Lcom/orhanobut/logger/Printer; // method@e881
+5241e4: 0c01                                   |003c: move-result-object v1
+5241e6: 2203 3421                              |003d: new-instance v3, Ljava/lang/StringBuilder; // type@2134
+5241ea: 1a05 fae3                              |003f: const-string v5, "query() can not match uri : " // string@e3fa
+5241ee: 7020 f9f9 5300                         |0041: invoke-direct {v3, v5}, Ljava/lang/StringBuilder;.<init>:(Ljava/lang/String;)V // method@f9f9
+5241f4: 6e20 00fa f300                         |0044: invoke-virtual {v3, v15}, Ljava/lang/StringBuilder;.append:(Ljava/lang/Object;)Ljava/lang/StringBuilder; // method@fa00
+5241fa: 0c00                                   |0047: move-result-object v0
+5241fc: 6e10 0bfa 0000                         |0048: invoke-virtual {v0}, Ljava/lang/StringBuilder;.toString:()Ljava/lang/String; // method@fa0b
+524202: 0c00                                   |004b: move-result-object v0
+524204: 7220 92f7 0100                         |004c: invoke-interface {v1, v0}, Lcom/orhanobut/logger/Printer;.d:(Ljava/lang/Object;)V // method@f792
+52420a: 2900 7c00                              |004f: goto/16 00cb // +007c
+52420e: 3806 7a00                              |0051: if-eqz v6, 00cb // +007a
+524212: 6e10 c407 0f00                         |0053: invoke-virtual {v15}, Landroid/net/Uri;.getLastPathSegment:()Ljava/lang/String; // method@07c4
+524218: 0c00                                   |0056: move-result-object v0
+52421a: 2202 3421                              |0057: new-instance v2, Ljava/lang/StringBuilder; // type@2134
+52421e: 1a03 2dd8                              |0059: const-string v3, "name = " // string@d82d
+524222: 7020 f9f9 3200                         |005b: invoke-direct {v2, v3}, Ljava/lang/StringBuilder;.<init>:(Ljava/lang/String;)V // method@f9f9
+524228: 6e20 01fa 0200                         |005e: invoke-virtual {v2, v0}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@fa01
+52422e: 0c00                                   |0061: move-result-object v0
+524230: 6e10 0bfa 0000                         |0062: invoke-virtual {v0}, Ljava/lang/StringBuilder;.toString:()Ljava/lang/String; // method@fa0b
+524236: 0c00                                   |0065: move-result-object v0
+524238: 7701 f60f 1100                         |0066: invoke-static/range {v17}, Landroid/text/TextUtils;.isEmpty:(Ljava/lang/CharSequence;)Z // method@0ff6
+52423e: 0a02                                   |0069: move-result v2
+524240: 3902 1d00                              |006a: if-nez v2, 0087 // +001d
+524244: 2202 3421                              |006c: new-instance v2, Ljava/lang/StringBuilder; // type@2134
+524248: 7010 f6f9 0200                         |006e: invoke-direct {v2}, Ljava/lang/StringBuilder;.<init>:()V // method@f9f6
+52424e: 6e20 01fa 0200                         |0071: invoke-virtual {v2, v0}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@fa01
+524254: 0c00                                   |0074: move-result-object v0
+524256: 1a02 e383                              |0075: const-string v2, "and " // string@83e3
+52425a: 6e20 01fa 2000                         |0077: invoke-virtual {v0, v2}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@fa01
+524260: 0c00                                   |007a: move-result-object v0
+524262: 0803 1100                              |007b: move-object/from16 v3, v17
+524266: 6e20 01fa 3000                         |007d: invoke-virtual {v0, v3}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@fa01
+52426c: 0c00                                   |0080: move-result-object v0
+52426e: 6e10 0bfa 0000                         |0081: invoke-virtual {v0}, Ljava/lang/StringBuilder;.toString:()Ljava/lang/String; // method@fa0b
+524274: 0c00                                   |0084: move-result-object v0
+524276: 0709                                   |0085: move-object v9, v0
+524278: 2804                                   |0086: goto 008a // +0004
+52427a: 0803 1100                              |0087: move-object/from16 v3, v17
+52427e: 0739                                   |0089: move-object v9, v3
+524280: 2200 3421                              |008a: new-instance v0, Ljava/lang/StringBuilder; // type@2134
+524284: 7020 f9f9 7000                         |008c: invoke-direct {v0, v7}, Ljava/lang/StringBuilder;.<init>:(Ljava/lang/String;)V // method@f9f9
+52428a: 6e20 01fa 1000                         |008f: invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@fa01
+524290: 0c00                                   |0092: move-result-object v0
+524292: 6e20 01fa 7000                         |0093: invoke-virtual {v0, v7}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@fa01
+524298: 0c00                                   |0096: move-result-object v0
+52429a: 6e10 0bfa 0000                         |0097: invoke-virtual {v0}, Ljava/lang/StringBuilder;.toString:()Ljava/lang/String; // method@fa0b
+5242a0: 0c07                                   |009a: move-result-object v7
+5242a2: 120b                                   |009b: const/4 v11, #int 0 // #0
+5242a4: 120c                                   |009c: const/4 v12, #int 0 // #0
+5242a6: 0808 1000                              |009d: move-object/from16 v8, v16
+5242aa: 080a 1200                              |009f: move-object/from16 v10, v18
+5242ae: 080d 1300                              |00a1: move-object/from16 v13, v19
+5242b2: 7408 1e04 0600                         |00a3: invoke-virtual/range {v6, v7, v8, v9, v10, v11, v12, v13}, Landroid/database/sqlite/SQLiteDatabase;.query:(Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Landroid/database/Cursor; // method@041e
+5242b8: 0c02                                   |00a6: move-result-object v2
+5242ba: 2824                                   |00a7: goto 00cb // +0024
+5242bc: 0803 1100                              |00a8: move-object/from16 v3, v17
+5242c0: 3806 2100                              |00aa: if-eqz v6, 00cb // +0021
+5242c4: 2200 3421                              |00ac: new-instance v0, Ljava/lang/StringBuilder; // type@2134
+5242c8: 7020 f9f9 7000                         |00ae: invoke-direct {v0, v7}, Ljava/lang/StringBuilder;.<init>:(Ljava/lang/String;)V // method@f9f9
+5242ce: 6e20 01fa 1000                         |00b1: invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@fa01
+5242d4: 0c00                                   |00b4: move-result-object v0
+5242d6: 6e20 01fa 7000                         |00b5: invoke-virtual {v0, v7}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@fa01
+5242dc: 0c00                                   |00b8: move-result-object v0
+5242de: 6e10 0bfa 0000                         |00b9: invoke-virtual {v0}, Ljava/lang/StringBuilder;.toString:()Ljava/lang/String; // method@fa0b
+5242e4: 0c07                                   |00bc: move-result-object v7
+5242e6: 120b                                   |00bd: const/4 v11, #int 0 // #0
+5242e8: 120c                                   |00be: const/4 v12, #int 0 // #0
+5242ea: 0808 1000                              |00bf: move-object/from16 v8, v16
+5242ee: 0809 1100                              |00c1: move-object/from16 v9, v17
+5242f2: 080a 1200                              |00c3: move-object/from16 v10, v18
+5242f6: 080d 1300                              |00c5: move-object/from16 v13, v19
+5242fa: 7408 1e04 0600                         |00c7: invoke-virtual/range {v6, v7, v8, v9, v10, v11, v12, v13}, Landroid/database/sqlite/SQLiteDatabase;.query:(Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Landroid/database/Cursor; // method@041e
+524300: 0c02                                   |00ca: move-result-object v2
+524302: 7110 81e8 0e00                         |00cb: invoke-static {v14}, Lcom/iflytek/autofly/base/tools/Logs;.log:(Ljava/lang/Object;)Lcom/orhanobut/logger/Printer; // method@e881
+524308: 0c00                                   |00ce: move-result-object v0
+52430a: 1a01 fbe3                              |00cf: const-string v1, "query() end" // string@e3fb
+52430e: 7220 92f7 1000                         |00d1: invoke-interface {v0, v1}, Lcom/orhanobut/logger/Printer;.d:(Ljava/lang/Object;)V // method@f792
+524314: 1102                                   |00d4: return-object v2
+524316: 0d00                                   |00d5: move-exception v0
+524318: 7110 81e8 0e00                         |00d6: invoke-static {v14}, Lcom/iflytek/autofly/base/tools/Logs;.log:(Ljava/lang/Object;)Lcom/orhanobut/logger/Printer; // method@e881
+52431e: 0c01                                   |00d9: move-result-object v1
+524320: 2205 3421                              |00da: new-instance v5, Ljava/lang/StringBuilder; // type@2134
+524324: 1a06 fce3                              |00dc: const-string v6, "query() error , " // string@e3fc
+524328: 7020 f9f9 6500                         |00de: invoke-direct {v5, v6}, Ljava/lang/StringBuilder;.<init>:(Ljava/lang/String;)V // method@f9f9
+52432e: 6e10 14f9 0000                         |00e1: invoke-virtual {v0}, Ljava/lang/Exception;.getMessage:()Ljava/lang/String; // method@f914
+524334: 0c00                                   |00e4: move-result-object v0
+524336: 6e20 01fa 0500                         |00e5: invoke-virtual {v5, v0}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@fa01
+52433c: 0c00                                   |00e8: move-result-object v0
+52433e: 6e10 0bfa 0000                         |00e9: invoke-virtual {v0}, Ljava/lang/StringBuilder;.toString:()Ljava/lang/String; // method@fa0b
+524344: 0c00                                   |00ec: move-result-object v0
+524346: 2333 be24                              |00ed: new-array v3, v3, [Ljava/lang/Object; // type@24be
+52434a: 7230 94f7 0103                         |00ef: invoke-interface {v1, v0, v3}, Lcom/orhanobut/logger/Printer;.e:(Ljava/lang/String;[Ljava/lang/Object;)V // method@f794
+524350: 1102                                   |00f2: return-object v2
+
+## RockySceneEngine/classes2.dex.txt:169648
+1ca2d8:                                        |[1ca2d8] com.iflytek.autofly.sceneengine.VpaDataService.onBind:(Landroid/content/Intent;)Landroid/os/IBinder;
+1ca2e8: 7110 6104 0100                         |0000: invoke-static {v1}, Lcom/iflytek/autofly/base/tools/Logs;.log:(Ljava/lang/Object;)Lcom/orhanobut/logger/Printer; // method@0461
+1ca2ee: 0c02                                   |0003: move-result-object v2
+1ca2f0: 1a00 39e6                              |0004: const-string v0, "onBind!" // string@e639
+1ca2f4: 7220 ac32 0200                         |0006: invoke-interface {v2, v0}, Lcom/orhanobut/logger/Printer;.d:(Ljava/lang/Object;)V // method@32ac
+1ca2fa: 6202 f033                              |0009: sget-object v2, Lcom/iflytek/autofly/lib_sceneengine/SceneEngineBinder;.INSTANCE:Lcom/iflytek/autofly/lib_sceneengine/SceneEngineBinder; // field@33f0
+1ca2fe: 1102                                   |000b: return-object v2
+
+## RockySceneEngine/classes2.dex.txt:188738
+1dd59c:                                        |[1dd59c] com.iflytek.autofly.systemservice.util.FlySystemManager.initClient:()I
+1dd5ac: 2200 2d00                              |0000: new-instance v0, Landroid/content/Intent; // type@002d
+1dd5b0: 7010 7b00 0000                         |0002: invoke-direct {v0}, Landroid/content/Intent;.<init>:()V // method@007b
+1dd5b6: 1a01 d4a9                              |0005: const-string v1, "com.iflytek.autofly.systemservice" // string@a9d4
+1dd5ba: 6e20 9000 1000                         |0007: invoke-virtual {v0, v1}, Landroid/content/Intent;.setAction:(Ljava/lang/String;)Landroid/content/Intent; // method@0090
+1dd5c0: 1a01 42f2                              |000a: const-string v1, "ro.autofly.service.system" // string@f242
+1dd5c4: 1a02 bea9                              |000c: const-string v2, "com.iflytek.autofly.platformservice" // string@a9be
+1dd5c8: 7120 1402 2100                         |000e: invoke-static {v1, v2}, Landroid/os/SystemProperties;.get:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String; // method@0214
+1dd5ce: 0c01                                   |0011: move-result-object v1
+1dd5d0: 6e20 9500 1000                         |0012: invoke-virtual {v0, v1}, Landroid/content/Intent;.setPackage:(Ljava/lang/String;)Landroid/content/Intent; // method@0095
+1dd5d6: 6202 e857                              |0015: sget-object v2, Lcom/iflytek/autofly/systemservice/util/FlySystemManager;.mContext:Landroid/content/Context; // field@57e8
+1dd5da: 5453 e757                              |0017: iget-object v3, v5, Lcom/iflytek/autofly/systemservice/util/FlySystemManager;.mConnect:Landroid/content/ServiceConnection; // field@57e7
+1dd5de: 1214                                   |0019: const/4 v4, #int 1 // #1
+1dd5e0: 6e40 5a00 0243                         |001a: invoke-virtual {v2, v0, v3, v4}, Landroid/content/Context;.bindService:(Landroid/content/Intent;Landroid/content/ServiceConnection;I)Z // method@005a
+1dd5e6: 0a00                                   |001d: move-result v0
+1dd5e8: 3800 0600                              |001e: if-eqz v0, 0024 // +0006
+1dd5ec: 1222                                   |0020: const/4 v2, #int 2 // #2
+1dd5ee: 6702 ec57                              |0021: sput v2, Lcom/iflytek/autofly/systemservice/util/FlySystemManager;.mState:I // field@57ec
+1dd5f2: 2803                                   |0023: goto 0026 // +0003
+1dd5f4: 6704 ec57                              |0024: sput v4, Lcom/iflytek/autofly/systemservice/util/FlySystemManager;.mState:I // field@57ec
+1dd5f8: 6002 ec57                              |0026: sget v2, Lcom/iflytek/autofly/systemservice/util/FlySystemManager;.mState:I // field@57ec
+1dd5fc: 7020 a217 2500                         |0028: invoke-direct {v5, v2}, Lcom/iflytek/autofly/systemservice/util/FlySystemManager;.notifyClientServiceStatus:(I)V // method@17a2
+1dd602: 2202 3210                              |002b: new-instance v2, Ljava/lang/StringBuilder; // type@1032
+1dd606: 1a03 21a3                              |002d: const-string v3, "bindService(" // string@a321
+1dd60a: 7020 9361 3200                         |002f: invoke-direct {v2, v3}, Ljava/lang/StringBuilder;.<init>:(Ljava/lang/String;)V // method@6193
+1dd610: 6e20 9c61 1200                         |0032: invoke-virtual {v2, v1}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@619c
+1dd616: 0c01                                   |0035: move-result-object v1
+1dd618: 1a02 2c19                              |0036: const-string v2, ") ret=" // string@192c
+1dd61c: 6e20 9c61 2100                         |0038: invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@619c
+1dd622: 0c01                                   |003b: move-result-object v1
+1dd624: 6e20 9e61 0100                         |003c: invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;.append:(Z)Ljava/lang/StringBuilder; // method@619e
+1dd62a: 0c01                                   |003f: move-result-object v1
+1dd62c: 6e10 af61 0100                         |0040: invoke-virtual {v1}, Ljava/lang/StringBuilder;.toString:()Ljava/lang/String; // method@61af
+1dd632: 0c01                                   |0043: move-result-object v1
+1dd634: 1a02 733a                              |0044: const-string v2, "FeiYuOS-SystemManager" // string@3a73
+1dd638: 7120 4202 1200                         |0046: invoke-static {v2, v1}, Landroid/util/Log;.d:(Ljava/lang/String;Ljava/lang/String;)I // method@0242
+1dd63e: 3800 0400                              |0049: if-eqz v0, 004d // +0004
+1dd642: 1200                                   |004b: const/4 v0, #int 0 // #0
+1dd644: 2803                                   |004c: goto 004f // +0003
+1dd646: 1300 13fc                              |004d: const/16 v0, #int -1005 // #fc13
+1dd64a: 0f00                                   |004f: return v0
+
+## RockySceneEngine/classes2.dex.txt:189303
+1dd4cc:                                        |[1dd4cc] com.iflytek.autofly.systemservice.util.FlySystemManager.getVehicleState:(Ljava/lang/String;)I
+1dd4dc: 2200 3210                              |0000: new-instance v0, Ljava/lang/StringBuilder; // type@1032
+1dd4e0: 1a01 b1c8                              |0002: const-string v1, "getVehicleState " // string@c8b1
+1dd4e4: 7020 9361 1000                         |0004: invoke-direct {v0, v1}, Ljava/lang/StringBuilder;.<init>:(Ljava/lang/String;)V // method@6193
+1dd4ea: 6e20 9c61 3000                         |0007: invoke-virtual {v0, v3}, Ljava/lang/StringBuilder;.append:(Ljava/lang/String;)Ljava/lang/StringBuilder; // method@619c
+1dd4f0: 0c00                                   |000a: move-result-object v0
+1dd4f2: 6e10 af61 0000                         |000b: invoke-virtual {v0}, Ljava/lang/StringBuilder;.toString:()Ljava/lang/String; // method@61af
+1dd4f8: 0c00                                   |000e: move-result-object v0
+1dd4fa: 1a01 733a                              |000f: const-string v1, "FeiYuOS-SystemManager" // string@3a73
+1dd4fe: 7120 4202 0100                         |0011: invoke-static {v1, v0}, Landroid/util/Log;.d:(Ljava/lang/String;Ljava/lang/String;)I // method@0242
+1dd504: 7110 3902 0300                         |0014: invoke-static {v3}, Landroid/text/TextUtils;.isEmpty:(Ljava/lang/CharSequence;)Z // method@0239
+1dd50a: 0a00                                   |0017: move-result v0
+1dd50c: 3800 0500                              |0018: if-eqz v0, 001d // +0005
+1dd510: 1303 16fc                              |001a: const/16 v3, #int -1002 // #fc16
+1dd514: 0f03                                   |001c: return v3
+1dd516: 1a00 c1ba                              |001d: const-string v0, "gear" // string@bac1
+1dd51a: 7120 3802 0300                         |001f: invoke-static {v3, v0}, Landroid/text/TextUtils;.equals:(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Z // method@0238
+1dd520: 0a00                                   |0022: move-result v0
+1dd522: 3900 1d00                              |0023: if-nez v0, 0040 // +001d
+1dd526: 1a00 b2eb                              |0025: const-string v0, "power" // string@ebb2
+1dd52a: 7120 3802 0300                         |0027: invoke-static {v3, v0}, Landroid/text/TextUtils;.equals:(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Z // method@0238
+1dd530: 0a00                                   |002a: move-result v0
+1dd532: 3900 1500                              |002b: if-nez v0, 0040 // +0015
+1dd536: 1a00 9df3                              |002d: const-string v0, "screen" // string@f39d
+1dd53a: 7120 3802 0300                         |002f: invoke-static {v3, v0}, Landroid/text/TextUtils;.equals:(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Z // method@0238
+1dd540: 0a00                                   |0032: move-result v0
+1dd542: 3900 0d00                              |0033: if-nez v0, 0040 // +000d
+1dd546: 1a00 3ca2                              |0035: const-string v0, "avm" // string@a23c
+1dd54a: 7120 3802 0300                         |0037: invoke-static {v3, v0}, Landroid/text/TextUtils;.equals:(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Z // method@0238
+1dd550: 0a00                                   |003a: move-result v0
+1dd552: 3900 0500                              |003b: if-nez v0, 0040 // +0005
+1dd556: 1303 10fc                              |003d: const/16 v3, #int -1008 // #fc10
+1dd55a: 0f03                                   |003f: return v3
+1dd55c: 7010 a617 0200                         |0040: invoke-direct {v2}, Lcom/iflytek/autofly/systemservice/util/FlySystemManager;.serviceCheck:()I // method@17a6
+1dd562: 0a00                                   |0043: move-result v0
+1dd564: 3800 0300                              |0044: if-eqz v0, 0047 // +0003
+1dd568: 0f00                                   |0046: return v0
+1dd56a: 5421 ea57                              |0047: iget-object v1, v2, Lcom/iflytek/autofly/systemservice/util/FlySystemManager;.mRemoteService:Lcom/iflytek/autofly/systemservice/aidl/ISystemServiceAIDL; // field@57ea
+1dd56e: 3801 0e00                              |0049: if-eqz v1, 0057 // +000e
+1dd572: 7220 e416 3100                         |004b: invoke-interface {v1, v3}, Lcom/iflytek/autofly/systemservice/aidl/ISystemServiceAIDL;.getVehicleState:(Ljava/lang/String;)I // method@16e4
+1dd578: 0a03                                   |004e: move-result v3
+1dd57a: 0f03                                   |004f: return v3
+1dd57c: 0d03                                   |0050: move-exception v3
+1dd57e: 6e10 0c02 0300                         |0051: invoke-virtual {v3}, Landroid/os/RemoteException;.printStackTrace:()V // method@020c
+1dd584: 1303 15fc                              |0054: const/16 v3, #int -1003 // #fc15
+1dd588: 0f03                                   |0056: return v3
+1dd58a: 0f00                                   |0057: return v0
+
+## RockyLauncher/classes.dex.txt:908948
+4c7bfc:                                        |[4c7bfc] com.android.launcher3.util.AppStarter.checkGearPosition:(Landroid/content/Context;Ljava/lang/String;)Z
+4c7c0c: 7100 fafe 0000                         |0000: invoke-static {}, Lmega/car/MegaCarProperty;.getInstance:()Lmega/car/MegaCarProperty; // method@fefa
+4c7c12: 0c00                                   |0003: move-result-object v0
+4c7c14: 1401 0a00 0004                         |0004: const v1, #float 1.50463e-36 // #0400000a
+4c7c1a: 6e20 fcfe 1000                         |0007: invoke-virtual {v0, v1}, Lmega/car/MegaCarProperty;.getIntProp:(I)I // method@fefc
+4c7c20: 0a00                                   |000a: move-result v0
+4c7c22: 2201 9d1d                              |000b: new-instance v1, Ljava/lang/StringBuilder; // type@1d9d
+4c7c26: 1a02 6ba7                              |000d: const-string v2, "checkGearPosition: gearProp = " // string@a76b
+4c7c2a: 7020 4edf 2100                         |000f: invoke-direct {v1, v2}, Ljava/lang/StringBuilder;.<init>:(Ljava/lang/String;)V // method@df4e
+4c7c30: 6e20 52df 0100                         |0012: invoke-virtual {v1, v0}, Ljava/lang/StringBuilder;.append:(I)Ljava/lang/StringBuilder; // method@df52
+4c7c36: 0c01                                   |0015: move-result-object v1
+4c7c38: 6e10 67df 0100                         |0016: invoke-virtual {v1}, Ljava/lang/StringBuilder;.toString:()Ljava/lang/String; // method@df67
+4c7c3e: 0c01                                   |0019: move-result-object v1
+4c7c40: 1a02 0b19                              |001a: const-string v2, "AppStarter" // string@190b
+4c7c44: 7120 3eff 1200                         |001c: invoke-static {v2, v1}, Lmega/log/MLog;.i:(Ljava/lang/String;Ljava/lang/String;)V // method@ff3e
+4c7c4a: 1201                                   |001f: const/4 v1, #int 0 // #0
+4c7c4c: 1212                                   |0020: const/4 v2, #int 1 // #1
+4c7c4e: 3220 2900                              |0021: if-eq v0, v2, 004a // +0029
+4c7c52: 6200 76ac                              |0023: sget-object v0, Lcom/android/launcher3/util/AppStarter;.sAppOnlyInP:[Ljava/lang/String; // field@ac76
+4c7c56: 3800 2500                              |0025: if-eqz v0, 004a // +0025
+4c7c5a: 2103                                   |0027: array-length v3, v0
+4c7c5c: 3d03 2200                              |0028: if-lez v3, 004a // +0022
+4c7c60: 2103                                   |002a: array-length v3, v0
+4c7c62: 0114                                   |002b: move v4, v1
+4c7c64: 3534 1e00                              |002c: if-ge v4, v3, 004a // +001e
+4c7c68: 4605 0004                              |002e: aget-object v5, v0, v4
+4c7c6c: 6e20 1bdf 5700                         |0030: invoke-virtual {v7, v5}, Ljava/lang/String;.equals:(Ljava/lang/Object;)Z // method@df1b
+4c7c72: 0a05                                   |0033: move-result v5
+4c7c74: 3805 1300                              |0034: if-eqz v5, 0047 // +0013
+4c7c78: 1407 6002 107f                         |0036: const v7, #float 1.91421e+38 // #7f100260
+4c7c7e: 6e20 0d14 7600                         |0039: invoke-virtual {v6, v7}, Landroid/content/Context;.getString:(I)Ljava/lang/String; // method@140d
+4c7c84: 0c07                                   |003c: move-result-object v7
+4c7c86: 1600 b80b                              |003d: const-wide/16 v0, #int 3000 // #bb8
+4c7c8a: 7140 eadc 7610                         |003f: invoke-static {v6, v7, v0, v1}, Lcom/mega/chery/utils/ToastViewUtils;.makeText:(Landroid/content/Context;Ljava/lang/String;J)Lcom/mega/chery/utils/ToastViewUtils$ToastViewPresenter; // method@dcea
+4c7c90: 0c06                                   |0042: move-result-object v6
+4c7c92: 6e10 e8dc 0600                         |0043: invoke-virtual {v6}, Lcom/mega/chery/utils/ToastViewUtils$ToastViewPresenter;.show:()V // method@dce8
+4c7c98: 0f02                                   |0046: return v2
+4c7c9a: d804 0401                              |0047: add-int/lit8 v4, v4, #int 1 // #01
+4c7c9e: 28e3                                   |0049: goto 002c // -001d
+4c7ca0: 0f01                                   |004a: return v1
+
+## RockyEcologyCenter/classes.dex.txt:1615906
+516428:                                        |[516428] com.mega.hicar.view.HiCarAppListManager.startApplication:(Lcom/mega/hicar/model/AppInfo;)V
+516438: 1a00 d892                              |0000: const-string v0, "appInfo" // string@92d8
+51643c: 7120 a4f9 0500                         |0002: invoke-static {v5, v0}, Lkotlin/jvm/internal/Intrinsics;.checkNotNullParameter:(Ljava/lang/Object;Ljava/lang/String;)V // method@f9a4
+516442: 7100 26fa 0000                         |0005: invoke-static {}, Lmega/car/MegaCarProperty;.getInstance:()Lmega/car/MegaCarProperty; // method@fa26
+516448: 0c00                                   |0008: move-result-object v0
+51644a: 1401 0a00 0004                         |0009: const v1, #float 1.50463e-36 // #0400000a
+516450: 6e20 28fa 1000                         |000c: invoke-virtual {v0, v1}, Lmega/car/MegaCarProperty;.getIntProp:(I)I // method@fa28
+516456: 0a00                                   |000f: move-result v0
+516458: 1211                                   |0010: const/4 v1, #int 1 // #1
+51645a: 3310 0300                              |0011: if-ne v0, v1, 0014 // +0003
+51645e: 2802                                   |0013: goto 0015 // +0002
+516460: 1201                                   |0014: const/4 v1, #int 0 // #0
+516462: 5440 e3bf                              |0015: iget-object v0, v4, Lcom/mega/hicar/view/HiCarAppListManager;.TAG:Ljava/lang/String; // field@bfe3
+516466: 2202 a023                              |0017: new-instance v2, Ljava/lang/StringBuilder; // type@23a0
+51646a: 1b03 de09 0100                         |0019: const-string/jumbo v3, "startApplication: parking== " // string@000109de
+516470: 7020 32f6 3200                         |001c: invoke-direct {v2, v3}, Ljava/lang/StringBuilder;.<init>:(Ljava/lang/String;)V // method@f632
+516476: 6e20 3cf6 1200                         |001f: invoke-virtual {v2, v1}, Ljava/lang/StringBuilder;.append:(Z)Ljava/lang/StringBuilder; // method@f63c
+51647c: 0c02                                   |0022: move-result-object v2
+51647e: 6e10 45f6 0200                         |0023: invoke-virtual {v2}, Ljava/lang/StringBuilder;.toString:()Ljava/lang/String; // method@f645
+516484: 0c02                                   |0026: move-result-object v2
+516486: 7120 39fa 2000                         |0027: invoke-static {v0, v2}, Lmega/log/MLog;.i:(Ljava/lang/String;Ljava/lang/String;)V // method@fa39
+51648c: 3901 0b00                              |002a: if-nez v1, 0035 // +000b
+516490: 5250 babf                              |002c: iget v0, v5, Lcom/mega/hicar/model/AppInfo;.type:I // field@bfba
+516494: 1261                                   |002e: const/4 v1, #int 6 // #6
+516496: 3310 0600                              |002f: if-ne v0, v1, 0035 // +0006
+51649a: 6e10 64f1 0400                         |0031: invoke-virtual {v4}, Lcom/mega/hicar/view/HiCarAppListManager;.showVideoNotPpearTip:()V // method@f164
+5164a0: 0e00                                   |0034: return-void
+5164a2: 7100 a2ef 0000                         |0035: invoke-static {}, Lcom/mega/hicar/HiCarDeviceManager;.getInstance:()Lcom/mega/hicar/HiCarDeviceManager; // method@efa2
+5164a8: 0c04                                   |0038: move-result-object v4
+5164aa: 1b00 c409 0100                         |0039: const-string/jumbo v0, "start" // string@000109c4
+5164b0: 5455 b9bf                              |003c: iget-object v5, v5, Lcom/mega/hicar/model/AppInfo;.packageName:Ljava/lang/String; // field@bfb9
+5164b4: 6e30 c0ef 0405                         |003e: invoke-virtual {v4, v0, v5}, Lcom/mega/hicar/HiCarDeviceManager;.sendAppInfo:(Ljava/lang/String;Ljava/lang/String;)I // method@efc0
+5164ba: 0e00                                   |0041: return-void

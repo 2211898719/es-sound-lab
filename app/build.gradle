@@ -6,8 +6,9 @@ android {
         applicationId 'cn.es.soundlab'
         minSdk 26
         targetSdk 28
-        versionCode 7
-        versionName '0.3.1'
+        versionCode 40
+        versionName '0.3.34'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
 }
+dependencies { compileOnly project(':hidl-stubs') }
