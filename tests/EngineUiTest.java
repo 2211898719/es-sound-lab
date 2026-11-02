@@ -115,6 +115,11 @@ public final class EngineUiTest {
       SeekBar tone = (SeekBar) root.findViewWithTag("engine.synth.tone");
       tone.setProgress(37);
       shadowOf(tone).getOnSeekBarChangeListener().onStopTrackingTouch(tone);
+      SeekBar idle = (SeekBar) root.findViewWithTag("engine.idle-volume");
+      assertEquals(18, idle.getProgress());
+      idle.setProgress(22);
+      shadowOf(idle).getOnSeekBarChangeListener().onStopTrackingTouch(idle);
+      assertEquals(22, store.engineIdleVolume());
       assertTrue(store.engineSynth());
       assertEquals(1, store.engineTuning().style);
       assertEquals(112, store.engineTuning().tone);
@@ -127,6 +132,7 @@ public final class EngineUiTest {
       root = controller.get().findViewById(android.R.id.content);
       assertTrue(((Switch) root.findViewWithTag("engine.synth.mode")).isChecked());
       assertEquals(1, ((Spinner) root.findViewWithTag("engine.synth.styles")).getSelectedItemPosition());
+      assertEquals(22, ((SeekBar) root.findViewWithTag("engine.idle-volume")).getProgress());
       ((Switch) root.findViewWithTag("engine.synth.mode")).setChecked(false);
       assertEquals(source, store.engineSource());
       assertFalse(store.enabled("engine"));

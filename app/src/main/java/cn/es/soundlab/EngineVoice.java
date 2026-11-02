@@ -4,7 +4,11 @@ import android.content.Context;
 import android.media.AudioDeviceInfo;
 
 interface EngineVoice {
-  interface Listener { void finished(); void failed(Exception error); }
+  interface Listener {
+    default void started(String output) {}
+    void finished();
+    void failed(Exception error);
+  }
   interface Factory {
     EngineVoice create(Context context, String source, boolean preview, AudioDeviceInfo device, Listener listener);
   }

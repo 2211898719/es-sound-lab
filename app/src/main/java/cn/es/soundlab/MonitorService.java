@@ -522,28 +522,44 @@ public final class MonitorService extends Service
         diagnostics.engineDemoReading = engineDemo.json(audio.engineStatus(), store.volume("engine"));
         diagnostics.enginePowertrain = engineDemo.powertrain() == null ? new org.json.JSONObject() : engineDemo.powertrain().json();
         diagnostics.engineReading("虚拟视听演示中，实车声浪暂让行", false, engineMotion, 1, 0, 0, audio.engineStatus());
+        diagnostics.engineMode("demo");
         return;
       }
     }
-    State gear = states.get("gear");
-    boolean drive = gear != null && gear.source.startsWith("ICC|") && gear.value.equals("4")
-        && now >= gear.elapsed && now - gear.elapsed <= EngineMotion.MAX_AGE;
+    State gear = states.get("gear"), power = states.get("power"), speed = states.get("speed");
+    boolean drive = freshIcc(gear, now) && gear.value.equals("4");
+    boolean powered = freshIcc(power, now) && (power.value.equals("on") || power.value.equals("start"));
+    boolean powerOff = freshIcc(power, now) && !powered;
+    // A fresh successful ICC reply may omit speed at standstill on this vehicle.
+    // Use that convention only for idle; never feed an omitted value to the acceleration fit.
+    boolean idle = store.engineSynth() && powered && freshIcc(gear, now)
+        && (gear.value.equals("1") || gear.value.equals("3") || drive)
+        && freshIcc(speed, now) && speed.value.equals("0");
+    boolean moving = drive && !powerOff && engineMotion.ready(now)
+        && engineMotion.raw() > 1 && engineMotion.speed() > 1;
     String status = !store.enabled("engine") ? "声浪已关闭" : !running ? "车辆监听已停止"
         : diagnostics.calibrating ? "校准中，声浪暂停" : silenced || engineMuted ? "已停止播放；重新启用声浪以恢复"
-        : microphone.active() ? "喊话中，声浪暂停" : !drive ? "仅D挡启用；等待新鲜ICC挡位"
+        : microphone.active() ? "喊话中，声浪暂停" : powerOff ? "车辆未上电，声浪暂停"
+        : idle ? "车辆已上电，怠速声浪运行中（虚拟）" : !drive ? "等待新鲜ICC上电/挡位/静止状态；行驶声浪仅D挡"
         : !engineMotion.ready(now) ? "等待连续有效车速；缺失字段不用于拟合"
         : engineMotion.raw() <= 1 || engineMotion.speed() <= 1 ? "静止或低于起声速度" : "车速拟合运行中（非真实油门）";
     boolean active = store.enabled("engine") && running && !diagnostics.calibrating && !silenced && !engineMuted
-        && !microphone.active() && drive && engineMotion.ready(now)
-        && engineMotion.raw() > 1 && engineMotion.speed() > 1;
+        && !microphone.active() && (idle || moving);
     if (!active) {
       enginePowertrain.reset();
       engineGain = 0;
       enginePitch = 1;
       engineFrameAt = now;
-      if (!drive || !running || !store.enabled("engine") || silenced || engineMuted || diagnostics.calibrating)
+      if (!drive || powerOff || !running || !store.enabled("engine") || silenced || engineMuted || diagnostics.calibrating)
         engineMotion.reset();
       audio.loop(null, 1);
+    } else if (idle) {
+      enginePowertrain.reset();
+      engineMotion.reset();
+      engineFrameAt = now;
+      enginePitch = store.engineTuning().idle() / 3000f;
+      engineGain = store.engineIdleVolume() / 100f;
+      audio.engine(enginePitch, engineGain, 0);
     } else {
       float load = engineProfile.load(engineMotion.acceleration());
       long frameMillis = Math.min(200, Math.max(0, now - engineFrameAt));
@@ -554,12 +570,19 @@ public final class MonitorService extends Service
       if (store.engineSynth()) {
         if (frameMillis > 0) enginePowertrain.step(engineMotion.speed(), engineMotion.acceleration(), Float.NaN, frameMillis / 1000f);
         enginePitch = enginePowertrain.rpm / 3000f;
+        engineGain = Math.max(engineGain, store.engineIdleVolume() / 100f);
         audio.engine(enginePitch, engineGain, enginePowertrain.load);
       } else audio.engine(enginePitch, engineGain, load);
     }
-    diagnostics.engineReading(status, active, engineMotion, enginePitch, engineGain,
+    diagnostics.engineReading(status, active && !idle, engineMotion, enginePitch, engineGain,
         store.engineSynth() ? enginePowertrain.load : engineProfile.load(engineMotion.acceleration()), audio.engineStatus());
+    diagnostics.engineMode(idle && active ? "idle" : moving && active ? "drive" : "paused");
     diagnostics.enginePowertrain = store.engineSynth() ? enginePowertrain.json() : new org.json.JSONObject();
+  }
+
+  private boolean freshIcc(State state, long now) {
+    return state != null && state.source.startsWith("ICC|") && now >= state.elapsed
+        && now - state.elapsed <= EngineMotion.MAX_AGE;
   }
 
   private final Runnable engineTicker = new Runnable() {

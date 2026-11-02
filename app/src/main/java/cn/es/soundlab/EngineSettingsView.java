@@ -71,7 +71,7 @@ final class EngineSettingsView extends LinearLayout {
     body.addView(label("模拟声浪", 24, theme.text));
     body.addView(label("七层合成 / 自定义循环音频；只生成虚拟声浪，不修改原厂ASD或行人提示。请在安全驻车时设置，行车由乘员观察。", 13, theme.muted));
     Switch enabled = new Switch(context);
-    enabled.setText("启用车速拟合声浪（仅D挡行驶）");
+    enabled.setText("启用声浪（合成模式含上电怠速，D挡随车速变化）");
     enabled.setTextColor(theme.text);
     enabled.setChecked(store.enabled("engine"));
     enabled.setContentDescription("车速拟合声浪开关");
@@ -122,6 +122,9 @@ final class EngineSettingsView extends LinearLayout {
     body.addView(label("两种模式均使用48kHz连续PCM与参数平滑。合成音色有完整发动机周期、七层混音与周期对齐的纹理交叉淡化；试听有起落包络及静音尾巴。安全失效仍立即停止，不延后补播。", 12, theme.muted));
     slider(body, "声浪总音量", 0, 100, store.volume("engine"), value -> value + "%",
         value -> store.volume("engine", value), "engine.master-volume");
+    slider(body, "合成怠速 / 基础音量", 0, 40, store.engineIdleVolume(), value -> value + "%",
+        value -> store.prefs.edit().putInt("engine.idle.volume", value).apply(), "engine.idle-volume");
+    body.addView(label("合成模式：ICC上电且P/N/D静止时播放怠速；行驶曲线音量不低于此基础值，最终乘总音量。设为0可关闭基础声。不改变自定义循环模式。", 12, theme.muted));
     body.addView(button("音频输出设置", () -> {
       shutdown();
       Context owner = getContext();
@@ -149,7 +152,7 @@ final class EngineSettingsView extends LinearLayout {
     body.addView(label("音高0.50–2.00倍；音量/增强0–100%。固定横轴锚点间线性插值，超出末点保持末值。增强只使用正加速度；减速不会被当作加速。", 12, theme.muted));
     slider(body, "响应平滑时间", 200, 2000, profile.responseMillis, value -> value + " ms",
         value -> { profile = profile.response(value); save(); }, "engine.response");
-    body.addView(label("平滑时间越长，响应越柔和；车速曲线拟合窗口约1.5秒，真实延迟还包括ICC更新。断连、旧数据、未知挡位及P/N/R立即静音，重连需重新积累样本。", 12, theme.muted));
+    body.addView(label("平滑时间越长，响应越柔和；车速拟合窗口约1.5秒。合成模式P/N/D静止保留怠速；R挡、断连、旧数据、未知挡位或电源关闭立即静音，行驶调制需重新积累样本。", 12, theme.muted));
     rebuildPoints();
   }
 
@@ -404,7 +407,9 @@ final class EngineSettingsView extends LinearLayout {
         reading.optString("status"), measurements,
         reading.optDouble("pitch", 1), reading.optDouble("gain") * 100,
         reading.optString("audio", "声浪未播放") + " · 目标参数不代表扬声器已出声"));
-    if (store.engineSynth() && reading.optBoolean("estimating")) live.append(String.format(Locale.CHINA,
+    if (store.engineSynth() && "idle".equals(reading.optString("mode"))) live.append(String.format(Locale.CHINA,
+        "\n虚拟怠速 %.0f RPM（不是车辆实测）", diagnostics.enginePowertrain.optDouble("rpm")));
+    else if (store.engineSynth() && reading.optBoolean("estimating")) live.append(String.format(Locale.CHINA,
         "\n虚拟挡位 %d · 虚拟转速 %.0f RPM（不是车辆实测）",
         diagnostics.enginePowertrain.optInt("gear"), diagnostics.enginePowertrain.optDouble("rpm")));
   }

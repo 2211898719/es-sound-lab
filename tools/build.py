@@ -70,7 +70,13 @@ def main():
     parser.add_argument("--test-only", action="store_true")
     parser.add_argument("--compile-only", action="store_true",
                         help="Compile resources, Java and DEX without signing or changing dist artifacts")
+    parser.add_argument("--unsigned", action="store_true",
+                        help="Build an aligned unsigned APK for signing in the original key environment")
+    parser.add_argument("--keystore", type=Path,
+                        help="Existing signing keystore; explicit paths are never generated or replaced")
     args = parser.parse_args()
+    if args.keystore is not None and not args.keystore.expanduser().is_file():
+        parser.error("The specified signing keystore does not exist")
     test()
     if args.test_only:
         return
@@ -107,12 +113,18 @@ def main():
         for p in (BUILD / "dex").glob("*.dex"):
             z.write(p, p.name)
     run(bt / "zipalign", "-f", "4", BUILD / "unsigned.apk", BUILD / "aligned.apk")
-    key = ROOT / "tools/debug.keystore"
+    if args.unsigned:
+        apk = DIST / "es-sound-lab-0.3.35-unsigned.apk"
+        shutil.copy2(BUILD / "aligned.apk", apk)
+        run(bt / "zipalign", "-c", "4", apk)
+        print("Unsigned APK (must be signed with the existing installation's key):", apk)
+        return
+    key = args.keystore.expanduser().resolve() if args.keystore is not None else ROOT / "tools/debug.keystore"
     if not key.exists():
         run("keytool", "-genkeypair", "-keystore", key, "-alias", "androiddebugkey",
             "-storepass", "android", "-keypass", "android", "-dname", "CN=ES Sound Lab Debug,O=Local,C=CN",
             "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000", "-storetype", "JKS")
-    apk = DIST / "es-sound-lab-0.3.34-debug.apk"
+    apk = DIST / "es-sound-lab-0.3.35-debug.apk"
     signer = bt / "lib/apksigner.jar"
     run("java", "-jar", signer, "sign", "--ks", key, "--ks-key-alias", "androiddebugkey",
         "--ks-pass", "pass:android", "--key-pass", "pass:android", "--out", apk, BUILD / "aligned.apk")
@@ -120,7 +132,7 @@ def main():
     run(bt / "zipalign", "-c", "4", apk)
     metadata = {"file": apk.name, "bytes": apk.stat().st_size,
                 "sha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
-                "package": "cn.es.soundlab", "version": "0.3.34", "versionCode": 40, "minSdk": 26,
+                "package": "cn.es.soundlab", "version": "0.3.35", "versionCode": 41, "minSdk": 26,
                 "targetSdk": 28, "compileSdk": 35, "signing": "local debug certificate"}
     (DIST / "build-info.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
     print(json.dumps(metadata, ensure_ascii=False, indent=2))

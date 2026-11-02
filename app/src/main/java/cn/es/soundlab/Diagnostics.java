@@ -19,6 +19,25 @@ public final class Diagnostics {
   private volatile JSONObject engineReading = new JSONObject();
   volatile JSONObject engineDemoReading = new JSONObject();
   volatile JSONObject enginePowertrain = new JSONObject();
+  private final ArrayDeque<JSONObject> engineHistory = new ArrayDeque<>();
+  private String engineMode = "paused";
+
+  synchronized void engineEvent(String type, String detail) {
+    try {
+      engineHistory.addLast(new JSONObject().put("time", System.currentTimeMillis())
+          .put("type", type).put("detail", detail));
+      while (engineHistory.size() > 120) engineHistory.removeFirst();
+    } catch (Exception ignored) {}
+  }
+
+  synchronized void engineMode(String mode) {
+    try { engineReading.put("mode", mode); } catch (Exception ignored) {}
+    if (!mode.equals(engineMode)) {
+      engineMode = mode;
+      engineEvent("模式变化", mode + " · " + engineReading.optString("status")
+          + " · " + engineReading.optString("audio"));
+    }
+  }
 
   void engineReading(String status, boolean active, EngineMotion motion, float pitch, float gain, float load, String audio) {
     try {
@@ -793,6 +812,8 @@ public final class Diagnostics {
     markers.clear();
     history.clear();
     events.clear();
+    engineHistory.clear();
+    engineMode = "paused";
     filteredLogs = 0;
     acceptedLogs = 0;
     rejectedLogs = 0;
@@ -850,7 +871,7 @@ public final class Diagnostics {
     JSONObject root = new JSONObject();
     root.put("schemaVersion", 2);
     root.put("application", "cn.es.soundlab");
-    root.put("version", "0.3.34");
+    root.put("version", "0.3.35");
     root.put("vehicleProfile", "星纪元 ES / 原 APK 星途 ES 路径");
     root.put("exportedAt", System.currentTimeMillis());
     root.put("manufacturer", Build.MANUFACTURER);
@@ -871,6 +892,9 @@ public final class Diagnostics {
         .put("mode", store.engineSynth() ? "multilayer-synth" : "custom-loop")
         .put("renderer", store.engineSynth() ? "es-independent-seven-layer-pcm-v1" : "continuous-pcm48k-stereo-interpolated-phase-loop")
         .put("synthesis", store.engineTuning().json()).put("powertrain", enginePowertrain)
+        .put("masterVolumePercent", store.volume("engine")).put("idleVolumePercent", store.engineIdleVolume())
+        .put("selectedOutputId", store.prefs.getInt("output", -1))
+        .put("history", new JSONArray(engineHistory))
         .put("sourceCredits", store.engineSynth() ? "ES independent synthesis; no third-party audio or website code bundled"
             : "CC0: domasx2 / Racing car engine sound loops / loop_0.wav")
         .put("loopSpliceMaxMillis", store.engineSynth() ? 0 : 30)
@@ -878,6 +902,7 @@ public final class Diagnostics {
         .put("previewAttackMillis", store.engineSynth() ? 60 : 25).put("previewReleaseMillis", store.engineSynth() ? 160 : 80)
         .put("previewSilentTailMillis", 100).put("parameterSmoothingMillis", store.engineSynth() ? 45 : 35)
         .put("speedMaxAgeMillis", EngineMotion.MAX_AGE).put("requiresGear", "D")
+        .put("idlePolicy", "synth-only-fresh-ICC-power-on-or-start-P-N-D-and-zero-or-confirmed-omitted-speed")
         .put("outputPolicy", "normal-selected-output-not-factory-ASD-or-AVAS"));
     root.put("iccConfiguration", new JSONObject().put("intervalMillis", store.iccIntervalMillis())
         .put("lockConfirmed", store.iccTriggerConfirmed("lock"))

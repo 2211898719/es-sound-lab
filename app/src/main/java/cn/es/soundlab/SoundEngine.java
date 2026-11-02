@@ -460,6 +460,9 @@ public final class SoundEngine {
     try {
       EngineVoice created = engineFactory.create(context, store.engineSource(), preview,
           selectedDevice(), new EngineVoice.Listener() {
+            @Override public void started(String output) {
+              if (engineVoice == expected[0] && !closed) diag.engineEvent("PCM输出启动", output);
+            }
             @Override public void finished() {
               if (engineVoice != expected[0] || closed) return;
               if (enginePreview) next();
@@ -467,6 +470,7 @@ public final class SoundEngine {
             }
             @Override public void failed(Exception error) {
               if (engineVoice != expected[0] || closed) return;
+              diag.engineEvent("播放失败", error.toString());
               engineBlocked = true;
               fail(error);
               if (enginePreview) { releaseShot(); abandon(); }
@@ -475,6 +479,7 @@ public final class SoundEngine {
           });
       expected[0] = created;
       engineVoice = created;
+      recordEngineRequest(preview);
       if (!preview) loopId = "engine.loop";
       created.target(preview ? 1 : loopRate, (preview ? 1 : engineGain) * store.volume("engine") / 100f,
           preview ? store.engineSynth() ? .5f : 0 : engineLoad);
@@ -482,8 +487,22 @@ public final class SoundEngine {
     } catch (Exception error) {
       enginePreview = false;
       engineBlocked = true;
+      diag.engineEvent("播放失败", error.toString());
       fail(error);
       abandon();
+    }
+  }
+
+  private void recordEngineRequest(boolean preview) {
+    try {
+      AudioDeviceInfo device = selectedDevice();
+      diag.engineEvent("播放请求", (preview ? "试听" : engineDemo ? "虚拟驾驶" : "实车声浪")
+          + " · source=" + store.engineSource() + " · master=" + store.volume("engine")
+          + "% · output=" + (device == null ? "系统媒体输出" : device.getId() + "/" + device.getAddress())
+          + " · mediaVolume=" + (audio == null ? "unknown" : audio.getStreamVolume(AudioManager.STREAM_MUSIC)
+              + "/" + audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)));
+    } catch (RuntimeException error) {
+      diag.engineEvent("播放请求", "音频输出元数据不可读：" + error);
     }
   }
 
@@ -528,6 +547,7 @@ public final class SoundEngine {
                         || continuous && change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
                       stop();
                       focusBlocked = true;
+                      if (continuous) diag.engineEvent("音频焦点丢失", "change=" + change + "；停止播放，等待用户重新启用");
                       diag.line("播放", "音频焦点被其他应用接管");
                     } else if (change == AudioManager.AUDIOFOCUS_GAIN) {
                       focusBlocked = false;
@@ -539,6 +559,8 @@ public final class SoundEngine {
     try {
       int result = audio.requestAudioFocus(focus);
       focused = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+      if (continuous) diag.engineEvent("音频焦点申请", "usage=" + usage + " · result=" + result
+          + (focused ? " · 已授予" : " · 未授予，不强播"));
       if (external) {
         diag.lockFocusAt = System.currentTimeMillis();
         diag.lockFocusResult = "result=" + result + (focused ? "（已授予）" : "（未授予）");
@@ -548,6 +570,7 @@ public final class SoundEngine {
       }
     } catch (RuntimeException error) {
       focused = false;
+      if (continuous) diag.engineEvent("音频焦点异常", error.toString());
       if (external) {
         diag.lockFocusAt = System.currentTimeMillis();
         diag.lockFocusResult = "request-exception:" + error.getClass().getSimpleName();

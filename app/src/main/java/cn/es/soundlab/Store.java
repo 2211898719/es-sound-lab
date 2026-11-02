@@ -103,6 +103,8 @@ public final class Store {
 
   boolean engineSynth() { return prefs.getBoolean("engine.synth.enabled", false); }
 
+  int engineIdleVolume() { return Math.max(0, Math.min(40, prefs.getInt("engine.idle.volume", 18))); }
+
   EngineTuning engineTuning() {
     return new EngineTuning(prefs.getInt("engine.synth.style", 0), prefs.getInt("engine.synth.tone", 100),
         prefs.getInt("engine.synth.intensity", 70), prefs.getInt("engine.synth.shifting", 55));

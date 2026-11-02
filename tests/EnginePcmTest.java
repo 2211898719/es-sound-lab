@@ -193,9 +193,10 @@ public final class EnginePcmTest {
 
   @Test @Config(shadows = TrackShadow.class)
   public void synthesizedWorkerFinishesPreviewAndReleasesOutput() throws Exception {
-    AtomicInteger completed = new AtomicInteger(), errors = new AtomicInteger();
+    AtomicInteger completed = new AtomicInteger(), errors = new AtomicInteger(), started = new AtomicInteger();
     EngineVoice voice = new PcmEnginePlayer(RuntimeEnvironment.getApplication(),
         new EngineTuning(0, 100, 70, 55).source(), true, null, new EngineVoice.Listener() {
+          public void started(String output) { assertTrue(output.contains("route=")); started.incrementAndGet(); }
           public void finished() { completed.incrementAndGet(); }
           public void failed(Exception error) { errors.incrementAndGet(); }
         });
@@ -204,6 +205,7 @@ public final class EnginePcmTest {
       await(() -> completed.get() + errors.get() > 0);
       assertEquals(0, errors.get());
       assertEquals(1, completed.get());
+      assertEquals(1, started.get());
       await(() -> TrackShadow.releases > 0);
       assertEquals(1, TrackShadow.plays);
     } finally { voice.close(); }

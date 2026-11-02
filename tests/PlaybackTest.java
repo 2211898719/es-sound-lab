@@ -387,6 +387,96 @@ public final class PlaybackTest {
     return preview ? null : ReflectionHelpers.getField(engineAudio(), "engineVoice");
   }
 
+  private void engineSnapshot(int rawGear, int rawPower, Integer speed) throws Exception {
+    org.json.JSONObject fields = new org.json.JSONObject().put("powerRaw", rawPower);
+    if (speed != null) fields.put("speedRaw", speed);
+    for (Protocol.Sample sample : new IccVehicleWire.Condition(rawGear, fields).stateSamples(System.currentTimeMillis()))
+      accept(sample);
+  }
+
+  @Test public void synthesizedIdleStartsAfterPowerOnAndContinuesThroughStoppedDrive() throws Exception {
+    store.enable("gear", false);
+    store.prefs.edit().putBoolean("engine.synth.enabled", true).apply();
+    store.enable("engine", true);
+    engineSnapshot(1, 2, null); advance(100);
+    assertNull("ACC is not power on", engineLoop());
+    engineSnapshot(1, 3, null); advance(100);
+    FakeEngineVoice idle = engineLoop();
+    assertNotNull(idle);
+    assertEquals(800f / 3000, idle.rate, .0001f);
+    assertEquals(.18f * store.volume("engine") / 100, idle.gain, .0001f);
+    assertEquals("idle", service.diagnostics.engineReading().optString("mode"));
+    assertFalse("omitted speed must not become a measured acceleration", service.diagnostics.engineReading().optBoolean("estimating"));
+    assertTrue(service.diagnostics.engineReading().isNull("rawKmh"));
+    engineSnapshot(2, 3, 0); advance(100);
+    assertNotNull("neutral retains idle", engineLoop());
+    engineSnapshot(3, 3, null); advance(100);
+    assertNotNull("stopped D retains idle", engineLoop());
+    engineSnapshot(3, 3, 12); advance(300);
+    engineSnapshot(3, 3, 14); advance(300);
+    assertEquals("drive", service.diagnostics.engineReading().optString("mode"));
+    assertTrue(service.diagnostics.engineReading().optBoolean("estimating"));
+    engineSnapshot(3, 3, null); advance(100);
+    assertEquals("idle", service.diagnostics.engineReading().optString("mode"));
+    assertNotNull(engineLoop());
+    assertEquals(800f / 3000, engineLoop().rate, .0001f);
+  }
+
+  @Test public void synthesizedIdleRespectsPowerGearStalenessStopAndMasterVolume() throws Exception {
+    store.enable("gear", false);
+    store.prefs.edit().putBoolean("engine.synth.enabled", true).apply();
+    store.enable("engine", true);
+    engineSnapshot(1, 3, null); advance(100);
+    assertNotNull(engineLoop());
+    store.volume("engine", 0); advance(100);
+    assertEquals(0, engineLoop().gain, 0);
+    store.prefs.edit().putInt("engine.idle.volume", 0).apply();
+    store.volume("engine", 65); advance(100);
+    assertEquals(0, engineLoop().gain, 0);
+    for (int raw : new int[] {4, 0}) {
+      engineSnapshot(raw, 3, 0); advance(100);
+      assertNull("reverse or unknown gear stops idle", engineLoop());
+    }
+    engineSnapshot(1, 3, null); advance(100);
+    service.calibrationMode(true); advance(100);
+    assertNull(engineLoop());
+    service.calibrationMode(false);
+    engineSnapshot(1, 3, null); advance(100);
+    assertNotNull(engineLoop());
+    engineSnapshot(1, 1, null); advance(100);
+    assertNull("power off stops idle", engineLoop());
+    engineSnapshot(1, 3, null); advance(2700);
+    assertNull("stale replies stop idle", engineLoop());
+    engineSnapshot(1, 3, null); advance(100);
+    service.stopAudio();
+    engineSnapshot(1, 3, null); advance(100);
+    assertNull("new replies must not undo manual stop", engineLoop());
+  }
+
+  @Test public void fullIccSnapshotsFromReportedDriveCanStartSynthesisAndRetainPlaybackEvidence() throws Exception {
+    store.enable("gear", false);
+    store.engineProfile(EngineProfile.preset(1));
+    store.prefs.edit().putBoolean("engine.synth.enabled", true).apply();
+    store.enable("engine", true);
+    // Representative ordered snapshots: ACC/P, ON/P, then D with real speed fields.
+    engineSnapshot(1, 2, null); advance(260);
+    engineSnapshot(1, 3, null); advance(260);
+    for (int speed : new int[] {1, 2, 5, 7, 10, 12, 20, 22, 24, 27}) {
+      engineSnapshot(3, 3, speed); advance(260);
+    }
+    assertNotNull(engineLoop());
+    assertTrue(engineLoop().gain >= .18f * store.volume("engine") / 100);
+    engineSnapshot(3, 3, null); advance(100);
+    org.json.JSONObject exported = new org.json.JSONObject(service.diagnostics.export(true, store))
+        .getJSONObject("engineSimulation");
+    assertEquals("idle", exported.getJSONObject("live").getString("mode"));
+    String history = exported.getJSONArray("history").toString();
+    assertTrue(history.contains("播放请求"));
+    assertTrue(history.contains("音频焦点申请"));
+    assertTrue(history.contains("drive"));
+    assertEquals(65, exported.getInt("masterVolumePercent"));
+  }
+
   @Test public void synthesizedRealPlaybackUsesFreshDAndStopsOnStalenessAndPark() {
     store.prefs.edit().putBoolean("engine.synth.enabled", true).apply();
     startEngine();

@@ -76,6 +76,14 @@ final class PcmEnginePlayer implements EngineVoice {
             output.play();
           }
           started = true;
+          String route;
+          try {
+            AudioDeviceInfo routed = output.getRoutedDevice();
+            route = routed == null ? "系统尚未报告实际路由" : routed.getId() + "/" + routed.getAddress();
+          } catch (RuntimeException error) { route = "读取失败：" + error.getClass().getSimpleName(); }
+          final String reportedRoute = route;
+          main.post(() -> { if (!closed) listener.started("AudioTrack已启动 · route=" + reportedRoute
+              + "（不代表物理扬声器已出声）"); });
         }
         if (written - reported >= EnginePcm.OUTPUT_RATE / 2) {
           reported = written;

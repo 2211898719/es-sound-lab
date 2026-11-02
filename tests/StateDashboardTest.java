@@ -256,7 +256,7 @@ public final class StateDashboardTest {
     assertTrue(service.diagnostics.iccVehicleSourceSummary().contains("retry-wait"));
     assertTrue(service.diagnostics.iccVehicleSourceSummary().contains("自动重试"));
     JSONObject report = new JSONObject(service.diagnostics.export(false, store));
-    assertEquals("0.3.34", report.getString("version"));
+    assertEquals("0.3.35", report.getString("version"));
     assertTrue(report.getJSONObject("iccVehicleSource").getBoolean("retryScheduled"));
     assertTrue(report.getJSONObject("iccVehicleSource").getBoolean("active"));
     transport.error = null;

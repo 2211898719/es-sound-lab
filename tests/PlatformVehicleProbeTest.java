@@ -395,7 +395,7 @@ public final class PlatformVehicleProbeTest {
     JSONObject persisted = Diagnostics.latestPlatformProbe(app);
     assertEquals(1, persisted.optInt("gearCallbackCount"));
     JSONObject exported = new JSONObject(diagnostics.export(false, new Store(app)));
-    assertEquals("0.3.34", exported.optString("version"));
+    assertEquals("0.3.35", exported.optString("version"));
     assertEquals(1, exported.getJSONObject("platformVehicleProbe").optInt("gearCallbackCount"));
     assertEquals(0, exported.getJSONArray("candidates").length());
   }

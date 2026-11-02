@@ -1,12 +1,13 @@
 {
-  "file": "es-sound-lab-0.3.34-debug.apk",
-  "bytes": 1072282,
-  "sha256": "30fa273a73f8d7383a5ab9d3eec27b84b3ca6e14c5d6c0faa7bdd2ac777ce988",
+  "file": "es-sound-lab-0.3.35-debug.apk",
+  "bytes": 1076378,
+  "sha256": "603cb200910fb7bc936c3e4f2f960da5ec7b2b9e70831b510411d5a5732829fc",
   "package": "cn.es.soundlab",
-  "version": "0.3.34",
-  "versionCode": 40,
+  "version": "0.3.35",
+  "versionCode": 41,
   "minSdk": 26,
   "targetSdk": 28,
   "compileSdk": 35,
-  "signing": "local debug certificate"
+  "signing": "existing 0.3.34 debug certificate",
+  "certificateSha256": "71205291944d3691422370a1b1923a078e40ab810a63b25a4040aac069465ad4"
 }

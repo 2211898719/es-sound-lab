@@ -201,6 +201,8 @@ public final class DarkThemeTest {
       diagnostics.stateReading(sample);
       diagnostics.live(sample.key, sample.value == null ? "不可用" : sample.value, "ICC");
     }
+    // stateReading records its own receive time; render after all those receives.
+    now = System.currentTimeMillis();
     dashboard.update(diagnostics, store, true, now);
     TextView gear = dashboard.findViewWithTag("state.value.gear");
     TextView speed = dashboard.findViewWithTag("state.value.speed");
